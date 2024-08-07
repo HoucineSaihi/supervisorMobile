@@ -1,0 +1,47 @@
+import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
+
+class SousMission {
+  int? id;
+  String? libelle;
+  String? code;
+  String? description;
+  DateTime? dateCreation;
+  int? missionId;
+  List<QuestionMission>? missionQuestions;
+
+  SousMission({
+    this.id,
+    this.libelle,
+    this.code,
+    this.description,
+    this.dateCreation,
+    this.missionId,
+    this.missionQuestions,
+  });
+
+  factory SousMission.fromJson(Map<String, dynamic> json) {
+    return SousMission(
+      id: json['id'] as int?,
+      libelle: json['libelle'] as String?,
+      code: json['code'] as String?,
+      description: json['description'] as String?,
+      dateCreation: json['dateCreation'] != null ? DateTime.parse(json['dateCreation']) : null,
+      missionId: json['missionId'] as int?,
+      missionQuestions: json['missionQuestions'] != null
+          ? (json['missionQuestions'] as List).map((i) => QuestionMission.fromJson(i)).toList()
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'libelle': libelle,
+      'code': code,
+      'description': description,
+      'dateCreation': dateCreation?.toIso8601String(),
+      'missionId': missionId,
+      'missionQuestions': missionQuestions?.map((q) => q.toJson()).toList(),
+    };
+  }
+}
