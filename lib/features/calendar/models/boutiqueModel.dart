@@ -1,7 +1,7 @@
 import 'package:supervisormobile/features/calendar/models/groupModel.dart';
 
 class BoutiqueModel {
-  int? id;
+  int id;
   String? code;
   String? libelle;
   String? city;
@@ -20,7 +20,7 @@ class BoutiqueModel {
   Group? group;
 
   BoutiqueModel({
-    this.id,
+    required this.id,
     this.code,
     this.libelle,
     this.city,
@@ -41,7 +41,7 @@ class BoutiqueModel {
 
   factory BoutiqueModel.fromJson(Map<String, dynamic> json) {
     return BoutiqueModel(
-      id: json['id'] as int?,
+      id: json['id'] as int,
       code: json['code'] as String?,
       libelle: json['libelle'] as String?,
       city: json['city'] as String?,

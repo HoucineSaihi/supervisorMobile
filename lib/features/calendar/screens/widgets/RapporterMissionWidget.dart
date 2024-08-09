@@ -91,18 +91,18 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
             Text('Description: ${widget.mission.description ?? 'No Description'}'),
             SizedBox(height: 16),
             Text(
-              'Planified At:',
+              'Date de planification:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(planifiedAt),
             SizedBox(height: 16),
             Text(
-              'Boutique Info:',
+              'Information Boutique:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text('Boutique Code: $boutiqueCode'),
             Text('Boutique Libelle: $boutiqueLibelle'),
-            SizedBox(height: 16),
+            SizedBox(height: 25),
             Text(
               'Choisir la date pour rapporter la mission',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -111,7 +111,7 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
             // Display the selected date
             if (_selectedDate != null)
               Text(
-                'Selected Date: ${_dateFormat.format(_selectedDate!)}',
+                'Date sélectionner: ${_dateFormat.format(_selectedDate!)}',
                 style: TextStyle(fontSize: 16,),
               ),
             SizedBox(height: 8),

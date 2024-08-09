@@ -11,9 +11,9 @@ class MissionDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mission Details'),
+        title: Text('Detail de la mission '),
       ),
-      body: MissionDetailsWidget(missionId: mission.id),
+      body: MissionDetailsWidget(missionId: mission.id,mode: 1,),
     );
   }
 }

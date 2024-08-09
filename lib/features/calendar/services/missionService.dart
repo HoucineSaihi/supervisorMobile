@@ -1,11 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 
 class MissionService {
-  final String baseURL = "https://280f-41-62-141-60.ngrok-free.app";
+  final String baseURL = "https://6a93-102-159-138-61.ngrok-free.app";
 
   // API endpoints using baseURL
   late final String apiUrl;
@@ -13,9 +17,9 @@ class MissionService {
   late final String actionsUrl;
 
   MissionService() {
-    apiUrl = 'https://14a0-102-157-194-217.ngrok-free.app/api/Missions/getMissionsForAreaManager';
-    missionDetailsUrl = 'https://14a0-102-157-194-217.ngrok-free.app/api/Missions/missionAllQuestion';
-    actionsUrl = 'https://14a0-102-157-194-217.ngrok-free.app/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
+    apiUrl = 'https://6a93-102-159-138-61.ngrok-free.app/api/Missions/getMissionsForAreaManager';
+    missionDetailsUrl = 'https://6a93-102-159-138-61.ngrok-free.app/api/Missions/missionAllQuestion';
+    actionsUrl = 'https://6a93-102-159-138-61.ngrok-free.app/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
   }
 
   Future<List<Mission>> getPlanifiedMissions(List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt) async {
@@ -59,7 +63,7 @@ class MissionService {
 
   Future<QuestionMission> getQuestionDetails(int questionId) async {
     final response = await http.get(
-      Uri.parse('https://14a0-102-157-194-217.ngrok-free.app/api/MissionQuestions/$questionId'),
+      Uri.parse('https://6a93-102-159-138-61.ngrok-free.app/api/MissionQuestions/$questionId'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -91,7 +95,7 @@ class MissionService {
   }
 
   Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion) async {
-    final String url = '$baseURL/api/MissionQuestions/$questionId';
+    final String url = 'https://6a93-102-159-138-61.ngrok-free.app/api/MissionQuestions/$questionId';
 
     final response = await http.put(
       Uri.parse(url),
@@ -110,7 +114,7 @@ class MissionService {
   }
 
   Future<void> updateMission(int missionId, Mission updatedMission,int status) async {
-    final String url = 'https://14a0-102-157-194-217.ngrok-free.app/api/Missions/$missionId';
+    final String url = 'https://6a93-102-159-138-61.ngrok-free.app/api/Missions/$missionId';
     updatedMission.status = status;
     final response = await http.put(
       Uri.parse(url),
@@ -127,4 +131,114 @@ class MissionService {
       throw Exception('Failed to update mission');
     }
   }
+
+  Future<List<BoutiqueModel>> getBoutiques() async {
+    final String boutiquesUrl = 'https://6a93-102-159-138-61.ngrok-free.app/api/Boutiques';
+
+    final response = await http.get(
+      Uri.parse(boutiquesUrl),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> body = json.decode(response.body);
+      List<BoutiqueModel> boutiques = body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
+      return boutiques;
+    } else {
+      throw Exception('Failed to load boutiques');
+    }
+  }
+
+  Future<List<Mission>> getAllNotPlanifiedMissions() async {
+    final String url = 'https://6a93-102-159-138-61.ngrok-free.app/api/Missions/GetAllNotPlanifiedMissions/2'; // Static userID is 2
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> body = json.decode(response.body);
+      List<Mission> missions = body.map((dynamic item) => Mission.fromJson(item)).toList();
+      return missions;
+    } else {
+      throw Exception('Failed to load missions');
+    }
+  }
+
+  Future<void> addMission(Mission mission) async {
+    final response = await http.post(
+      Uri.parse('https://6a93-102-159-138-61.ngrok-free.app/api/Missions'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(mission.toJson()),
+    );
+
+    if (response.statusCode == 201) {
+      // Mission added successfully
+    } else {
+      // Handle failure
+      throw Exception('Failed to add mission');
+    }
+  }
+
+  Future<String> uploadFile(File file) async {
+    final Uri uri = Uri.parse('$baseURL/api/Files'); // Construct the URI for your file upload endpoint
+
+    // Determine the MIME type based on the file extension
+    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+    final mimeTypeParts = mimeType.split('/');
+
+    var request = http.MultipartRequest('POST', uri)
+      ..headers['accept'] = '*/*'
+      ..headers['Content-Type'] = 'multipart/form-data'
+      ..files.add(
+        http.MultipartFile(
+          'image', // Name of the file parameter in your API
+          file.readAsBytes().asStream(),
+          file.lengthSync(),
+          filename: file.path.split('/').last,
+          contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+        ),
+      );
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      final responseString = await response.stream.bytesToString();
+      final responseData = json.decode(responseString);
+      return responseData['file']; // Extract the filename from the response
+    } else {
+      throw Exception('Failed to upload file');
+    }
+  }
+
+  Future<File> getImage(String filename) async {
+    final Uri uri = Uri.parse('$baseURL/api/Files/getImage/$filename');
+
+    final response = await http.get(uri, headers: {'accept': 'image/jpeg'});
+
+    if (response.statusCode == 200) {
+      final bytes = response.bodyBytes;
+
+      // Create a temporary file to save the image
+      final tempDir = await Directory.systemTemp.createTemp();
+      final file = File('${tempDir.path}/$filename');
+
+      // Write the image bytes to the file
+      await file.writeAsBytes(bytes);
+
+      return file;
+    } else {
+      throw Exception('Failed to retrieve image: ${response.reasonPhrase}');
+    }
+  }
+
+
+
 }

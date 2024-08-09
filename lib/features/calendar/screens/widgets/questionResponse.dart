@@ -50,23 +50,32 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       if (_formKey.currentState!.validate()) {
         _formKey.currentState!.save();
 
-        // Create the updated QuestionMission object
-        final updatedQuestion = QuestionMission(
-          id: widget.questionId,
-          description: "", // Optionally update description if needed
-          reponse: widget.response,
-          commentaire: _commentController.text,
-          clouture: null, // Update clouture if needed
-          actionId: _actions.firstWhere((action) => action.id.toString() == _selectedAction).id,
-          fileName: '', // Optionally update fileName if needed
-        );
+        // Ensure there is a file to upload
+        if (_imageFiles != null && _imageFiles!.isNotEmpty) {
+          try {
+            // Upload the first selected file
+            final firstFile = _imageFiles!.first;
+            final fileName = await MissionService().uploadFile(File(firstFile.path));
 
-        // Call the service method to update the question
-        try {
-          await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question updated successfully')));
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update question')));
+            // Create the updated QuestionMission object
+            final updatedQuestion = QuestionMission(
+              id: widget.questionId,
+              description: "", // Optionally update description if needed
+              reponse: widget.response,
+              commentaire: _commentController.text,
+              clouture: null, // Update clouture if needed
+              actionId: _actions.firstWhere((action) => action.id.toString() == _selectedAction).id,
+              fileName: fileName, // Set the filename returned from the upload
+            );
+
+            // Call the service method to update the question
+            await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question updated successfully')));
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload file')));
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No file selected')));
         }
       }
     } else {
@@ -88,6 +97,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       }
     }
   }
+
+
 
   void _onActionChanged(ActionM? newValue) {
     setState(() {

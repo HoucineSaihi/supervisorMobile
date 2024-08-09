@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:grouped_list/grouped_list.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
 import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
@@ -7,6 +8,7 @@ import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/screens/checklist.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/RapporterMissionWidget.dart';
+import 'package:supervisormobile/features/calendar/screens/widgets/addMissionForm.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/calendar_appbar.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/utils/Helpers/helper_functions.dart';
@@ -24,7 +26,7 @@ class CalendarPlanning extends StatefulWidget {
 
 class _CalendarPlanningState extends State<CalendarPlanning> {
   late Future<List<Mission>> futureMissions;
-  CalendarFormat _calendarFormat = CalendarFormat.month;
+  CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<int> userIds = [2]; // example userIds
@@ -84,6 +86,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
       'status': colors['status']!
     };
   }
+
   Widget _body() {
     return Center(
       child: GestureDetector(onTap: () {}, child: const Text("Sticky")),
@@ -186,7 +189,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16, // Increase font size
-                      color: Colors.black,
                     ),
                     children: <TextSpan>[
                       TextSpan(
@@ -194,7 +196,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         style: TextStyle(
                           fontWeight: FontWeight.normal,
                           fontSize: 16, // Increase font size
-                          color: Colors.black,
                         ),
                       ),
                     ],
@@ -210,7 +211,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16, // Increase font size
-                      color: Colors.black,
                     ),
                     children: <TextSpan>[
                       TextSpan(
@@ -218,7 +218,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         style: TextStyle(
                           fontWeight: FontWeight.normal,
                           fontSize: 16, // Increase font size
-                          color: Colors.black,
                         ),
                       ),
                     ],
@@ -234,7 +233,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16, // Increase font size
-                      color: Colors.black,
                     ),
                     children: <TextSpan>[
                       TextSpan(
@@ -242,7 +240,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         style: TextStyle(
                           fontWeight: FontWeight.normal,
                           fontSize: 16, // Increase font size
-                          color: Colors.black,
                         ),
                       ),
                     ],
@@ -258,7 +255,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16, // Increase font size
-                      color: Colors.black,
                     ),
                     children: <TextSpan>[
                       TextSpan(
@@ -266,7 +262,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         style: TextStyle(
                           fontWeight: FontWeight.normal,
                           fontSize: 16, // Increase font size
-                          color: Colors.black,
                         ),
                       ),
                     ],
@@ -282,7 +277,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16, // Increase font size
-                      color: Colors.black,
                     ),
                     children: <TextSpan>[
                       TextSpan(
@@ -290,7 +284,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         style: TextStyle(
                           fontWeight: FontWeight.normal,
                           fontSize: 16, // Increase font size
-                          color: Colors.black,
                         ),
                       ),
                     ],
@@ -306,7 +299,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16, // Increase font size
-                      color: Colors.black,
                     ),
                     children: <TextSpan>[
                       TextSpan(
@@ -314,7 +306,6 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         style: TextStyle(
                           fontWeight: FontWeight.normal,
                           fontSize: 16, // Increase font size
-                          color: Colors.black,
                         ),
                       ),
                     ],
@@ -366,10 +357,10 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
         headerHeight = 500.0;
         break;
       case CalendarFormat.twoWeeks:
-        headerHeight = 300.0;
+        headerHeight = 330.0;
         break;
       case CalendarFormat.week:
-        headerHeight = 230.0;
+        headerHeight = 250.0;
         break;
       default:
         headerHeight = 500.0; // Default height if needed
@@ -399,8 +390,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                           _selectedDay = selectedDay;
                           _focusedDay = focusedDay;
                           futureMissions = MissionService()
-                              .getPlanifiedMissions(
-                              userIds, boutiqueIds, selectedDay);
+                              .getPlanifiedMissions(userIds, boutiqueIds, selectedDay);
                         });
                       }
                     },
@@ -414,7 +404,34 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                     onPageChanged: (focusedDay) {
                       _focusedDay = focusedDay;
                     },
-                  ),
+                    calendarStyle: CalendarStyle(
+                      defaultTextStyle: TextStyle(color: Colors.white), // Text color of days
+                      todayTextStyle: TextStyle(color: Colors.white), // Text color for today's day
+                      selectedTextStyle: TextStyle(color: Colors.white), // Text color for selected day
+                      weekendTextStyle: TextStyle(color: Colors.white), // Text color for weekend days
+                      outsideTextStyle: TextStyle(color: Colors.white), // Text color for days outside the current month
+                    ),
+                    daysOfWeekStyle: DaysOfWeekStyle(
+                      weekdayStyle: TextStyle(color: Colors.white), // Text color for weekdays
+                      weekendStyle: TextStyle(color: Colors.white), // Text color for weekends
+                    ),
+                    headerStyle: HeaderStyle(
+                      titleTextStyle: TextStyle(color: Colors.white), // Header title text color
+                      formatButtonVisible: true, // Show format button
+                      formatButtonTextStyle: TextStyle(color: Colors.white), // Format button text color
+                      formatButtonDecoration: BoxDecoration(
+                        color: TColors.buttonDisabled, // Background color for format button
+                        borderRadius: BorderRadius.circular(8.0), // Border radius for format button
+                      ),
+                      leftChevronIcon: Icon(Icons.chevron_left, color: Colors.white), // Left navigation arrow color
+                      rightChevronIcon: Icon(Icons.chevron_right, color: Colors.white), // Right navigation arrow color
+                    ),
+                    locale: Localizations.localeOf(context).languageCode,
+                  )
+
+
+
+                  ,
                 ],
               ),
               secondChild: FutureBuilder<List<Mission>>(
@@ -427,23 +444,56 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return Column(
                       children: [
-                        Text(
-                          'Vous avez 0 missions pour ce jour',
-                          style: TextStyle(
-                            color: isDarkMode
-                                ? TColors.textWhite
-                                : TColors.darkGrey,
-                            fontSize: 16,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          // Center the text widgets
+                          children: [
+                            Text(
+                              'Vous avez 0 missions pour ce jour',
+                              style: TextStyle(
+                                color: isDarkMode
+                                    ? TColors.textWhite
+                                    : TColors.darkGrey,
+                                fontSize: 16,
+                              ),
+                              textAlign: TextAlign
+                                  .center, // Center text within the text widget
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Tous les missions sont regroupés avec les boutiques',
+                              style: TextStyle(
+                                color: TColors.darkGrey,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign
+                                  .center, // Center text within the text widget
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        SizedBox(
+                          width: 250.0, // Set a fixed width for the button
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AddMissionForm(Date: _selectedDay),
+                                ),
+                              );
+                            },
+                            icon: Icon(Iconsax.add, color: TColors.buttonPrimary), // Add the icon
+                            label: Text('Ajouter une mission'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: TColors.buttonPrimary, side: BorderSide(color: TColors.buttonPrimary, width: 2), // Border color and width
+                              padding: EdgeInsets.symmetric(vertical: 16.0),
+                              textStyle: TextStyle(fontSize: 16),
+                            ),
                           ),
                         ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Tous les missions sont regroupés avec les boutiques',
-                          style: TextStyle(
-                            color: TColors.darkGrey,
-                            fontSize: 14,
-                          ),
-                        ),
+
+
                       ],
                     );
                   } else {
@@ -455,6 +505,32 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
 
                     return Column(
                       children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center, // Center the children horizontally
+                          children: [
+                            SizedBox(
+                              width: 250.0, // Set a fixed width for the button
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => AddMissionForm(Date: _selectedDay),
+                                    ),
+                                  );
+                                },
+                                icon: Icon(Iconsax.add), // Add the icon
+                                label: Text('Ajouter une mission'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                                  textStyle: TextStyle(fontSize: 16),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 15),
+
                         Column(
                           children: [
                             Center(
@@ -491,12 +567,12 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                           shrinkWrap: true,
                           elements: missions,
                           groupBy: (Mission mission) =>
-                          mission.boutique?.libelle ?? 'No Boutique',
+                              mission.boutique?.libelle ?? 'No Boutique',
                           groupSeparatorBuilder: (String boutiqueLibelle) {
                             // Find a sample mission with the given boutiqueLibelle
                             final sampleMission = missions.firstWhere(
-                                  (mission) =>
-                              mission.boutique?.libelle == boutiqueLibelle,
+                              (mission) =>
+                                  mission.boutique?.libelle == boutiqueLibelle,
                             );
 
                             return Center(
@@ -539,7 +615,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                             final statusData = getStatusColors(mission.status);
                             final colors = getStatusColors(mission.status);
                             final percentage =
-                            calculateAnsweredPercentage(mission);
+                                calculateAnsweredPercentage(mission);
 
                             return GestureDetector(
                               onTap: () {
@@ -565,7 +641,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                       color: Color(int.parse(colors['primary']!
                                           .replaceFirst('0x', '0xff'))),
                                       width:
-                                      8.0, // Adjust the width of the border as needed
+                                          8.0, // Adjust the width of the border as needed
                                     ),
                                   ),
                                   borderRadius: BorderRadius.circular(8.0),
@@ -583,7 +659,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                   padding: const EdgeInsets.all(16.0),
                                   child: Column(
                                     crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                        CrossAxisAlignment.start,
                                     children: [
                                       // Row for code and libelle with status
                                       Row(
@@ -591,7 +667,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Row(
                                                   children: [
@@ -602,10 +678,10 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                           color: Color(int.parse(
                                                               colors['secondary']!
                                                                   .replaceFirst(
-                                                                  '0x',
-                                                                  '0xff'))),
+                                                                      '0x',
+                                                                      '0xff'))),
                                                           fontWeight:
-                                                          FontWeight.bold,
+                                                              FontWeight.bold,
                                                         ),
                                                       ),
                                                     ),
@@ -614,12 +690,12 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                       style: TextStyle(
                                                         color: Color(int.parse(
                                                             statusData[
-                                                            'secondary']!
+                                                                    'secondary']!
                                                                 .replaceFirst(
-                                                                '0x',
-                                                                '0xff'))),
+                                                                    '0x',
+                                                                    '0xff'))),
                                                         fontWeight:
-                                                        FontWeight.bold,
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ],
@@ -631,7 +707,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                     color: Color(int.parse(
                                                         colors['secondary']!
                                                             .replaceFirst(
-                                                            '0x', '0xff'))),
+                                                                '0x', '0xff'))),
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -642,7 +718,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                     color: Color(int.parse(
                                                         colors['secondary']!
                                                             .replaceFirst(
-                                                            '0x', '0xff'))),
+                                                                '0x', '0xff'))),
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -659,16 +735,22 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                             child: LinearProgressIndicator(
                                               value: percentage / 100,
                                               backgroundColor: Colors.grey[200],
-                                              color: Color(int.parse(colors['primary']!.replaceFirst('0x', '0xff'))),
+                                              color: Color(int.parse(
+                                                  colors['primary']!
+                                                      .replaceFirst(
+                                                          '0x', '0xff'))),
                                             ),
                                           ),
-                                          SizedBox(width: 8), // Space between the progress indicator and text
+                                          SizedBox(width: 8),
+                                          // Space between the progress indicator and text
                                           Text(
-                                            '${percentage.toStringAsFixed(0)}%', // Display percentage as text
+                                            '${percentage.toStringAsFixed(0)}%',
+                                            // Display percentage as text
                                             style: TextStyle(
                                               color: Color(int.parse(
                                                   colors['primary']!
-                                                      .replaceFirst('0x', '0xff'))),
+                                                      .replaceFirst(
+                                                          '0x', '0xff'))),
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
@@ -690,19 +772,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
           ],
         ),
       ),
-      floatingActionButton: StickyFloatButton(
-        icon: Icons.add,
-        onPressed: () {
-          // Define what happens when the button is pressed
-          print('Floating action button pressed');
-        },
-        iconSize: 30.0,
-        buttonColor: Colors.blue,
-        iconColor: Colors.white,
-      ),
     );
   }
-
 }
 
 class StickyFloatButton extends StatelessWidget {

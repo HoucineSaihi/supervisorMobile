@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:supervisormobile/utils/theme/custem_themes/bottom_sheet_theme.dart';
 import 'package:supervisormobile/utils/theme/custem_themes/chip_theme.dart';
 import 'package:supervisormobile/utils/theme/custem_themes/elevated_button_theme.dart';
@@ -16,7 +17,7 @@ class TAppTheme{
     useMaterial3: true,
     fontFamily: 'Poppins',
     brightness: Brightness.light,
-    primaryColor: Colors.blue,
+    primaryColor: TColors.primary,
     textTheme: TTextTheme.lightTextTheme,
     chipTheme: TChipTheme.lightChipTheme,
     scaffoldBackgroundColor: Colors.white,
@@ -31,7 +32,7 @@ class TAppTheme{
     useMaterial3: true,
     fontFamily: 'Poppins',
     brightness: Brightness.dark,
-    primaryColor: Colors.blue,
+    primaryColor: TColors.primary,
     textTheme: TTextTheme.darkTextTheme,
     chipTheme: TChipTheme.lightChipTheme,
     scaffoldBackgroundColor: Colors.black,

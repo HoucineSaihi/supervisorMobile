@@ -6,11 +6,13 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/mission_question.dart';
+import 'package:supervisormobile/utils/constants/colors.dart';
 
 class MissionDetailsWidget extends StatefulWidget {
   final int missionId;
+  final int mode; // Add mode attribute
 
-  const MissionDetailsWidget({Key? key, required this.missionId}) : super(key: key);
+  const MissionDetailsWidget({Key? key, required this.missionId, required this.mode}) : super(key: key);
 
   @override
   _MissionDetailsWidgetState createState() => _MissionDetailsWidgetState();
@@ -70,6 +72,17 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: widget.mode == 0
+          ? AppBar(
+        title: Text('Detail de la mission '),
+        leading: IconButton(
+          icon: Icon(Iconsax.arrow_left), // Back arrow icon
+          onPressed: () {
+            Navigator.pop(context); // Navigate back
+          },
+        ),
+      )
+          : null,
       body: FutureBuilder<Mission>(
         future: _missionFuture,
         builder: (context, snapshot) {
@@ -99,11 +112,12 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                           ),
-                          Icon(
-                            allSousMissionsAnswered ? Iconsax.tick_circle : Iconsax.close_circle,
-                            color: allSousMissionsAnswered ? Colors.green : Colors.red,
-                            size: 30,
-                          ),
+                          if (widget.mode == 1) // Show icon based on mode
+                            Icon(
+                              allSousMissionsAnswered ? Iconsax.tick_circle : Iconsax.close_circle,
+                              color: allSousMissionsAnswered ? Colors.green : Colors.red,
+                              size: 30,
+                            ),
                         ],
                       ),
                       SizedBox(height: 16),
@@ -125,85 +139,85 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                     onResponseSelected: (questionId, response) {
                                       // Handle the response selection
                                     },
+                                    mode: widget.mode,
                                   ),
                                 ),
                               );
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(16.0),
-                              child: Row(
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Categorie: ${sousMission.libelle ?? 'No Title'}',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      if (widget.mode == 1) // Show icons based on mode
+                                        if (answeredPercentage == 100)
+                                          Icon(
+                                            Iconsax.tick_circle,
+                                            color: Colors.green,
+                                            size: 30,
+                                          )
+                                        else
+                                          Icon(
+                                            Iconsax.close_circle,
+                                            color: Colors.red,
+                                            size: 30,
+                                          ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
+                                  if (widget.mode == 1) ...[ // Show statistics based on mode
+                                    Divider(),
+                                    SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Row(
                                           children: [
-                                            Expanded(
-                                              child: Text(
-                                                'Categorie: ${sousMission.libelle ?? 'No Title'}',
-                                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                              ),
+                                            Icon(
+                                              Iconsax.tick_square,
+                                              color: Colors.green,
+                                              size: 20,
                                             ),
-                                            if (answeredPercentage == 100)
-                                              Icon(
-                                                Iconsax.tick_circle,
-                                                color: Colors.green,
-                                                size: 30,
-                                              )
-                                            else
-                                              Icon(
-                                                Iconsax.close_circle,
-                                                color: Colors.red,
-                                                size: 30,
-                                              ),
+                                            SizedBox(width: 4),
+                                            Text('${yesPercentage.toStringAsFixed(1)}%'),
                                           ],
                                         ),
-                                        SizedBox(height: 8),
-                                        Divider(),
-                                        SizedBox(height: 8),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Iconsax.tick_square,
-                                                  color: Colors.green,
-                                                  size: 20,
-                                                ),
-                                                SizedBox(width: 4),
-                                                Text('${yesPercentage.toStringAsFixed(1)}%'),
-                                              ],
+                                            Icon(
+                                              Iconsax.close_square,
+                                              color: Colors.red,
+                                              size: 20,
                                             ),
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Iconsax.close_square,
-                                                  color: Colors.red,
-                                                  size: 20,
-                                                ),
-                                                SizedBox(width: 4),
-                                                Text('${noPercentage.toStringAsFixed(1)}%'),
-                                              ],
+                                            SizedBox(width: 4),
+                                            Text('${noPercentage.toStringAsFixed(1)}%'),
+                                          ],
+                                        ),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Iconsax.star,
+                                              color: Colors.blue,
+                                              size: 20,
                                             ),
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Iconsax.star,
-                                                  color: Colors.blue,
-                                                  size: 20,
-                                                ),
-                                                SizedBox(width: 4),
-                                                Text('${answeredPercentage.toStringAsFixed(1)}%'),
-                                              ],
-                                            ),
+                                            SizedBox(width: 4),
+                                            Text('${answeredPercentage.toStringAsFixed(1)}%'),
                                           ],
                                         ),
                                       ],
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -214,62 +228,75 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                   ),
                 ),
                 SizedBox(height: 16),
-                if (mission.status == 1) // Only show button if status is 1
-                  ElevatedButton(
-                    onPressed: () => _handleValidation(mission),
-                    child: Text('Valider'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: Size(double.infinity, 50), // Full width and height
+                if (widget.mode == 1) ...[
+                  // Ensure that only one status is shown at a time
+                  if (mission.status == 1) ...[
+                    ElevatedButton(
+                      onPressed: () => _handleValidation(mission),
+                      child: Text('Valider'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: Size(double.infinity, 50),
+                      ),
                     ),
-                  ),
-                if (mission.status == 3) // Display text and icon if status is 3
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Iconsax.clock,
-                        color: Colors.orange,
-                        size: 24,
+                  ] else if (mission.status == 3) ...[
+                    Container(
+                      padding: EdgeInsets.all(8), // Add padding to avoid clipping
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Iconsax.clock,
+                            color: Colors.orange,
+                            size: 24,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Reporté',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Reporté',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
+                    ),
+                  ] else if (mission.status == 5) ...[
+                    Container(
+                      padding: EdgeInsets.all(8), // Add padding to avoid clipping
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Iconsax.close_circle,
+                            color: Colors.red,
+                            size: 24,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Annulé',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                if (mission.status == 5) // Display text and icon if status is 5
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Iconsax.close_circle,
-                        color: Colors.red,
-                        size: 24,
+                    ),
+                  ] else if (mission.status == 6) ...[
+                    Container(
+                      padding: EdgeInsets.all(8), // Add padding to avoid clipping
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Iconsax.tick_circle,
+                            color: Colors.green,
+                            size: 24,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Terminé',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Annulé',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
-                      ),
-                    ],
-                  ),
-                if (mission.status == 6) // Display text and icon if status is 6
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Iconsax.tick_circle,
-                        color: Colors.green,
-                        size: 24,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Terminé',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ],
               ],
             ),
           );
@@ -277,4 +304,6 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
       ),
     );
   }
+
+
 }
