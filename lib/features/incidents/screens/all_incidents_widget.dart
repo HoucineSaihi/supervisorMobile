@@ -1,0 +1,515 @@
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart'; // For date formatting
+import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
+import 'package:supervisormobile/features/incidents/services/incident_service.dart';
+import 'package:supervisormobile/utils/constants/colors.dart';
+
+class AllIncidentsWidget extends StatefulWidget {
+  AllIncidentsWidget({Key? key}) : super(key: key);
+
+  @override
+  _AllIncidentsWidgetState createState() => _AllIncidentsWidgetState();
+}
+
+class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
+  late final IncidentService _incidentService;
+
+  List<Map<String, dynamic>> _incidents = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+  bool _showFilters = false; // State to control filter visibility
+
+  // Filter fields
+  final TextEditingController _missionLibelleController = TextEditingController();
+  final TextEditingController _sousMissionLibelleController = TextEditingController();
+  final TextEditingController _questionLibelleController = TextEditingController();
+  final TextEditingController _actionIdController = TextEditingController();
+  final TextEditingController _boutiqueLibelleController = TextEditingController();
+  final TextEditingController _statusValidationController = TextEditingController();
+
+  DateTime? _dateDb;
+  DateTime? _dateF;
+  DateTime? _dateClotDb;
+  DateTime? _dateClotF;
+
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+
+  @override
+  void initState() {
+    super.initState();
+    _incidentService = IncidentService();
+    _fetchIncidents(userId: 2);
+  }
+  int _totalIncidents = 0;
+
+  Future<void> _fetchIncidents({
+    String? mLibelle,
+    String? smLibelle,
+    String? qLibelle,
+    int? actionId,
+    String? btqLibelle,
+    int? statusValidation,
+    required int userId,
+    DateTime? dateDb,
+    DateTime? dateF,
+    DateTime? dateClotDb,
+    DateTime? dateClotF,
+  }) async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
+    try {
+      final incidents = await _incidentService.getAllRecommendationsByIdUserFiltered(
+        mLibelle: mLibelle,
+        smLibelle: smLibelle,
+        qLibelle: qLibelle,
+        actionId: actionId,
+        btqLibelle: btqLibelle,
+        statusValidation: statusValidation,
+        userId: userId,
+        dateDb: dateDb,
+        dateF: dateF,
+        dateClotDb: dateClotDb,
+        dateClotF: dateClotF,
+      );
+      setState(() {
+        _incidents = List<Map<String, dynamic>>.from(incidents);
+        _totalIncidents = _incidents.length; // Update the total count
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+    }
+  }
+
+
+  void _applyFilters() {
+    _fetchIncidents(
+      mLibelle: _missionLibelleController.text,
+      smLibelle: _sousMissionLibelleController.text,
+      qLibelle: _questionLibelleController.text,
+      actionId: int.tryParse(_actionIdController.text),
+      btqLibelle: _boutiqueLibelleController.text,
+      statusValidation: int.tryParse(_statusValidationController.text),
+      userId: 2, // Assuming userId is 2 for this example
+      dateDb: _dateDb,
+      dateF: _dateF,
+      dateClotDb: _dateClotDb,
+      dateClotF: _dateClotF,
+    );
+  }
+
+  Future<void> _selectDate(BuildContext context, DateTime? initialDate, Function(DateTime?) onDateSelected) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    onDateSelected(pickedDate);
+  }
+var _statusValidation = null;
+
+Widget _buildFilterForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+      children: [
+        TextField(
+          controller: _missionLibelleController,
+          decoration: InputDecoration(labelText: 'Mission Libelle'),
+        ),
+        SizedBox(height: 10), // Add spacing between input fields
+        TextField(
+          controller: _sousMissionLibelleController,
+          decoration: InputDecoration(labelText: 'Sous Mission Libelle'),
+        ),
+        SizedBox(height: 10), // Add spacing between input fields
+        TextField(
+          controller: _questionLibelleController,
+          decoration: InputDecoration(labelText: 'Question Libelle'),
+        ),
+        /* SizedBox(height: 10), // Add spacing between input fields
+        TextField(
+          controller: _actionIdController,
+          decoration: InputDecoration(labelText: 'Action ID'),
+          keyboardType: TextInputType.number,
+        ), */
+        SizedBox(height: 10), // Add spacing between input fields
+        TextField(
+          controller: _boutiqueLibelleController,
+          decoration: InputDecoration(labelText: 'Boutique Libelle'),
+        ),
+        SizedBox(height: 10), // Add spacing between input fields
+        DropdownButtonFormField<int>(
+          value: _statusValidation,
+          decoration: InputDecoration(labelText: 'Status Validation'),
+          items: [
+            DropdownMenuItem(value: null, child: Text('Tous')),
+            DropdownMenuItem(value: 1, child: Text('Non Cloturée')),
+            DropdownMenuItem(value: 2, child: Text('Cloturée')),
+          ],
+          onChanged: (value) {
+            setState(() {
+              _statusValidation = value;
+              _statusValidationController.text = value?.toString() ?? ''; // Sync with TextEditingController
+            });
+          },
+        ),
+
+        SizedBox(height: 10), // Add spacing between input fields
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: TextButton(
+                onPressed: () => _selectDate(context, _dateDb, (date) {
+                  setState(() {
+                    _dateDb = date;
+                  });
+                }),
+                child: Text(_dateDb != null ? _dateFormat.format(_dateDb!) : 'Select Date DB'),
+              ),
+            ),
+            SizedBox(width: 10), // Add spacing between date pickers
+            Expanded(
+              child: TextButton(
+                onPressed: () => _selectDate(context, _dateF, (date) {
+                  setState(() {
+                    _dateF = date;
+                  });
+                }),
+                child: Text(_dateF != null ? _dateFormat.format(_dateF!) : 'Select Date F'),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10), // Add spacing between date pickers
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: TextButton(
+                onPressed: () => _selectDate(context, _dateClotDb, (date) {
+                  setState(() {
+                    _dateClotDb = date;
+                  });
+                }),
+                child: Text(_dateClotDb != null ? _dateFormat.format(_dateClotDb!) : 'Select Date Clot DB'),
+              ),
+            ),
+            SizedBox(width: 10), // Add spacing between date pickers
+            Expanded(
+              child: TextButton(
+                onPressed: () => _selectDate(context, _dateClotF, (date) {
+                  setState(() {
+                    _dateClotF = date;
+                  });
+                }),
+                child: Text(_dateClotF != null ? _dateFormat.format(_dateClotF!) : 'Select Date Clot F'),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(
+          width: double.infinity, // This makes the button take the full width
+          child: ElevatedButton.icon(
+            onPressed: _applyFilters,
+            icon: Icon(Iconsax.filter, size: 20), // Replace with the icon you want
+            label: Text('Appliquer Filtre'),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: 16), // Adjust padding if needed
+            ),
+          ),
+        ),
+
+      ],
+    );
+  }
+
+
+  Widget _listItem(Map<String, dynamic> item) {
+    // Determine the border color based on clouture
+    Color borderColor = item["clouture"] != null ? Colors.green : Colors.red;
+
+    // Format the clouture date if it exists
+    String cloutureDate = item["clouture"] != null
+        ? DateFormat('yyyy-MM-dd').format(DateTime.parse(item["clouture"]))
+        : '';
+
+    return GestureDetector(
+      onLongPress: () {
+        // Show the Awesome Bottom Sheet when a long press is detected
+        _showModal(context, item);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border(
+            top: BorderSide(
+              color: borderColor,
+              width: 4,
+            ),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item["missionLibelle"] ?? 'No mission',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      item["sousMissionLibelle"] ?? 'No sous-mission',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      item["questionLibelle"] ?? 'No question',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w400,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      item["actionLibelle"] ?? 'No action',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w400,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      item["responsable"] ?? 'No responsable',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w400,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (item["clouture"] != null)
+                Text(
+                  cloutureDate,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14,
+                    color: Colors.green, // Style for the clouture date
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  void _showModal(BuildContext context, Map<String, dynamic> item) {
+    AwesomeBottomSheet().show(
+      context: context,
+      title: const Text("Consultation de l'incident"),
+      description: const Text("Choisissez une option pour modifier l'incident"),
+      color: CustomSheetColor(
+        mainColor: TColors.primary,
+        accentColor: TColors.secondary,
+        iconColor: Colors.white,
+      ),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0), // Adjusted padding for SafeArea
+      positive: AwesomeSheetAction(
+        onPressed: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => EditQuestionResponse(questionId: item["id"] ?? 0),
+            ),
+          );// Close the bottom sheet
+        },
+        title: 'Consulter',
+        icon: Iconsax.eye,
+      ),
+      negative: AwesomeSheetAction(
+        onPressed: () {
+          Navigator.of(context).pop(); // Close the bottom sheet
+          _showConfirmationDialog(item);
+        },
+        title: 'Cloturer',
+        icon: Iconsax.tick_circle,
+      ),
+    );
+  }
+
+
+  void _showConfirmationDialog(Map<String, dynamic> item) {
+    AwesomeBottomSheet().show(
+      context: context,
+      title: Text('Confirmer Clôture'),
+      description: Text('Êtes-vous sûr de vouloir clôturer "${item['questionLibelle'] ?? 'No question'}"?'),
+      color: CustomSheetColor(
+        mainColor: const Color(0xAD0BB819),
+        accentColor: const Color(0xFF0BB819),
+        iconColor: Colors.white,
+      ),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0), // Adjusted padding for SafeArea
+      positive: AwesomeSheetAction(
+        onPressed: () async {
+          Navigator.of(context).pop(); // Close the bottom sheet
+
+          // Extract the questionId from the item
+          final questionId = item['id'] as int?; // Ensure that 'questionId' exists and is of type int
+
+          if (questionId != null) {
+            try {
+              // Call the cloturerIncident function from IncidentService
+              await IncidentService().cloturerIncident(questionId);
+
+              // Show a success message using AwesomeSnackbarContent
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: AwesomeSnackbarContent(
+                    title: 'Succès!',
+                    message: 'Incident clôturé avec succès.',
+                    contentType: ContentType.success,
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                ),
+              );
+            } catch (e) {
+              // Handle any errors that occur during the API call
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: AwesomeSnackbarContent(
+                    title: 'Erreur!',
+                    message: 'Erreur lors de la clôture de l\'incident.',
+                    contentType: ContentType.failure,
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                ),
+              );
+            }
+          } else {
+            // Handle the case where questionId is null
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: AwesomeSnackbarContent(
+                  title: 'Erreur!',
+                  message: 'ID de la question invalide.',
+                  contentType: ContentType.failure,
+                ),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
+            );
+          }
+        },
+        title: 'Confirmer',
+        icon: Icons.check,
+      ),
+      negative: AwesomeSheetAction(
+        onPressed: () {
+          Navigator.of(context).pop(); // Close the bottom sheet
+        },
+        title: 'Annuler',
+      ),
+    );
+  }
+
+
+
+  @override
+  void dispose() {
+    _missionLibelleController.dispose();
+    _sousMissionLibelleController.dispose();
+    _questionLibelleController.dispose();
+    _actionIdController.dispose();
+    _boutiqueLibelleController.dispose();
+    _statusValidationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0), // Add top spacing from the device's top bar
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end, // Align the icon to the end of the row
+              children: [
+                IconButton(
+                  icon: Icon(_showFilters ? Icons.arrow_upward : Icons.arrow_downward),
+                  onPressed: () {
+                    setState(() {
+                      _showFilters = !_showFilters;
+                    });
+                  },
+                ),
+              ],
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+                children: [
+                  // Display the total number of incidents
+                  Text(
+                    'Total Incidents: $_totalIncidents',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  if (_showFilters) _buildFilterForm(),
+                  if (_isLoading) const CircularProgressIndicator(),
+                  if (_hasError) const Text('Error loading incidents.'),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _incidents.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0), // Add vertical spacing
+                          child: _listItem(_incidents[index]),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
+}

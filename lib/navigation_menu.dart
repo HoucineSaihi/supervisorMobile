@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:supervisormobile/features/Profile/screens/profileScreen.dart';
 import 'package:supervisormobile/features/calendar/screens/calendar.dart';
+import 'package:supervisormobile/features/incidents/screens/all_incidents_widget.dart';
 import 'package:supervisormobile/features/notifications/screens/notifications.dart';
 import 'package:supervisormobile/utils/Helpers/helper_functions.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
@@ -29,8 +30,8 @@ class NavigationMenu extends StatelessWidget {
 
               destinations: const [
             NavigationDestination(icon: Icon(Iconsax.calendar), label: 'Calendrier'),
+            NavigationDestination(icon: Icon(Iconsax.task), label: 'Incidents'),
             NavigationDestination(icon: Icon(Iconsax.user), label: 'Profile'),
-            NavigationDestination(icon: Icon(Iconsax.notification), label: 'Notification'),
           ],
         ),
       ),
@@ -46,7 +47,7 @@ class NavigationController extends GetxController {
 
   final List<Widget> screens = [
     const CalendarPlanning(),
-    const ProfileInfo(),
+     AllIncidentsWidget(),
     const NotificationsScreen(),
   ];
 

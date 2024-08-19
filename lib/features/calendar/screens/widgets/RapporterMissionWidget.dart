@@ -51,6 +51,8 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Mission updated successfully.')),
       );
+      Navigator.pop(context, true); // Navigate back
+
 
       // Optionally, you could pop the screen or update the UI
       Navigator.pop(context);

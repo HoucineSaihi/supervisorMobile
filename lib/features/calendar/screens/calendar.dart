@@ -6,16 +6,17 @@ import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
-import 'package:supervisormobile/features/calendar/screens/checklist.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/RapporterMissionWidget.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/addMissionForm.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/calendar_appbar.dart';
+import 'package:supervisormobile/features/calendar/screens/widgets/missionDetails.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/utils/Helpers/helper_functions.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:sticky_float_button/sticky_float_button.dart';
+import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
 
 class CalendarPlanning extends StatefulWidget {
   const CalendarPlanning({super.key});
@@ -104,46 +105,108 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   }
 
   void _showModal(BuildContext context, Mission mission) {
-    final MissionService _missionService =
-        MissionService(); // Initialize the MissionService
+    final MissionService _missionService = MissionService(); // Initialize the MissionService
 
-    showDialog(
+    final AwesomeBottomSheet _awesomeBottomSheet = AwesomeBottomSheet(); // Create an instance of AwesomeBottomSheet
+
+    _awesomeBottomSheet.show(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Modifier la mission'),
-          content: Text('Choisissez une option pour modifier la mission'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () async {
-                try {
-                  await _missionService.updateMission(mission.id, mission, 5);
-                  Navigator.of(context).pop(); // Close the dialog after update
-                } catch (e) {
-                  // Handle error if needed
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to update mission: $e')),
-                  );
-                }
-              },
-              child: Text('Annuler'),
+      title: const Text("Modifier la mission"),
+      description: const Text("Choisissez une option pour modifier la mission"),
+      color: CustomSheetColor(
+        mainColor: TColors.primary,
+        accentColor: TColors.secondary,
+        iconColor: Colors.white,
+      ),
+      positive: AwesomeSheetAction(
+        onPressed: () async {
+          Navigator.of(context).pop(); // Close the bottom sheet
+          await _showConfirmationBottomSheet(
+            context: context,
+            title: 'Annuler',
+            content: 'Êtes-vous sûr de vouloir annuler la mission?',
+            color: CustomSheetColor(
+              mainColor: const Color(0x648B0000),
+              accentColor: const Color(0xFF8B0000),
+              iconColor: Colors.white,
+
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        RapporterMissionWidget(mission: mission),
-                  ),
+            onConfirm: () async {
+              try {
+                await _missionService.updateMission(mission.id, mission, 5);
+                setState(() {}); // Refresh state
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to update mission: $e')),
                 );
-              },
-              child: Text('Reporter'),
+              }
+            },
+          );
+        },
+        title: 'Annuler',
+        icon: Icons.cancel,
+      ),
+      negative: AwesomeSheetAction(
+        onPressed: () async {
+          Navigator.of(context).pop(); // Close the bottom sheet
+          await _showConfirmationBottomSheet(
+            context: context,
+            title: 'Reporter',
+            content: 'Êtes-vous sûr de vouloir reporter la mission?',
+            color: CustomSheetColor(
+              mainColor: const Color(0x5FB8860B),
+              accentColor: const Color(0xFFB8860B),
+              iconColor: Colors.white,
             ),
-          ],
-        );
-      },
+            onConfirm: () async {
+              final shouldRefresh = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => RapporterMissionWidget(mission: mission),
+                ),
+              );
+              if (shouldRefresh == true) {
+                setState(() {}); // Refresh state
+              }
+            },
+          );
+        },
+        title: 'Reporter',
+      ),
     );
   }
+
+  Future<void> _showConfirmationBottomSheet({
+    required BuildContext context,
+    required String title,
+    required String content,
+    required CustomSheetColor color,
+    required Future<void> Function() onConfirm,
+  }) async {
+    final AwesomeBottomSheet _awesomeBottomSheet = AwesomeBottomSheet(); // Create an instance of AwesomeBottomSheet
+
+    _awesomeBottomSheet.show(
+      context: context,
+      title: Text(title),
+      description: Text(content),
+      icon: Icons.question_mark,
+      color: color, // Use the provided color
+      positive: AwesomeSheetAction(
+        onPressed: () async {
+          Navigator.of(context).pop(); // Close the bottom sheet
+          await onConfirm(); // Execute the confirm action
+        },
+        title: 'Confirmer',
+        icon: Icons.check,
+      ),
+      negative: AwesomeSheetAction(
+        onPressed: () {
+          Navigator.of(context).pop(); // Close the bottom sheet
+        },
+        title: 'Annuler',
+      ),
+    );
+  }
+
 
   Map<int, int> countMissionsByStatus(List<Mission> missions) {
     // Define all possible statuses
@@ -182,133 +245,61 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                // Add spacing between attributes
-                child: RichText(
-                  text: TextSpan(
-                    text: 'Code: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16, // Increase font size
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: boutique.code ?? 'No Code',
-                        style: TextStyle(
-                          fontWeight: FontWeight.normal,
-                          fontSize: 16, // Increase font size
-                        ),
-                      ),
-                    ],
+                child: Text(
+                  'Code: ${boutique.code ?? 'No Code'}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16, // Increase font size
                   ),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                // Add spacing between attributes
-                child: RichText(
-                  text: TextSpan(
-                    text: 'Libelle: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16, // Increase font size
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: boutique.libelle ?? 'No Libelle',
-                        style: TextStyle(
-                          fontWeight: FontWeight.normal,
-                          fontSize: 16, // Increase font size
-                        ),
-                      ),
-                    ],
+                child: Text(
+                  'Libelle: ${boutique.libelle ?? 'No Libelle'}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16, // Increase font size
                   ),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                // Add spacing between attributes
-                child: RichText(
-                  text: TextSpan(
-                    text: 'City: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16, // Increase font size
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: boutique.city ?? 'No City',
-                        style: TextStyle(
-                          fontWeight: FontWeight.normal,
-                          fontSize: 16, // Increase font size
-                        ),
-                      ),
-                    ],
+                child: Text(
+                  'City: ${boutique.city ?? 'No City'}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16, // Increase font size
                   ),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                // Add spacing between attributes
-                child: RichText(
-                  text: TextSpan(
-                    text: 'Region: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16, // Increase font size
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: boutique.region ?? 'No Region',
-                        style: TextStyle(
-                          fontWeight: FontWeight.normal,
-                          fontSize: 16, // Increase font size
-                        ),
-                      ),
-                    ],
+                child: Text(
+                  'Region: ${boutique.region ?? 'No Region'}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16, // Increase font size
                   ),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                // Add spacing between attributes
-                child: RichText(
-                  text: TextSpan(
-                    text: 'Country: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16, // Increase font size
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: boutique.country ?? 'No Country',
-                        style: TextStyle(
-                          fontWeight: FontWeight.normal,
-                          fontSize: 16, // Increase font size
-                        ),
-                      ),
-                    ],
+                child: Text(
+                  'Country: ${boutique.country ?? 'No Country'}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16, // Increase font size
                   ),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                // Add spacing between attributes
-                child: RichText(
-                  text: TextSpan(
-                    text: 'Address: ',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16, // Increase font size
-                    ),
-                    children: <TextSpan>[
-                      TextSpan(
-                        text: boutique.adress ?? 'No Address',
-                        style: TextStyle(
-                          fontWeight: FontWeight.normal,
-                          fontSize: 16, // Increase font size
-                        ),
-                      ),
-                    ],
+                child: Text(
+                  'Address: ${boutique.adress ?? 'No Address'}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16, // Increase font size
                   ),
                 ),
               ),
@@ -475,13 +466,19 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         SizedBox(
                           width: 250.0, // Set a fixed width for the button
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              final shouldRefresh = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => AddMissionForm(Date: _selectedDay),
                                 ),
                               );
+                              if(shouldRefresh == true){
+                                setState(() {
+                                  futureMissions = MissionService()
+                                      .getPlanifiedMissions(userIds, boutiqueIds, _focusedDay);
+                                });
+                              }
                             },
                             icon: Icon(Iconsax.add, color: TColors.buttonPrimary), // Add the icon
                             label: Text('Ajouter une mission'),
@@ -511,13 +508,19 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                             SizedBox(
                               width: 250.0, // Set a fixed width for the button
                               child: OutlinedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
+                                onPressed: () async {
+                                  final shouldRefresh = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => AddMissionForm(Date: _selectedDay),
                                     ),
                                   );
+                                  if(shouldRefresh == true ) {
+                                    setState(() {
+                                      futureMissions = MissionService()
+                                          .getPlanifiedMissions(userIds, boutiqueIds, _focusedDay);
+                                    });
+                                  }
                                 },
                                 icon: Icon(Iconsax.add), // Add the icon
                                 label: Text('Ajouter une mission'),
@@ -618,14 +621,19 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                 calculateAnsweredPercentage(mission);
 
                             return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
+                              onTap: () async {
+                                final shouldRefresh = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        MissionDetailsScreen(mission: mission),
-                                  ),
+                                        MissionDetailsWidget(missionId: mission.id,mode: 1,)                                  ),
                                 );
+                                if(shouldRefresh == true){
+                                  setState(() {
+                                    futureMissions = MissionService()
+                                        .getPlanifiedMissions(userIds, boutiqueIds, _focusedDay);
+                                  });
+                                }
                               },
                               onLongPress: () {
                                 _showModal(context,

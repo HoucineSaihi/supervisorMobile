@@ -4,6 +4,7 @@ import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/missionDetails.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 
 class AddMissionForm extends StatefulWidget {
   final DateTime? Date; // Add this parameter
@@ -69,13 +70,21 @@ class _AddMissionFormState extends State<AddMissionForm> {
   Future<void> _handleAddMission() async {
     if (_selectedBoutiqueId == null || _selectedMissionId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select both boutique and mission.')),
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: 'Error!',
+            message: 'Please select both boutique and mission.',
+            contentType: ContentType.failure,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
       return;
     }
 
-    final selectedMission =
-    _notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId);
+    final selectedMission = _notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId);
 
     // Reset mission properties
     selectedMission.id = 0;
@@ -101,136 +110,35 @@ class _AddMissionFormState extends State<AddMissionForm> {
     try {
       await _missionService.addMission(selectedMission);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Mission added successfully.')),
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: 'Success!',
+            message: 'Mission added successfully.',
+            contentType: ContentType.success,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
-      // Optionally reset the form or navigate away
+      Navigator.pop(context, true); // Navigate back
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add mission: $e')),
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: 'Error!',
+            message: 'Failed to add mission: $e',
+            contentType: ContentType.failure,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
     }
   }
 
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Ajouter une mission'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Boutique Selection
-            DropdownButtonFormField<int>(
-              decoration: InputDecoration(
-                labelText: 'Choisir une boutique',
-                border: OutlineInputBorder(),
-              ),
-              items: _boutiques.map((boutique) {
-                return DropdownMenuItem<int>(
-                  value: boutique.id,
-                  child: Text(boutique.libelle ?? 'No Name'),
-                );
-              }).toList(),
-              onChanged: (int? newValue) {
-                setState(() {
-                  _selectedBoutiqueId = newValue;
-                  _fetchNotPlanifiedMissions();
-                });
-              },
-              value: _selectedBoutiqueId,
-            ),
-            SizedBox(height: 16.0),
-
-            // Display selected Boutique Info
-            if (_selectedBoutiqueId != null)
-              Card(
-                child: ListTile(
-                  title: Text('Boutique Info'),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                          'Code: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).code ?? 'N/A'}'),
-                      Text(
-                          'Libelle: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).libelle ?? 'N/A'}'),
-                      Text(
-                          'Adresse: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).adress ?? 'N/A'}'),
-                    ],
-                  ),
-                ),
-              ),
-            SizedBox(height: 16.0),
-
-            // Mission Selection
-            DropdownButtonFormField<int>(
-              decoration: InputDecoration(
-                labelText: 'Choisir une mission',
-                border: OutlineInputBorder(),
-              ),
-              items: _notPlanifiedMissions.map((mission) {
-                return DropdownMenuItem<int>(
-                  value: mission.id,
-                  child: Text(
-                      '${mission.libelle ?? 'No Name'} -- ${mission.missionCode ?? 'No Code'}'),
-                );
-              }).toList(),
-              onChanged: (int? newValue) {
-                setState(() {
-                  _selectedMissionId = newValue;
-                });
-              },
-              value: _selectedMissionId,
-            ),
-            SizedBox(height: 16.0),
-
-            // Display selected Mission Info
-            if (_selectedMissionId != null)
-              GestureDetector(
-                onTap: () => _navigateToMissionDetails(_selectedMissionId!),
-                child: Card(
-                  child: ListTile(
-                    title: Text('Mission Info'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                            'Code: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).missionCode ?? 'N/A'}'),
-                        Text(
-                            'Libelle: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).libelle ?? 'N/A'}'),
-
-                        Text(
-                            'Description: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).description ?? 'N/A'}'),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            SizedBox(height: 16.0),
-
-            // Display selected Mission Info
-
-            SizedBox(height: 16.0),
-
-            // Add Mission Button
-            ElevatedButton(
-              onPressed: _handleAddMission,
-              child: Text('Ajouter'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 50),
-                backgroundColor: TColors.buttonSecondary,
-                side : const BorderSide(color: TColors.buttonSecondary),
-
-
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> _fetchNotPlanifiedMissions() async {
     if (_selectedBoutiqueId == null) return;
@@ -250,4 +158,128 @@ class _AddMissionFormState extends State<AddMissionForm> {
       });
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Ajouter une mission'),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Boutique Selection
+              DropdownButtonFormField<int>(
+                decoration: InputDecoration(
+                  labelText: 'Choisir une boutique',
+                  border: OutlineInputBorder(),
+                ),
+                items: _boutiques.map((boutique) {
+                  return DropdownMenuItem<int>(
+                    value: boutique.id,
+                    child: Text(boutique.libelle ?? 'No Name'),
+                  );
+                }).toList(),
+                onChanged: (int? newValue) {
+                  setState(() {
+                    _selectedBoutiqueId = newValue;
+                    _fetchNotPlanifiedMissions();
+                  });
+                },
+                value: _selectedBoutiqueId,
+              ),
+              SizedBox(height: 16.0),
+      
+              // Display selected Boutique Info
+              if (_selectedBoutiqueId != null)
+                Card(
+                  child: ListTile(
+                    title: Text('Boutique Info'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                            'Code: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).code ?? 'N/A'}'),
+                        Text(
+                            'Libelle: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).libelle ?? 'N/A'}'),
+                        Text(
+                            'Adresse: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).adress ?? 'N/A'}'),
+                      ],
+                    ),
+                  ),
+                ),
+              SizedBox(height: 16.0),
+      
+              // Mission Selection
+              DropdownButtonFormField<int>(
+                decoration: InputDecoration(
+                  labelText: 'Choisir une mission',
+                  border: OutlineInputBorder(),
+                ),
+                items: _notPlanifiedMissions.map((mission) {
+                  return DropdownMenuItem<int>(
+                    value: mission.id,
+                    child: Text(
+                        '${mission.libelle ?? 'No Name'} -- ${mission.missionCode ?? 'No Code'}'),
+                  );
+                }).toList(),
+                onChanged: (int? newValue) {
+                  setState(() {
+                    _selectedMissionId = newValue;
+                  });
+                },
+                value: _selectedMissionId,
+              ),
+              SizedBox(height: 16.0),
+      
+              // Display selected Mission Info
+              if (_selectedMissionId != null)
+                GestureDetector(
+                  onTap: () => _navigateToMissionDetails(_selectedMissionId!),
+                  child: Card(
+                    child: ListTile(
+                      title: Text('Mission Info'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              'Code: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).missionCode ?? 'N/A'}'),
+                          Text(
+                              'Libelle: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).libelle ?? 'N/A'}'),
+      
+                          Text(
+                              'Description: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).description ?? 'N/A'}'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              SizedBox(height: 16.0),
+      
+              // Display selected Mission Info
+      
+              SizedBox(height: 16.0),
+      
+              // Add Mission Button
+              ElevatedButton(
+                onPressed: _handleAddMission,
+                child: Text('Ajouter'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 50),
+                  backgroundColor: TColors.buttonSecondary,
+                  side : const BorderSide(color: TColors.buttonSecondary),
+      
+      
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
 }
