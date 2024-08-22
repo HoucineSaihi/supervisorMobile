@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
@@ -9,7 +10,18 @@ import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 
 class MissionService {
-  final String baseURL = "https://beb8-197-2-149-3.ngrok-free.app";
+
+  final _storage = FlutterSecureStorage();
+  int _currentUserID = 0;
+
+  Future<void> _loadAuthToken() async {
+    // Retrieve the user ID from secure storage
+    String? userIdString = await _storage.read(key: 'currentUserId');
+    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+
+  }
+
+  final String baseURL = "https://e2ea-197-0-114-174.ngrok-free.app";
 
   // API endpoints using baseURL
   late final String apiUrl;
@@ -17,9 +29,9 @@ class MissionService {
   late final String actionsUrl;
 
   MissionService() {
-    apiUrl = 'https://beb8-197-2-149-3.ngrok-free.app/api/Missions/getMissionsForAreaManager';
-    missionDetailsUrl = 'https://beb8-197-2-149-3.ngrok-free.app/api/Missions/missionAllQuestion';
-    actionsUrl = 'https://beb8-197-2-149-3.ngrok-free.app/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
+    apiUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Missions/getMissionsForAreaManager';
+    missionDetailsUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Missions/missionAllQuestion';
+    actionsUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
   }
 
   Future<List<Mission>> getPlanifiedMissions(List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt) async {
@@ -63,7 +75,7 @@ class MissionService {
 
   Future<QuestionMission> getQuestionDetails(int questionId) async {
     final response = await http.get(
-      Uri.parse('https://beb8-197-2-149-3.ngrok-free.app/api/MissionQuestions/$questionId'),
+      Uri.parse('https://e2ea-197-0-114-174.ngrok-free.app/api/MissionQuestions/$questionId'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -95,7 +107,7 @@ class MissionService {
   }
 
   Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion) async {
-    final String url = 'https://beb8-197-2-149-3.ngrok-free.app/api/MissionQuestions/$questionId';
+    final String url = 'https://e2ea-197-0-114-174.ngrok-free.app/api/MissionQuestions/$questionId';
 
     final response = await http.put(
       Uri.parse(url),
@@ -114,7 +126,7 @@ class MissionService {
   }
 
   Future<void> updateMission(int missionId, Mission updatedMission,int status) async {
-    final String url = 'https://beb8-197-2-149-3.ngrok-free.app/api/Missions/$missionId';
+    final String url = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Missions/$missionId';
     updatedMission.status = status;
     final response = await http.put(
       Uri.parse(url),
@@ -133,7 +145,7 @@ class MissionService {
   }
 
   Future<List<BoutiqueModel>> getBoutiques() async {
-    final String boutiquesUrl = 'https://beb8-197-2-149-3.ngrok-free.app/api/Boutiques';
+    final String boutiquesUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Boutiques';
 
     final response = await http.get(
       Uri.parse(boutiquesUrl),
@@ -152,7 +164,10 @@ class MissionService {
   }
 
   Future<List<Mission>> getAllNotPlanifiedMissions() async {
-    final String url = 'https://beb8-197-2-149-3.ngrok-free.app/api/Missions/GetAllNotPlanifiedMissions/2'; // Static userID is 2
+    String? userIdString = await _storage.read(key: 'currentUserId');
+    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+
+    final String url = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Missions/GetAllNotPlanifiedMissions/$_currentUserID'; // Static userID is 2
 
     final response = await http.get(
       Uri.parse(url),
@@ -172,7 +187,7 @@ class MissionService {
 
   Future<void> addMission(Mission mission) async {
     final response = await http.post(
-      Uri.parse('https://beb8-197-2-149-3.ngrok-free.app/api/Missions'),
+      Uri.parse('https://e2ea-197-0-114-174.ngrok-free.app/api/Missions'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -240,7 +255,7 @@ class MissionService {
   }
 
   Future<List<QuestionMission>> getQuestionsForSousMission(int sousMissionId) async {
-    final String url = 'https://beb8-197-2-149-3.ngrok-free.app/api/MissionQuestions?idSousMission=$sousMissionId';
+    final String url = 'https://e2ea-197-0-114-174.ngrok-free.app/api/MissionQuestions?idSousMission=$sousMissionId';
 
     final response = await http.get(
       Uri.parse(url),

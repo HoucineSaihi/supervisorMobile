@@ -1,9 +1,18 @@
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class IncidentService {
-  final String _baseUrl = 'https://beb8-197-2-149-3.ngrok-free.app/api/MissionQuestions';
+  final String _baseUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/MissionQuestions';
+  final _storage = FlutterSecureStorage();
+  int _currentUserID = 0;
 
+  Future<void> _loadAuthToken() async {
+    // Retrieve the user ID from secure storage
+    String? userIdString = await _storage.read(key: 'currentUserId');
+    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+
+  }
   Future<List<dynamic>> getAllRecommendationsByIdUserFiltered({
     String? mLibelle,
     String? smLibelle,
@@ -17,7 +26,8 @@ class IncidentService {
     DateTime? dateClotDb,
     DateTime? dateClotF,
   }) async {
-    // Constructing the query parameters
+    String? userIdString = await _storage.read(key: 'currentUserId');
+    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
     final Map<String, String> queryParams = {};
 
     if (mLibelle != null) queryParams['mLibelle'] = mLibelle;
@@ -26,7 +36,7 @@ class IncidentService {
     if (actionId != null) queryParams['actionId'] = actionId.toString();
     if (btqLibelle != null) queryParams['btqLibelle'] = btqLibelle;
     if (statusValidation != null) queryParams['statusValidation'] = statusValidation.toString();
-    queryParams['userId'] = userId.toString();
+    queryParams['userId'] = _currentUserID.toString();
     if (dateDb != null) queryParams['dateDb'] = dateDb.toIso8601String();
     if (dateF != null) queryParams['dateF'] = dateF.toIso8601String();
     if (dateClotDb != null) queryParams['dateClotDb'] = dateClotDb.toIso8601String();

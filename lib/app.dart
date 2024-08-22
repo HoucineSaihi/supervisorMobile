@@ -12,11 +12,13 @@ class App extends StatelessWidget {
     return GetMaterialApp(
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate, // Add this line
       ],
       supportedLocales: [
         const Locale('en', ''), // English, no country code
         const Locale('ar', ''), // Arabic, no country code
-        const Locale('fr', ''),
+        const Locale('fr', ''), // French, no country code
       ],
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,

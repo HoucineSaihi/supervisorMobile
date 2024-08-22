@@ -130,82 +130,86 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   }
 
 
-  void _showResponseEditDialog(String currentResponse, int questionId) {
-    showDialog(
+  Future<bool> _showResponseEditDialog(String currentResponse, int questionId) async {
+    return await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Choisir réponse'), // Updated title
-          content: Text('Reponse actuelle : $currentResponse'
-            , // Display the current response
-            style: TextStyle(fontSize: 18), // Optional styling for the text
-          ),
-          actions: [
-            // Row for the buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Non Button
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final shouldRefresh = await  Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QuestionResponseWidget(
-                            questionId: questionId,
-                            response: 'Non',
-                          ),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: Text('Choisir réponse'), // Updated title
+              content: Text(
+                'Réponse actuelle : $currentResponse', // Display the current response
+                style: TextStyle(fontSize: 18), // Optional styling for the text
+              ),
+              actions: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final shouldRefresh = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuestionResponseWidget(
+                                questionId: questionId,
+                                response: 'Non',
+                              ),
+                            ),
+                          );
+                          if (shouldRefresh == true) {
+                            Navigator.pop(context, true); // Return true
+                          } else {
+                            Navigator.pop(context, false); // Return false
+                          }
+                        },
+                        child: Text('Non'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red, // Red background color
                         ),
-                      );
-                      if (shouldRefresh == true) {
-                        setState(() {}); // Refresh state
-                      }
-
-                    },
-                    child: Text('Non'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red, // Red background color
+                      ),
                     ),
-                  ),
+                    SizedBox(width: 8), // Space between buttons
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final shouldRefresh = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuestionResponseWidget(
+                                questionId: questionId,
+                                response: 'Oui',
+                              ),
+                            ),
+                          );
+                          if (shouldRefresh == true) {
+                            Navigator.pop(context, true); // Return true
+                          } else {
+                            Navigator.pop(context, false); // Return false
+                          }
+                        },
+                        child: Text('Oui'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green, // Green background color
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 8), // Space between buttons
-                // Oui Button
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final shouldRefresh = await  Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QuestionResponseWidget(
-                            questionId: questionId,
-                            response: 'Oui',
-                          ),
-                        ),
-                      );
-                      if (shouldRefresh == true) {
-                        setState(() {}); // Refresh state
-                      }
-                    },
-                    child: Text('Oui'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green, // Green background color
-                    ),
-                  ),
+                SizedBox(height: 8), // Space below buttons
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(false); // Return false
+                  },
+                  child: Text('Fermer'),
                 ),
               ],
-            ),
-            SizedBox(height: 8), // Space below buttons
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Close'),
-            ),
-          ],
+            );
+          },
         );
       },
-    );
+    ) ?? false; // Default to false if the dialog is dismissed without a button press
   }
 
 
@@ -231,9 +235,9 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           title: Text('Modifier reponse '),
           leading: IconButton(
             icon: Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+              onPressed: () {
+                Navigator.pop(context,true); // Navigate back
+              }
           ),
         ),
         body: SingleChildScrollView(
@@ -298,8 +302,22 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                       ),
                                       IconButton(
                                         icon: Icon(Iconsax.edit),
-                                        onPressed: () => _showResponseEditDialog(question.reponse ?? '',question.id),
-                                      ),
+                                        onPressed: () async {
+                                          bool shouldRefresh = await _showResponseEditDialog(question.reponse ?? '', question.id);
+                                          if (shouldRefresh) {
+                                            setState(() {
+                                              _questionFuture = MissionService().getQuestionDetails(widget.questionId);
+                                              _questionFuture.then((questionDetails) {
+                                                if (questionDetails.fileName != null && questionDetails.fileName!.isNotEmpty) {
+                                                  _fetchImage(questionDetails.fileName!);
+                                                }
+                                              }).catchError((error) {
+                                                print('Failed to fetch question details: $error');
+                                              });
+
+                                            }); // Refresh the UI
+                                          }
+                                        },                                      ),
                                     ],
                                   ),
                                 ],

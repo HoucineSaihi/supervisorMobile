@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
+import 'package:supervisormobile/utils/constants/colors.dart';
 
 class QuestionsListWidget extends StatefulWidget {
   final List<QuestionMission> questions;
@@ -17,7 +19,6 @@ class QuestionsListWidget extends StatefulWidget {
     required this.onResponseSelected,
     required this.mode,
     required this.sousMissionID
-  // Add mode parameter to constructor
   }) : super(key: key);
 
   @override
@@ -36,8 +37,8 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
   Future<void> _fetchQuestions() async {
     try {
       List<QuestionMission> fetchedQuestions = await MissionService().getQuestionsForSousMission(widget.sousMissionID);
-      _questions = fetchedQuestions; // Update the state variable with the fetched questions
       setState(() {
+        _questions = fetchedQuestions; // Update the state variable with the fetched questions
       });
     } catch (e) {
       // Handle errors here
@@ -45,179 +46,201 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
     }
   }
 
+  Future<void> _handleRefresh() async {
+    setState(() async {
+      await _fetchQuestions();
+
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(title: Text('Liste des questions'),
+        appBar: AppBar(
+          title: Text('Liste des questions'),
           leading: IconButton(
             icon: Icon(Iconsax.arrow_left), // Back arrow icon
             onPressed: () {
-              Navigator.pop(context,true); // Navigate back
+              if (widget.mode == 1) {
+                Navigator.pop(context, true); // Navigate back
+              } else {
+                Navigator.pop(context); // Navigate back
+              }
             },
-          ),),
-        body: ListView.builder(
-          itemCount: _questions.length,
-          itemBuilder: (context, index) {
-            final question = _questions[index];
-            final isResponseYes = question.reponse == 'Oui';
-            final isResponseNo = question.reponse == 'Non';
+          ),
+        ),
+        body: LiquidPullToRefresh(
+          onRefresh: _handleRefresh,
+          springAnimationDurationInMilliseconds: 300, // Speed up the animation
+          height: 60.0, // Adjust the height as needed
+          color: TColors.primary, // Customize the color as needed
+          child: ListView.builder(
+            itemCount: _questions.length,
+            itemBuilder: (context, index) {
+              final question = _questions[index];
+              final isResponseYes = question.reponse == 'Oui';
+              final isResponseNo = question.reponse == 'Non';
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0), // Space between questions
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Display question description in a row and take the whole width
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Q: ${question.description ?? 'No Description'}',
-                          style: TextStyle(fontSize: 18), // Slightly larger font size
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0), // Space between questions
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Display question description in a row and take the whole width
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Q: ${question.description ?? 'No Description'}',
+                            style: TextStyle(fontSize: 18), // Slightly larger font size
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12), // Space between question and buttons
-                  // Display buttons below the question based on mode
-                  if (widget.mode == 1) ...[
-                    if (question.reponse == null) ...[
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 32, // Smaller height for buttons
-                              child: ElevatedButton.icon(
-                                onPressed: () async  {
-                                  final shouldRefresh = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => QuestionResponseWidget(
-                                        questionId: question.id ?? 0,
-                                        response: "Non",
+                      ],
+                    ),
+                    SizedBox(height: 12), // Space between question and buttons
+                    // Display buttons below the question based on mode
+                    if (widget.mode == 1) ...[
+                      if (question.reponse == null) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 32, // Smaller height for buttons
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    final shouldRefresh = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => QuestionResponseWidget(
+                                          questionId: question.id ?? 0,
+                                          response: "Non",
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                  if (shouldRefresh == true) {
-                                    // Handle refresh logic if necessary
-                                    _fetchQuestions();
-                                  }
-                                },
-                                icon: Icon(Icons.cancel, color: Colors.white),
-                                label: Text('Non'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  padding: EdgeInsets.symmetric(horizontal: 8.0), // Smaller padding
+                                    );
+                                    if (shouldRefresh == true) {
+                                      // Handle refresh logic if necessary
+                                      _handleRefresh();
+                                    }
+                                  },
+                                  icon: Icon(Icons.cancel, color: Colors.white),
+                                  label: Text('Non'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    padding: EdgeInsets.symmetric(horizontal: 8.0), // Smaller padding
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: 12), // Space between "Non" and "Oui" buttons
-                          Expanded(
-                            child: SizedBox(
-                              height: 32, // Smaller height for buttons
-                              child: ElevatedButton.icon(
-                                onPressed: () async  {
-                                  final shouldRefresh = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => QuestionResponseWidget(
-                                        questionId: question.id ?? 0,
-                                        response: "Oui",
+                            SizedBox(width: 12), // Space between "Non" and "Oui" buttons
+                            Expanded(
+                              child: SizedBox(
+                                height: 32, // Smaller height for buttons
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    final shouldRefresh = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => QuestionResponseWidget(
+                                          questionId: question.id ?? 0,
+                                          response: "Oui",
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                  if (shouldRefresh == true) {
-                                    // Handle refresh logic if necessary
-                                    _fetchQuestions();
-                                  }
-                                },
-                                icon: Icon(Icons.check, color: Colors.white),
-                                label: Text('Oui'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  padding: EdgeInsets.symmetric(horizontal: 8.0), // Smaller padding
+                                    );
+                                    if (shouldRefresh == true) {
+                                      // Handle refresh logic if necessary
+                                      _handleRefresh();
+                                    }
+                                  },
+                                  icon: Icon(Icons.check, color: Colors.white),
+                                  label: Text('Oui'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    padding: EdgeInsets.symmetric(horizontal: 8.0), // Smaller padding
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ] else ...[
-                      // Button spans full width if response is not null
-                      SizedBox(
-                        height: 32, // Smaller height for buttons
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditQuestionResponse(
-                                  questionId: question.id ?? 0,
+                          ],
+                        ),
+                      ] else ...[
+                        // Button spans full width if response is not null
+                        SizedBox(
+                          height: 32, // Smaller height for buttons
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final shouldRefresh = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditQuestionResponse(
+                                    questionId: question.id ?? 0,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                          icon: Icon(
-                            question.reponse == 'Oui'
-                                ? Icons.check
-                                : Icons.cancel,
-                            color: Colors.white,
-                          ),
-                          label: Text(question.reponse ?? 'Response'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isResponseYes ? Colors.green : Colors.red,
-                            padding: EdgeInsets.symmetric(horizontal: 16.0), // Adjust padding as needed
+                              );
+
+                              if (shouldRefresh == true) {
+                                _handleRefresh();
+                              }
+                            },
+                            icon: Icon(
+                              question.reponse == 'Oui'
+                                  ? Icons.check
+                                  : Icons.cancel,
+                              color: Colors.white,
+                            ),
+                            label: Text(question.reponse ?? 'Response'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isResponseYes ? Colors.green : Colors.red,
+                              padding: EdgeInsets.symmetric(horizontal: 16.0), // Adjust padding as needed
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                  if (widget.mode == 0) ...[
-                    // Handle case when mode is 0 (No buttons displayed)
-                    if (question.reponse != null) ...[
-                      // Button spans full width if response is not null
-                      SizedBox(
-                        height: 32, // Smaller height for buttons
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            final shouldRefresh = Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditQuestionResponse(
-                                  questionId: question.id ?? 0,
+                    if (widget.mode == 0) ...[
+                      // Handle case when mode is 0 (No buttons displayed)
+                      if (question.reponse != null) ...[
+                        // Button spans full width if response is not null
+                        SizedBox(
+                          height: 32, // Smaller height for buttons
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final shouldRefresh = Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditQuestionResponse(
+                                    questionId: question.id ?? 0,
+                                  ),
                                 ),
-                              ),
-                            );
-                            if (shouldRefresh == true) {
-                              // Handle refresh logic if necessary
-                              _fetchQuestions();
-                            }
-                          },
-                          icon: Icon(
-                            question.reponse == 'Oui'
-                                ? Icons.check
-                                : Icons.cancel,
-                            color: Colors.white,
-                          ),
-                          label: Text(question.reponse ?? 'Response'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isResponseYes ? Colors.green : Colors.red,
-                            padding: EdgeInsets.symmetric(horizontal: 16.0), // Adjust padding as needed
+                              );
+                              if (shouldRefresh == true) {
+                                _handleRefresh();
+                              }
+                            },
+                            icon: Icon(
+                              question.reponse == 'Oui'
+                                  ? Icons.check
+                                  : Icons.cancel,
+                              color: Colors.white,
+                            ),
+                            label: Text(question.reponse ?? 'Response'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isResponseYes ? Colors.green : Colors.red,
+                              padding: EdgeInsets.symmetric(horizontal: 16.0), // Adjust padding as needed
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
+                    SizedBox(height: 30), // Space between each question
+                    Divider(), // Horizontal line between questions
                   ],
-                  SizedBox(height: 30), // Space between each question
-                  Divider(), // Horizontal line between questions
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

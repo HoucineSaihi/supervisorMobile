@@ -221,6 +221,12 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('Repondre au question'),
+          leading: IconButton(
+              icon: Icon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.pop(context,true); // Navigate back
+              }
+          ),
         ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),

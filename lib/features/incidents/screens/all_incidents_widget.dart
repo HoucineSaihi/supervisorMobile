@@ -6,6 +6,7 @@ import 'package:intl/intl.dart'; // For date formatting
 import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
+import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 
 class AllIncidentsWidget extends StatefulWidget {
   AllIncidentsWidget({Key? key}) : super(key: key);
@@ -106,7 +107,22 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       dateClotF: _dateClotF,
     );
   }
-
+  Future<void> _handleRefresh() async {
+    setState(() async { await _fetchIncidents(
+      mLibelle: _missionLibelleController.text,
+      smLibelle: _sousMissionLibelleController.text,
+      qLibelle: _questionLibelleController.text,
+      actionId: int.tryParse(_actionIdController.text),
+      btqLibelle: _boutiqueLibelleController.text,
+      statusValidation: int.tryParse(_statusValidationController.text),
+      userId: 2, // Assuming userId is 2 for this example
+      dateDb: _dateDb,
+      dateF: _dateF,
+      dateClotDb: _dateClotDb,
+      dateClotF: _dateClotF,
+    );
+  });
+        }
   Future<void> _selectDate(BuildContext context, DateTime? initialDate, Function(DateTime?) onDateSelected) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -345,7 +361,7 @@ Widget _buildFilterForm() {
             MaterialPageRoute(
               builder: (context) => EditQuestionResponse(questionId: item["id"] ?? 0),
             ),
-          );// Close the bottom sheet
+          ); // Close the bottom sheet
         },
         title: 'Consulter',
         icon: Iconsax.eye,
@@ -355,18 +371,19 @@ Widget _buildFilterForm() {
           Navigator.of(context).pop(); // Close the bottom sheet
           _showConfirmationDialog(item);
         },
-        title: 'Cloturer',
-        icon: Iconsax.tick_circle,
+        title: item["clouture"] != null ? 'UnCloturer' : "Cloturer",
+        icon: item["clouture"] != null ? Iconsax.close_circle :Iconsax.tick_circle,
       ),
     );
   }
+
 
 
   void _showConfirmationDialog(Map<String, dynamic> item) {
     AwesomeBottomSheet().show(
       context: context,
       title: Text('Confirmer Clôture'),
-      description: Text('Êtes-vous sûr de vouloir clôturer "${item['questionLibelle'] ?? 'No question'}"?'),
+      description: Text('Êtes-vous sûr de vouloir changer l état de cloture "${item['questionLibelle'] ?? 'No question'}"?'),
       color: CustomSheetColor(
         mainColor: const Color(0xAD0BB819),
         accentColor: const Color(0xFF0BB819),
@@ -457,54 +474,60 @@ Widget _buildFilterForm() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0), // Add top spacing from the device's top bar
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end, // Align the icon to the end of the row
-              children: [
-                IconButton(
-                  icon: Icon(_showFilters ? Icons.arrow_upward : Icons.arrow_downward),
-                  onPressed: () {
-                    setState(() {
-                      _showFilters = !_showFilters;
-                    });
-                  },
-                ),
-              ],
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+      body:  LiquidPullToRefresh(
+        onRefresh: _handleRefresh,
+        springAnimationDurationInMilliseconds: 300, // Speed up the animation
+        height: 60.0, // Adjust the height as needed
+        color: TColors.primary,
+        child:Padding(
+          padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0), // Add top spacing from the device's top bar
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end, // Align the icon to the end of the row
                 children: [
-                  // Display the total number of incidents
-                  Text(
-                    'Total Incidents: $_totalIncidents',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  if (_showFilters) _buildFilterForm(),
-                  if (_isLoading) const CircularProgressIndicator(),
-                  if (_hasError) const Text('Error loading incidents.'),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _incidents.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0), // Add vertical spacing
-                          child: _listItem(_incidents[index]),
-                        );
-                      },
-                    ),
+                  IconButton(
+                    icon: Icon(_showFilters ? Icons.arrow_upward : Icons.arrow_downward),
+                    onPressed: () {
+                      setState(() {
+                        _showFilters = !_showFilters;
+                      });
+                    },
                   ),
                 ],
               ),
-            ),
-          ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+                  children: [
+                    // Display the total number of incidents
+                    Text(
+                      'Total Incidents: $_totalIncidents',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    if (_showFilters) _buildFilterForm(),
+                    if (_isLoading) const CircularProgressIndicator(),
+                    if (_hasError) const Text('Error loading incidents.'),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _incidents.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0), // Add vertical spacing
+                            child: _listItem(_incidents[index]),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
