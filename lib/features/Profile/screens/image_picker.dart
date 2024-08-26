@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io'; // Import this to use File
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
@@ -85,7 +86,7 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
                       : widget.user.img != null && widget.user.img!.isNotEmpty
                       ? ClipOval(
                     child: Image.network(
-                      'https://3051-102-159-183-142.ngrok-free.app/api/Files/getImage/${widget.user.img!}',
+                      '${dotenv.env['BASE_URL']}/api/Files/getImage/${widget.user.img!}',
                       fit: BoxFit.cover,
                       width: 160,
                       height: 160,

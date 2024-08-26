@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -7,7 +8,7 @@ import 'package:mime/mime.dart';
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
 
 class UserService {
-  static const String _baseUrl = 'https://e2ea-197-0-114-174.ngrok-free.app'; // Replace with your actual base URL
+  String _baseUrl = "${dotenv.env['BASE_URL']}"; // Replace with your actual base URL
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
 

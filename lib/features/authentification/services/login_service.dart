@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -35,7 +36,7 @@ class SecureStorageService {
 }
 
 class LoginService {
-  final String _baseURL = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Caisses/login';
+  final String _baseURL = '${dotenv.env['BASE_URL']}/api/Caisses/login';
   final SecureStorageService _storageService = SecureStorageService();
 
   Future<Map<String, dynamic>> login(String username, String password) async {

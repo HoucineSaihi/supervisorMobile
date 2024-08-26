@@ -1,3 +1,4 @@
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
@@ -35,7 +36,16 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
   void _reportMission() async {
     if (_selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select a date.')),
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: 'Error!',
+            message: 'Please select a date.',
+            contentType: ContentType.failure,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
       return;
     }
@@ -45,24 +55,41 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
       widget.mission.planifiedAt = _selectedDate;
 
       // Call the updateMission service
-      await _missionService.updateMission(widget.mission.id, widget.mission,3);
+      await _missionService.updateMission(widget.mission.id, widget.mission, 3);
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Mission updated successfully.')),
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: 'Success!',
+            message: 'Mission updated successfully.',
+            contentType: ContentType.success,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
+
       Navigator.pop(context, true); // Navigate back
 
-
-      // Optionally, you could pop the screen or update the UI
-      Navigator.pop(context);
     } catch (e) {
       // Handle error
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update mission: $e')),
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: 'Error!',
+            message: 'Failed to update mission: $e',
+            contentType: ContentType.failure,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

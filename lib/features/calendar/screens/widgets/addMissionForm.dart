@@ -5,6 +5,7 @@ import 'package:supervisormobile/features/calendar/screens/widgets/missionDetail
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AddMissionForm extends StatefulWidget {
   final DateTime? Date; // Add this parameter
@@ -54,6 +55,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
       });
     }
   }
+  final _storage = FlutterSecureStorage();
 
   void _navigateToMissionDetails(int missionId) {
     Navigator.push(
@@ -83,6 +85,8 @@ class _AddMissionFormState extends State<AddMissionForm> {
       );
       return;
     }
+    String? userIdString = await _storage.read(key: 'currentUserId');
+    var _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
     final selectedMission = _notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId);
 
@@ -90,7 +94,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
     selectedMission.id = 0;
     selectedMission.boutique = null;
     selectedMission.boutiqueId = _selectedBoutiqueId;
-    selectedMission.userId = 2; // Set the user ID as needed
+    selectedMission.userId = _currentUserID; // Set the user ID as needed
     selectedMission.status = 1;
     selectedMission.planifiedAt = widget.Date; // Use the selectedDate here
 

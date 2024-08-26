@@ -4,10 +4,10 @@ import 'package:supervisormobile/app.dart';
 
 import 'utils/theme/theme.dart';
 
-void main() {
+void main() async{
 
   WidgetsFlutterBinding.ensureInitialized();
-dotenv.load();
+ await dotenv.load(fileName: 'config.env');
   runApp(const App());
 }
 

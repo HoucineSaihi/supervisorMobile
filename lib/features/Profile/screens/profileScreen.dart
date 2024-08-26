@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
@@ -115,7 +116,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                                   borderRadius: BorderRadius.circular(100),
                                   child: user.img != null && user.img!.isNotEmpty
                                       ? Image.network(
-                                    'https://e2ea-197-0-114-174.ngrok-free.app/api/Files/getImage/${user.img!}',
+                                    '${dotenv.env['BASE_URL']}/api/Files/getImage/${user.img!}',
                                     fit: BoxFit.cover,
                                   )
                                       : Image.asset('lib/assets/logos/testLogo.png'),

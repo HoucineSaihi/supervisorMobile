@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
@@ -21,7 +22,7 @@ class MissionService {
 
   }
 
-  final String baseURL = "https://e2ea-197-0-114-174.ngrok-free.app";
+  final String baseURL = '${dotenv.env['BASE_URL']}';
 
   // API endpoints using baseURL
   late final String apiUrl;
@@ -29,9 +30,9 @@ class MissionService {
   late final String actionsUrl;
 
   MissionService() {
-    apiUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Missions/getMissionsForAreaManager';
-    missionDetailsUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Missions/missionAllQuestion';
-    actionsUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
+    apiUrl = '${dotenv.env['BASE_URL']}/api/Missions/getMissionsForAreaManager';
+    missionDetailsUrl = '${dotenv.env['BASE_URL']}/api/Missions/missionAllQuestion';
+    actionsUrl = '${dotenv.env['BASE_URL']}/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
   }
 
   Future<List<Mission>> getPlanifiedMissions(List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt) async {
@@ -75,7 +76,7 @@ class MissionService {
 
   Future<QuestionMission> getQuestionDetails(int questionId) async {
     final response = await http.get(
-      Uri.parse('https://e2ea-197-0-114-174.ngrok-free.app/api/MissionQuestions/$questionId'),
+      Uri.parse('${dotenv.env['BASE_URL']}/api/MissionQuestions/$questionId'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -107,7 +108,7 @@ class MissionService {
   }
 
   Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion) async {
-    final String url = 'https://e2ea-197-0-114-174.ngrok-free.app/api/MissionQuestions/$questionId';
+    final String url = '${dotenv.env['BASE_URL']}/api/MissionQuestions/$questionId';
 
     final response = await http.put(
       Uri.parse(url),
@@ -126,7 +127,7 @@ class MissionService {
   }
 
   Future<void> updateMission(int missionId, Mission updatedMission,int status) async {
-    final String url = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Missions/$missionId';
+    final String url = '${dotenv.env['BASE_URL']}/api/Missions/$missionId';
     updatedMission.status = status;
     final response = await http.put(
       Uri.parse(url),
@@ -145,7 +146,7 @@ class MissionService {
   }
 
   Future<List<BoutiqueModel>> getBoutiques() async {
-    final String boutiquesUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Boutiques';
+    final String boutiquesUrl = '${dotenv.env['BASE_URL']}/api/Boutiques';
 
     final response = await http.get(
       Uri.parse(boutiquesUrl),
@@ -167,7 +168,7 @@ class MissionService {
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
-    final String url = 'https://e2ea-197-0-114-174.ngrok-free.app/api/Missions/GetAllNotPlanifiedMissions/$_currentUserID'; // Static userID is 2
+    final String url = '${dotenv.env['BASE_URL']}/api/Missions/GetAllNotPlanifiedMissions/$_currentUserID'; // Static userID is 2
 
     final response = await http.get(
       Uri.parse(url),
@@ -187,7 +188,7 @@ class MissionService {
 
   Future<void> addMission(Mission mission) async {
     final response = await http.post(
-      Uri.parse('https://e2ea-197-0-114-174.ngrok-free.app/api/Missions'),
+      Uri.parse('${dotenv.env['BASE_URL']}/api/Missions'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -255,7 +256,7 @@ class MissionService {
   }
 
   Future<List<QuestionMission>> getQuestionsForSousMission(int sousMissionId) async {
-    final String url = 'https://e2ea-197-0-114-174.ngrok-free.app/api/MissionQuestions?idSousMission=$sousMissionId';
+    final String url = '${dotenv.env['BASE_URL']}/api/MissionQuestions?idSousMission=$sousMissionId';
 
     final response = await http.get(
       Uri.parse(url),

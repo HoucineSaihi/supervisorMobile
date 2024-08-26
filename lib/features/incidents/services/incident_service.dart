@@ -1,9 +1,10 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class IncidentService {
-  final String _baseUrl = 'https://e2ea-197-0-114-174.ngrok-free.app/api/MissionQuestions';
+  final String _baseUrl = '${dotenv.env['BASE_URL']}/api/MissionQuestions';
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
 
