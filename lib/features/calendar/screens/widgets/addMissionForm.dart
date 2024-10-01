@@ -88,6 +88,9 @@ class _AddMissionFormState extends State<AddMissionForm> {
     String? userIdString = await _storage.read(key: 'currentUserId');
     var _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
+    List<int> userIdArray = [];
+    userIdArray.add(_currentUserID);
+
     final selectedMission = _notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId);
 
     // Reset mission properties
@@ -195,7 +198,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
                 value: _selectedBoutiqueId,
               ),
               SizedBox(height: 16.0),
-      
+
               // Display selected Boutique Info
               if (_selectedBoutiqueId != null)
                 Card(
@@ -215,7 +218,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
                   ),
                 ),
               SizedBox(height: 16.0),
-      
+
               // Mission Selection
               DropdownButtonFormField<int>(
                 decoration: InputDecoration(
@@ -237,7 +240,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
                 value: _selectedMissionId,
               ),
               SizedBox(height: 16.0),
-      
+
               // Display selected Mission Info
               if (_selectedMissionId != null)
                 GestureDetector(
@@ -252,7 +255,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
                               'Code: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).missionCode ?? 'N/A'}'),
                           Text(
                               'Libelle: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).libelle ?? 'N/A'}'),
-      
+
                           Text(
                               'Description: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).description ?? 'N/A'}'),
                         ],
@@ -261,11 +264,11 @@ class _AddMissionFormState extends State<AddMissionForm> {
                   ),
                 ),
               SizedBox(height: 16.0),
-      
+
               // Display selected Mission Info
-      
+
               SizedBox(height: 16.0),
-      
+
               // Add Mission Button
               ElevatedButton(
                 onPressed: _handleAddMission,
@@ -274,8 +277,8 @@ class _AddMissionFormState extends State<AddMissionForm> {
                   minimumSize: Size(double.infinity, 50),
                   backgroundColor: TColors.buttonSecondary,
                   side : const BorderSide(color: TColors.buttonSecondary),
-      
-      
+
+
                 ),
               ),
             ],

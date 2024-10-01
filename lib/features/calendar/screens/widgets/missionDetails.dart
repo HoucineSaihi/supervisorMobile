@@ -95,10 +95,10 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
   }
 
   Future<void> _handleRefresh() async {
-     setState(() {
-       _missionFuture =  MissionService().getMissionDetails(widget.missionId);
+    setState(() {
+      _missionFuture =  MissionService().getMissionDetails(widget.missionId);
 
-     });
+    });
   }
   @override
   Widget build(BuildContext context) {
@@ -165,11 +165,11 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                             final allQuestions =
                                 sousMission.missionQuestions ?? [];
                             final answeredPercentage =
-                                _calculateAnsweredPercentage(allQuestions);
+                            _calculateAnsweredPercentage(allQuestions);
                             final yesPercentage =
-                                _calculateYesPercentage(allQuestions);
+                            _calculateYesPercentage(allQuestions);
                             final noPercentage =
-                                _calculateNoPercentage(allQuestions);
+                            _calculateNoPercentage(allQuestions);
 
                             return Card(
                               elevation: 4.0,
@@ -186,6 +186,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                         },
                                         mode: widget.mode,
                                         sousMissionID: sousMission.id!,
+                                        modelResponseID: mission.modelReponseQuestionId!,
                                       ),
                                     ),
                                   );
@@ -234,7 +235,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                         SizedBox(height: 8),
                                         Row(
                                           mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
+                                          MainAxisAlignment.spaceBetween,
                                           children: [
                                             Row(
                                               children: [

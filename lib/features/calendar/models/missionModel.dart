@@ -1,4 +1,5 @@
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
+import 'package:supervisormobile/features/calendar/models/modelReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/sousMissionModel.dart';
 
 class Mission {
@@ -16,7 +17,7 @@ class Mission {
   int? userId;
   bool? activated;
   List<SousMission>? sousMissions;
-
+  int? modelReponseQuestionId;
   Mission({
     required this.id,
     this.libelle,
@@ -32,6 +33,7 @@ class Mission {
     this.userId,
     this.activated,
     this.sousMissions,
+    this.modelReponseQuestionId
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) {
@@ -52,6 +54,8 @@ class Mission {
       sousMissions: json['sousMissions'] != null
           ? (json['sousMissions'] as List).map((i) => SousMission.fromJson(i)).toList()
           : null,
+      modelReponseQuestionId: json['modelReponseQuestionId'] as int?,
+
     );
   }
 
@@ -71,6 +75,7 @@ class Mission {
       'userId': userId,
       'activated': activated,
       'sousMissions': sousMissions?.map((e) => e.toJson()).toList(),
+      'modelReponseQuestionId': modelReponseQuestionId
     };
   }
 }

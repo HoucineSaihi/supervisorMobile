@@ -132,8 +132,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       dateClotDb: _dateClotDb,
       dateClotF: _dateClotF,
     );
-  });
-        }
+    });
+  }
   Future<void> _selectDate(BuildContext context, DateTime? initialDate, Function(DateTime?) onDateSelected) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -143,7 +143,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     );
     onDateSelected(pickedDate);
   }
-var _statusValidation = null;
+  var _statusValidation = null;
 
   Widget _buildFilterForm() {
     return Column(

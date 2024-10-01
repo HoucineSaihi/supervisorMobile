@@ -8,6 +8,7 @@ import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
@@ -16,13 +17,11 @@ import 'package:path_provider/path_provider.dart'; // For accessing the temp dir
 
 class QuestionResponseWidget extends StatefulWidget {
   final int questionId;
-  final String response;
+  final int modelResponseID;
 
-  const QuestionResponseWidget({
-    Key? key,
-    required this.questionId,
-    required this.response,
-  }) : super(key: key);
+  const QuestionResponseWidget(
+      {Key? key, required this.questionId, required this.modelResponseID})
+      : super(key: key);
 
   @override
   _QuestionResponseWidgetState createState() => _QuestionResponseWidgetState();
@@ -31,9 +30,12 @@ class QuestionResponseWidget extends StatefulWidget {
 class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
+  late Future<List<ChoixReponseQuestion>> _listChoixReponse;
   final TextEditingController _commentController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  String? _selectedAction;
+
+  int? _selectedAction;
+  int? selectedResponseID;
   bool _showAdditionalWidgets = false;
   List<ActionM> _actions = [];
   final ImagePicker _picker = ImagePicker();
@@ -44,96 +46,65 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     super.initState();
     _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
-    _actionsFuture.then((actions) {
-      if (mounted) {
-        setState(() {
-          _actions = actions;
-        });
-      }
-    });
+    _listChoixReponse =
+        MissionService().getAllChoixReponse(widget.modelResponseID);
+    setState(() {});
   }
 
   void _submitForm() async {
-    if (widget.response == 'Non') {
-      if (_formKey.currentState?.validate() ?? false) {
-        _formKey.currentState?.save();
+    if (_formKey.currentState?.validate() ?? false) {
+      _formKey.currentState?.save();
 
-        if (_imageFiles != null && _imageFiles!.isNotEmpty) {
-          try {
-            final firstFile = _imageFiles!.first;
-            final fileName =
-                await MissionService().uploadFile(File(firstFile.path));
+      String? fileName;
 
-            final updatedQuestion = QuestionMission(
-              id: widget.questionId,
-              description: "",
-              reponse: widget.response,
-              commentaire: _commentController.text,
-              clouture: null,
-              actionId: _actions
-                  .firstWhere(
-                      (action) => action.id.toString() == _selectedAction)
-                  .id,
-              fileName: fileName,
-            );
-
-            await MissionService()
-                .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Question updated successfully')));
-            Navigator.pop(context, true); // Navigate back
-
-          } catch (e) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text('Failed to upload file')));
-          }
-        } else {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('No file selected')));
+      // Check if there are image files and upload the first one if it exists
+      if (_imageFiles != null && _imageFiles!.isNotEmpty) {
+        try {
+          final firstFile = _imageFiles!.first;
+          fileName = await MissionService().uploadFile(File(firstFile.path));
+          print("\n File Name ----------------------------------------------- \n" + fileName);
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to upload file')),
+          );
+          return; // Stop execution if file upload fails
         }
       }
-    } else {
-      if (_imageFiles != null && _imageFiles!.isNotEmpty) {
-        final firstFile = _imageFiles!.first;
-        final fileName =
-            await MissionService().uploadFile(File(firstFile.path));
 
-        final updatedQuestion = QuestionMission(
-          id: widget.questionId,
-          description: "",
-          reponse: widget.response,
-          commentaire: _commentController.text,
-          clouture: null,
-          fileName: fileName,
-        );
-        await MissionService()
-            .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+      // Create the updated question object
+      final updatedQuestion = QuestionMission(
+        id: widget.questionId,
+        description: "", // Or some default value
+        commentaire: _commentController.text,
+        clouture: null,
+        actionId: _selectedAction,
+        fileName: fileName, // Add fileName if available, otherwise null
+        reponseID: selectedResponseID,
+      );
+
+      print("-----------------------------------Valeur JSON \n");
+      print(updatedQuestion.actionId);
+      print(updatedQuestion.reponseID);
+      print(updatedQuestion.fileName);
+
+      try {
+        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Question updated successfully')));
-        Navigator.pop(context, true); // Navigate back
-
-      } else {
-        final updatedQuestion = QuestionMission(
-          id: widget.questionId,
-          description: "",
-          reponse: widget.response,
-          commentaire: _commentController.text,
-          clouture: null,
+          SnackBar(content: Text('Question updated successfully')),
         );
-        await MissionService()
-            .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Question updated successfully')));
         Navigator.pop(context, true); // Navigate back
-
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update question')),
+        );
       }
     }
   }
 
+
   void _onActionChanged(ActionM? newValue) {
     setState(() {
-      _selectedAction = newValue?.id.toString();
-      _showAdditionalWidgets = newValue?.description == 'non';
+      _selectedAction = newValue?.id;
     });
   }
 
@@ -215,68 +186,99 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final TextStyle textStyle =
-        TextStyle(color: isDarkMode ? Colors.black : Colors.black);
+    TextStyle(color: isDarkMode ? Colors.black : Colors.black);
 
     return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('Repondre au question'),
-          leading: IconButton(
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text('Répondre au question'),
+            leading: IconButton(
               icon: Icon(Icons.arrow_back),
               onPressed: () {
-                Navigator.pop(context,true); // Navigate back
-              }
+                Navigator.pop(context, true); // Navigate back
+              },
+            ),
           ),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FutureBuilder<QuestionMission>(
-                    future: _questionFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      } else if (!snapshot.hasData) {
-                        return Center(child: Text('No data found'));
-                      }
+          body: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FutureBuilder<QuestionMission>(
+                      future: _questionFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(child: Text('Error: ${snapshot.error}'));
+                        } else if (!snapshot.hasData) {
+                          return Center(child: Text('No data found'));
+                        }
 
-                      final question = snapshot.data!;
+                        final question = snapshot.data!;
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Question: ${question.description ?? 'No Description'}",
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Réponse: ${widget.response == 'Non' ? 'Non' : 'Oui'}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: widget.response == 'Oui'
-                                  ? Colors.green
-                                  : Colors.red,
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Question: ${question.description ?? 'No Description'}",
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             ),
-                          ),
-                          SizedBox(height: 16),
-                          if (widget.response == 'Non')
+                            SizedBox(height: 16),
+                            // Dropdown for selecting response
+                            FutureBuilder<List<ChoixReponseQuestion>>(
+                              future: _listChoixReponse,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Center(child: CircularProgressIndicator());
+                                } else if (snapshot.hasError) {
+                                  return Center(
+                                      child: Text('Error: ${snapshot.error}'));
+                                } else if (!snapshot.hasData ||
+                                    snapshot.data!.isEmpty) {
+                                  return Center(
+                                      child: Text('No choices available'));
+                                }
+
+                                final choices = snapshot.data!;
+
+                                return DropdownButtonFormField<
+                                    ChoixReponseQuestion>(
+                                  hint: Text('Select Response'),
+                                  items: choices.map((ChoixReponseQuestion choice) {
+                                    return DropdownMenuItem<ChoixReponseQuestion>(
+                                      value: choice,
+                                      child: Text(
+                                          '${choice.libelle ?? 'No Label'} -- ${choice.valeur ?? 'No Value'}'), // Show libelle and valeur
+                                    );
+                                  }).toList(),
+                                  onChanged: (ChoixReponseQuestion? newValue) {
+                                    setState(() {
+                                      selectedResponseID = newValue?.id; // Assuming `id` is the identifier for the response
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select a response';
+                                    }
+                                    return null;
+                                  },
+                                );
+                              },
+                            ),
+                            SizedBox(height: 16),
+                            // Actions Dropdown (if applicable)
                             FutureBuilder<List<ActionM>>(
                               future: _actionsFuture,
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
-                                  return Center(
-                                      child: CircularProgressIndicator());
+                                  return Center(child: CircularProgressIndicator());
                                 } else if (snapshot.hasError) {
                                   return Center(
                                       child: Text('Error: ${snapshot.error}'));
@@ -295,8 +297,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   onChanged: _onActionChanged,
                                   decoration: CustomDropdownDecoration(
                                     expandedFillColor: Colors.grey,
-                                    expandedBorder:
-                                        Border.all(color: Colors.white),
+                                    expandedBorder: Border.all(color: Colors.white),
                                     expandedShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.5),
@@ -310,8 +311,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                     noResultFoundStyle: textStyle,
                                     errorStyle: textStyle,
                                     listItemStyle: textStyle,
-                                    searchFieldDecoration:
-                                        SearchFieldDecoration(
+                                    searchFieldDecoration: SearchFieldDecoration(
                                       textStyle: TextStyle(color: Colors.black),
                                       hintStyle: TextStyle(color: Colors.black),
                                     ),
@@ -325,115 +325,113 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                 );
                               },
                             ),
-                          SizedBox(height: 16),
-                          Text('Commentaire',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 8),
-                          TextFormField(
-                            controller: _commentController,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(),
-                              labelText: 'Commentaire',
-                            ),
-                            maxLines: 4,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a comment';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 16),
-                          Text('Joindre des images',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 8),
-                          OutlinedButton.icon(
-                            onPressed: _pickImages,
-                            icon: Icon(Icons.add, size: 24),
-                            label: Text('Image'),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: Size(double.infinity, 48),
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          OutlinedButton.icon(
-                            onPressed: _openCamera,
-                            icon: Icon(Icons.camera_alt, size: 24),
-                            label: Text('Ouvrir Camera'),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: Size(double.infinity, 48),
-                            ),
-                          ),
-                          SizedBox(height: 15),
-                          if (_imageFiles != null &&
-                              _imageFiles!.isNotEmpty) ...[
-                            ImageSlideshow(
-                              width: double.infinity,
-                              height: 300,
-                              initialPage: 0,
-                              indicatorColor: Colors.blue,
-                              indicatorBackgroundColor: Colors.grey,
-                              onPageChanged: (value) {
-                                print('Page changed: $value');
+                            SizedBox(height: 16),
+                            Text('Commentaire',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 8),
+                            TextFormField(
+                              controller: _commentController,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(),
+                                labelText: 'Commentaire',
+                              ),
+                              maxLines: 4,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter a comment';
+                                }
+                                return null;
                               },
-                              isLoop: true,
-                              children:
-                                  _imageFiles!.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final imageFile = entry.value;
+                            ),
+                            SizedBox(height: 16),
+                            Text('Joindre des images',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: _pickImages,
+                              icon: Icon(Icons.add, size: 24),
+                              label: Text('Image'),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: Size(double.infinity, 48),
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            OutlinedButton.icon(
+                              onPressed: _openCamera,
+                              icon: Icon(Icons.camera_alt, size: 24),
+                              label: Text('Ouvrir Camera'),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: Size(double.infinity, 48),
+                              ),
+                            ),
+                            SizedBox(height: 16),
 
-                                return Stack(
-                                  children: [
-                                    Container(
-                                      margin:
-                                          EdgeInsets.symmetric(horizontal: 8.0),
-                                      // Margin on the sides
-                                      child: GestureDetector(
-                                        onTap: () => _showImageViewer(index),
-                                        child: Image.file(
-                                          File(imageFile.path),
-                                          fit: BoxFit.cover,
-                                          width: double
-                                              .infinity, // Ensure image takes the full width
+                            if (_imageFiles != null && _imageFiles!.isNotEmpty) ...[
+                              ImageSlideshow(
+                                width: double.infinity,
+                                height: 300,
+                                initialPage: 0,
+                                indicatorColor: Colors.blue,
+                                indicatorBackgroundColor: Colors.grey,
+                                onPageChanged: (value) {
+                                  print('Page changed: $value');
+                                },
+                                isLoop: true,
+                                children: _imageFiles!.asMap().entries.map((entry) {
+                                  final index = entry.key;
+                                  final imageFile = entry.value;
+
+                                  return Stack(
+                                    children: [
+                                      Container(
+                                        margin:
+                                        EdgeInsets.symmetric(horizontal: 8.0),
+                                        child: GestureDetector(
+                                          onTap: () => _showImageViewer(index),
+                                          child: Image.file(
+                                            File(imageFile.path),
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    Positioned(
-                                      right: 8,
-                                      top: 8,
-                                      child: IconButton(
-                                        icon: Icon(Iconsax.trash,
-                                            color: Colors.red),
-                                        onPressed: () {
-                                          _removeImage(index);
-                                        },
+                                      Positioned(
+                                        right: 8,
+                                        top: 8,
+                                        child: IconButton(
+                                          icon: Icon(Iconsax.trash,
+                                              color: Colors.red),
+                                          onPressed: () {
+                                            _removeImage(index);
+                                          },
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                            SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: _submitForm,
+                              child: Text('Valider'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(double.infinity, 48),
+                              ),
                             ),
                           ],
-                          SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: _submitForm,
-                            child: Text('Valider'),
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: Size(double.infinity, 48),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 }
+
+

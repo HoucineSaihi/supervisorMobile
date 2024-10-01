@@ -154,7 +154,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                             MaterialPageRoute(
                               builder: (context) => QuestionResponseWidget(
                                 questionId: questionId,
-                                response: 'Non',
+                                modelResponseID: 0,
                               ),
                             ),
                           );
@@ -179,7 +179,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                             MaterialPageRoute(
                               builder: (context) => QuestionResponseWidget(
                                 questionId: questionId,
-                                response: 'Oui',
+                                modelResponseID: 0,
                               ),
                             ),
                           );
@@ -234,7 +234,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
         appBar: AppBar(
           title: Text('Modifier reponse '),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back),
+              icon: Icon(Icons.arrow_back),
               onPressed: () {
                 Navigator.pop(context,true); // Navigate back
               }
@@ -506,15 +506,15 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                         isLoop: true,
                         children: _images.map((image) {
                           return SafeArea(
-                            child:
-                            GestureDetector(
-                                onTap: () => _showImageViewer(_images.indexOf(image)),
-                                child: SafeArea(child:
-                                Image.file(
-                                  image,
-                                  fit: BoxFit.cover,
-                                ),)
-                            )
+                              child:
+                              GestureDetector(
+                                  onTap: () => _showImageViewer(_images.indexOf(image)),
+                                  child: SafeArea(child:
+                                  Image.file(
+                                    image,
+                                    fit: BoxFit.cover,
+                                  ),)
+                              )
                           );
                         }).toList(),
                       ),

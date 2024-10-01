@@ -31,17 +31,17 @@ class QuestionMission {
 
   factory QuestionMission.fromJson(Map<String, dynamic> json) {
     return QuestionMission(
-      id: json['id'] as int,
-      description: json['description'] as String?,
-      sousMissionId: json['sousMissionId'] as int?,
-      reponse: json['reponse'] as String?,
-      clouture: json['clouture'] != null ? DateTime.parse(json['clouture']) : null,
-      actionId: json['actionId'] as int?,
-      actions: json['actions'] != null ? ActionM.fromJson(json['actions']) : null,
-      commentaire: json['commentaire'] as String?,
-      fileName: json['fileName'] as String?,
-      choixReponseQuestion: json['choixReponseQuestion'] != null ? ChoixReponseQuestion.fromJson(json['choixReponseQuestion']) : null,
-      reponseID: json['reponseID'] as int?
+        id: json['id'] as int,
+        description: json['description'] as String?,
+        sousMissionId: json['sousMissionId'] as int?,
+        reponse: json['reponse'] as String?,
+        clouture: json['clouture'] != null ? DateTime.parse(json['clouture']) : null,
+        actionId: json['actionId'] as int?,
+        actions: json['actions'] != null ? ActionM.fromJson(json['actions']) : null,
+        commentaire: json['commentaire'] as String?,
+        fileName: json['fileName'] as String?,
+        choixReponseQuestion: json['choixReponseQuestion'] != null ? ChoixReponseQuestion.fromJson(json['choixReponseQuestion']) : null,
+        reponseID: json['reponseID'] as int?
     );
   }
 
