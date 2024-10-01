@@ -1,5 +1,6 @@
 
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
+import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 
 class QuestionMission {
   int id;
@@ -11,6 +12,8 @@ class QuestionMission {
   ActionM? actions;
   String? commentaire;
   String? fileName;
+  ChoixReponseQuestion? choixReponseQuestion;
+  int? reponseID;
 
   QuestionMission({
     required this.id,
@@ -22,6 +25,8 @@ class QuestionMission {
     this.actions,
     this.commentaire,
     this.fileName,
+    this.choixReponseQuestion,
+    this.reponseID
   });
 
   factory QuestionMission.fromJson(Map<String, dynamic> json) {
@@ -35,6 +40,8 @@ class QuestionMission {
       actions: json['actions'] != null ? ActionM.fromJson(json['actions']) : null,
       commentaire: json['commentaire'] as String?,
       fileName: json['fileName'] as String?,
+      choixReponseQuestion: json['choixReponseQuestion'] != null ? ChoixReponseQuestion.fromJson(json['choixReponseQuestion']) : null,
+      reponseID: json['reponseID'] as int?
     );
   }
 
@@ -49,6 +56,7 @@ class QuestionMission {
       'actions': actions?.toJson(), // Assuming ActionM has a toJson() method
       'commentaire': commentaire,
       'fileName': fileName,
+      'reponseID' : reponseID,
     };
   }
 }

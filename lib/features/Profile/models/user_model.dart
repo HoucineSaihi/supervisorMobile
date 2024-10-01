@@ -1,5 +1,6 @@
 import 'package:supervisormobile/features/Profile/models/group_model.dart';
 import 'package:supervisormobile/features/Profile/models/role_model.dart';
+import 'package:supervisormobile/features/Profile/models/boutique_model.dart';
 
 class UserModel {
   int id;
@@ -16,6 +17,7 @@ class UserModel {
   List<int>? grpsId;
   int? roleId;
   Role? role;
+  BoutiqueModel? boutique; // Added BoutiqueModel
 
   UserModel({
     required this.id,
@@ -32,6 +34,7 @@ class UserModel {
     this.grpsId,
     this.roleId,
     this.role,
+    this.boutique, // Boutique in constructor
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -52,6 +55,9 @@ class UserModel {
       grpsId: (json['grpsId'] as List<dynamic>?)?.map((id) => id as int).toList(),
       roleId: json['roleId'] as int?,
       role: json['role'] != null ? Role.fromJson(json['role'] as Map<String, dynamic>) : null,
+      boutique: json['boutique'] != null
+          ? BoutiqueModel.fromJson(json['boutique'] as Map<String, dynamic>)
+          : null, // Handling BoutiqueModel
     );
   }
 
@@ -69,6 +75,7 @@ class UserModel {
       'libBoutique': libBoutique,
       'grpsId': grpsId,
       'roleId': roleId,
+      'boutique': boutique?.toJson(), // Adding Boutique to JSON
     };
   }
 
@@ -87,6 +94,7 @@ class UserModel {
     List<int>? grpsId,
     int? roleId,
     Role? role,
+    BoutiqueModel? boutique, // Add Boutique to copyWith
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -103,6 +111,7 @@ class UserModel {
       grpsId: grpsId ?? this.grpsId,
       roleId: roleId ?? this.roleId,
       role: role ?? this.role,
+      boutique: boutique ?? this.boutique, // Copying Boutique
     );
   }
 }

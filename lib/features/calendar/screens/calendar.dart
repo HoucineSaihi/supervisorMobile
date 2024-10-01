@@ -31,7 +31,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   late Future<List<Mission>> futureMissions;
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
+  DateTime? _selectedDay = DateTime.now();
   List<int> boutiqueIds = []; // example boutiqueIds
 
   @override

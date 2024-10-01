@@ -262,7 +262,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Text(
-                                  'Group: ${user.groups?.isNotEmpty == true ? user.groups![0].groupName ?? 'Not available' : 'Not available'}',
+                                  'Appartient à: ${user.groups?.isNotEmpty == true ? 'Groupe , ${user.groups![0].groupName}' : "Boutique , ${user.boutique?.libelle ?? ''}"}',
                                   style: TextStyle(fontSize: 18),
                                 ),
                               ),

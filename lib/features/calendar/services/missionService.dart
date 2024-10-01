@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
+import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
@@ -17,6 +18,7 @@ class MissionService {
 
   Future<void> _loadAuthToken() async {
     // Retrieve the user ID from secure storage
+
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
@@ -146,13 +148,22 @@ class MissionService {
   }
 
   Future<List<BoutiqueModel>> getBoutiques() async {
-    final String boutiquesUrl = '${dotenv.env['BASE_URL']}/api/Boutiques';
+    String? userIdString = await _storage.read(key: 'currentUserId');
+    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
-    final response = await http.get(
+    List<int> userIdArray = [];
+    userIdArray.add(_currentUserID);
+
+    final String boutiquesUrl = '${dotenv.env['BASE_URL']}/api/Boutiques/getBoutiquesByUserIDs';
+
+    final response = await http.post(
       Uri.parse(boutiquesUrl),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
+      body: jsonEncode(
+        userIdArray, // Add the array to the body
+      ),
     );
 
     if (response.statusCode == 200) {
@@ -274,6 +285,23 @@ class MissionService {
     }
   }
 
+  Future<List<ChoixReponseQuestion>> getAllChoixReponse(int modeleReponseID) async {
+
+    final String url = '${dotenv.env['BASE_URL']}/api/ChoixReponseQuestion/$modeleReponseID';
+    final response = await http.get(
+      Uri.parse(url),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+    );
+    if (response.statusCode == 200) {
+      List<dynamic> body = json.decode(response.body);
+      List<ChoixReponseQuestion> allChoix = body.map((dynamic item) => ChoixReponseQuestion.fromJson(item)).toList();
+      return allChoix;
+    } else {
+      throw Exception('Failed to load questions for sousMission');
+    }
+  }
 
 
 

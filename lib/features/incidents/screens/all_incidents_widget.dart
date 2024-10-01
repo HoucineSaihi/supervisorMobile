@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
+import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
@@ -22,6 +24,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   bool _isLoading = true;
   bool _hasError = false;
   bool _showFilters = false; // State to control filter visibility
+  final MissionService _missionService = MissionService();
 
   // Filter fields
   final TextEditingController _missionLibelleController = TextEditingController();
@@ -30,6 +33,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   final TextEditingController _actionIdController = TextEditingController();
   final TextEditingController _boutiqueLibelleController = TextEditingController();
   final TextEditingController _statusValidationController = TextEditingController();
+  List<BoutiqueModel> _boutiques = [];
 
   DateTime? _dateDb;
   DateTime? _dateF;
@@ -42,7 +46,14 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   void initState() {
     super.initState();
     _incidentService = IncidentService();
-    _fetchIncidents(userId: 2);
+
+    _missionService.getBoutiques().then((boutiques) {
+      setState(() {
+        _boutiques = boutiques;
+      });
+
+      _fetchIncidents(userId: 2);
+    });
   }
   int _totalIncidents = 0;
 
@@ -134,7 +145,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   }
 var _statusValidation = null;
 
-Widget _buildFilterForm() {
+  Widget _buildFilterForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
       children: [
@@ -152,21 +163,40 @@ Widget _buildFilterForm() {
           controller: _questionLibelleController,
           decoration: InputDecoration(labelText: 'Question Libelle'),
         ),
-        /* SizedBox(height: 10), // Add spacing between input fields
-        TextField(
-          controller: _actionIdController,
-          decoration: InputDecoration(labelText: 'Action ID'),
-          keyboardType: TextInputType.number,
-        ), */
         SizedBox(height: 10), // Add spacing between input fields
-        TextField(
-          controller: _boutiqueLibelleController,
-          decoration: InputDecoration(labelText: 'Boutique Libelle'),
+        DropdownButtonFormField<String>(
+          decoration: InputDecoration(
+            labelText: 'Choisir une boutique',
+            border: OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem<String>(
+              value: null,
+              child: Text('Tous'),
+            ),
+            ..._boutiques.map((boutique) {
+              return DropdownMenuItem<String>(
+                value: boutique.libelle,
+                child: Text(boutique.libelle ?? 'No Name'),
+              );
+            }).toList(),
+          ],
+          onChanged: (String? newValue) {
+            setState(() {
+              _boutiqueLibelleController.text = newValue ?? '';
+            });
+          },
+          value: _boutiqueLibelleController.text.isNotEmpty
+              ? _boutiqueLibelleController.text
+              : null, // Prevents null error if text is empty
         ),
         SizedBox(height: 10), // Add spacing between input fields
         DropdownButtonFormField<int>(
           value: _statusValidation,
-          decoration: InputDecoration(labelText: 'Status Validation'),
+          decoration: InputDecoration(
+            labelText: 'Status Validation',
+            border: OutlineInputBorder(),
+          ),
           items: [
             DropdownMenuItem(value: null, child: Text('Tous')),
             DropdownMenuItem(value: 1, child: Text('Non Cloturée')),
@@ -175,11 +205,11 @@ Widget _buildFilterForm() {
           onChanged: (value) {
             setState(() {
               _statusValidation = value;
-              _statusValidationController.text = value?.toString() ?? ''; // Sync with TextEditingController
+              _statusValidationController.text =
+                  value?.toString() ?? ''; // Sync with TextEditingController
             });
           },
         ),
-
         SizedBox(height: 10), // Add spacing between input fields
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -191,7 +221,9 @@ Widget _buildFilterForm() {
                     _dateDb = date;
                   });
                 }),
-                child: Text(_dateDb != null ? _dateFormat.format(_dateDb!) : 'Select Date DB'),
+                child: Text(_dateDb != null
+                    ? _dateFormat.format(_dateDb!)
+                    : 'Select Date DB'),
               ),
             ),
             SizedBox(width: 10), // Add spacing between date pickers
@@ -202,7 +234,9 @@ Widget _buildFilterForm() {
                     _dateF = date;
                   });
                 }),
-                child: Text(_dateF != null ? _dateFormat.format(_dateF!) : 'Select Date F'),
+                child: Text(_dateF != null
+                    ? _dateFormat.format(_dateF!)
+                    : 'Select Date F'),
               ),
             ),
           ],
@@ -218,7 +252,9 @@ Widget _buildFilterForm() {
                     _dateClotDb = date;
                   });
                 }),
-                child: Text(_dateClotDb != null ? _dateFormat.format(_dateClotDb!) : 'Select Date Clot DB'),
+                child: Text(_dateClotDb != null
+                    ? _dateFormat.format(_dateClotDb!)
+                    : 'Select Date Clot DB'),
               ),
             ),
             SizedBox(width: 10), // Add spacing between date pickers
@@ -229,13 +265,15 @@ Widget _buildFilterForm() {
                     _dateClotF = date;
                   });
                 }),
-                child: Text(_dateClotF != null ? _dateFormat.format(_dateClotF!) : 'Select Date Clot F'),
+                child: Text(_dateClotF != null
+                    ? _dateFormat.format(_dateClotF!)
+                    : 'Select Date Clot F'),
               ),
             ),
           ],
         ),
         SizedBox(
-          width: double.infinity, // This makes the button take the full width
+          width: double.infinity, // Makes the button take the full width
           child: ElevatedButton.icon(
             onPressed: _applyFilters,
             icon: Icon(Iconsax.filter, size: 20), // Replace with the icon you want
@@ -245,10 +283,11 @@ Widget _buildFilterForm() {
             ),
           ),
         ),
-
       ],
     );
   }
+
+
 
 
   Widget _listItem(Map<String, dynamic> item) {

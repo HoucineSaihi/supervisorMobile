@@ -1,3 +1,4 @@
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
@@ -31,7 +32,16 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
   Future<void> _saveImage() async {
     if (_image == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No image selected')),
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: 'No Image',
+            message: 'No image selected.',
+            contentType: ContentType.warning, // Adjust this based on your needs (e.g., success, failure, help)
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
       return;
     }
@@ -44,20 +54,48 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
 
       if (updateSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile image updated successfully')),
+          SnackBar(
+            content: AwesomeSnackbarContent(
+              title: 'Success!',
+              message: 'Profile image updated successfully.',
+              contentType: ContentType.success,
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+          ),
         );
         Navigator.of(context).pop(); // Navigate back to the previous screen
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile image')),
+          SnackBar(
+            content: AwesomeSnackbarContent(
+              title: 'Failure',
+              message: 'Failed to update profile image.',
+              contentType: ContentType.failure,
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+          ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: $e')),
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: 'Error',
+            message: 'An error occurred: $e',
+            contentType: ContentType.failure,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
