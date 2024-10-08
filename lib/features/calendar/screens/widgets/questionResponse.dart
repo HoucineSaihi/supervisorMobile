@@ -34,7 +34,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   final TextEditingController _commentController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  int? _selectedAction;
+  ActionM? _selectedAction;
   int? selectedResponseID;
   bool _showAdditionalWidgets = false;
   List<ActionM> _actions = [];
@@ -52,9 +52,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   }
 
   void _submitForm() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      _formKey.currentState?.save();
-
+    if (selectedResponseID != null) {
       String? fileName;
 
       // Check if there are image files and upload the first one if it exists
@@ -77,7 +75,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         description: "", // Or some default value
         commentaire: _commentController.text,
         clouture: null,
-        actionId: _selectedAction,
+        actionId: _selectedAction?.id,
         fileName: fileName, // Add fileName if available, otherwise null
         reponseID: selectedResponseID,
       );
@@ -99,12 +97,17 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         );
       }
     }
+    else{
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Séléctionner une réponse.')),
+      );
+    }
   }
 
 
   void _onActionChanged(ActionM? newValue) {
     setState(() {
-      _selectedAction = newValue?.id;
+      _selectedAction = newValue;
     });
   }
 
@@ -273,28 +276,36 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                             ),
                             SizedBox(height: 16),
                             // Actions Dropdown (if applicable)
+
                             FutureBuilder<List<ActionM>>(
                               future: _actionsFuture,
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
                                   return Center(child: CircularProgressIndicator());
                                 } else if (snapshot.hasError) {
-                                  return Center(
-                                      child: Text('Error: ${snapshot.error}'));
-                                } else if (!snapshot.hasData ||
-                                    snapshot.data!.isEmpty) {
-                                  return Center(
-                                      child: Text('No actions available'));
+                                  return Center(child: Text('Error: ${snapshot.error}'));
+                                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                                  return Center(child: Text('No actions available'));
                                 }
 
                                 final actions = snapshot.data!;
 
+                                // Add the "None" option at the start of the list
+                                final noneAction = ActionM(id: 0, description: 'Aucune action');
+                                final allActions = [noneAction, ...actions];
+
                                 return CustomDropdown<ActionM>.search(
                                   hintText: 'Select Action',
-                                  items: actions,
+                                  items: allActions,
                                   excludeSelected: false,
-                                  onChanged: _onActionChanged,
+                                  onChanged: (value) {
+                                    // Handle the "None" option when selected
+                                    if (value?.id == -1) {
+                                      _selectedAction = null;  // Deselect logic
+                                    } else {
+                                      _onActionChanged(value);
+                                    }
+                                  },
                                   decoration: CustomDropdownDecoration(
                                     expandedFillColor: Colors.grey,
                                     expandedBorder: Border.all(color: Colors.white),
@@ -317,7 +328,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                     ),
                                   ),
                                   validator: (value) {
-                                    if (value == null) {
+                                    if (value == null || value.id == -1) {
                                       return 'Please select an action';
                                     }
                                     return null;
@@ -325,6 +336,16 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                 );
                               },
                             ),
+
+                            _selectedAction != null
+                                ? Row(
+                              children: [
+                                Text('Action : ${_selectedAction?.description ?? ''}'),
+                              ],
+                            )
+                                : SizedBox.shrink(), // Returns an empty widget when _selectedAction is null
+
+
                             SizedBox(height: 16),
                             Text('Commentaire',
                                 style: TextStyle(

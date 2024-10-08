@@ -90,7 +90,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         dateClotF: dateClotF,
       );
       setState(() {
-        _incidents = List<Map<String, dynamic>>.from(incidents);
+        _incidents = List<Map<String , dynamic>>.from(incidents);
         _totalIncidents = _incidents.length; // Update the total count
         _isLoading = false;
       });
@@ -324,7 +324,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item["missionLibelle"] ?? 'No mission',
+                      'Mission :'+item["missionLibelle"] ?? 'No mission',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -332,7 +332,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      item["sousMissionLibelle"] ?? 'No sous-mission',
+                      'Btq :'+item["boutiqueLibelle"] ?? 'No sous-mission',
                       style: const TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
@@ -340,7 +340,15 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      item["questionLibelle"] ?? 'No question',
+                      'Catégorie :'+item["sousMissionLibelle"] ?? 'No sous-mission',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Quest :'+item["questionLibelle"] ?? 'No question',
                       style: const TextStyle(
                         fontWeight: FontWeight.w400,
                         fontSize: 14,
@@ -348,7 +356,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      item["actionLibelle"] ?? 'No action',
+                      'Action: '+item["actionLibelle"] ?? 'No action',
                       style: const TextStyle(
                         fontWeight: FontWeight.w400,
                         fontSize: 14,
@@ -356,7 +364,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      item["responsable"] ?? 'No responsable',
+                      'Resp: '+item["responsable"] ?? 'No responsable',
                       style: const TextStyle(
                         fontWeight: FontWeight.w400,
                         fontSize: 14,
