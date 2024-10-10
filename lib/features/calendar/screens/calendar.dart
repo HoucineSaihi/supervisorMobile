@@ -29,7 +29,7 @@ class CalendarPlanning extends StatefulWidget {
 }
 
 class _CalendarPlanningState extends State<CalendarPlanning> {
-  late Future<List<Mission>> futureMissions;
+  Future<List<Mission>>? futureMissions ;
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay = DateTime.now();
@@ -38,9 +38,11 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   @override
   void initState() {
     super.initState();
-    _handleRefresh();
+     loadMissions();
     _loadAuthToken();
+    setState(() {
 
+    });
   }
 
   Map<String, String> getStatusColors(int? status) {
@@ -326,13 +328,22 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
     return (answeredQuestions / totalQuestions) * 100;
   }
 
-  Future<void> _handleRefresh() async {
-    setState(() {
-      futureMissions = MissionService()
-          .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
-
-    });
+  Future<void> loadMissions() async {
+    try {
+      // Correctly await the service method and assign it to futureMissions
+      String? userIdString = await window.localStorage['currentUserId'];
+      _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+      futureMissions = MissionService().getPlanifiedMissions(
+          [_currentUserID],
+          boutiqueIds,
+          _focusedDay
+      );
+      setState(() {}); // Trigger a rebuild if you're using StatefulWidget
+    } catch (e) {
+      print('Error loading missions: $e');
+    }
   }
+
 
 
   final _storage = FlutterSecureStorage();
@@ -372,7 +383,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
 
     return Scaffold(
       body: LiquidPullToRefresh(
-        onRefresh: _handleRefresh,
+        onRefresh: loadMissions,
         springAnimationDurationInMilliseconds: 300, // Speed up the animation
         height: 60.0, // Adjust the height as needed
         color: TColors.primary,

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
@@ -83,11 +84,14 @@ class _ProfileInfoState extends State<ProfileInfo> {
                               height: 120,
                               child: Container(
                                 padding: const EdgeInsets.all(3),
-                                child: ClipOval(
-                                  child: Image.network(
-                                    user.img ?? 'default_image_url', // Replace with actual image URL or default image
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(100),
+                                  child: user.img != null && user.img!.isNotEmpty
+                                      ? Image.network(
+                                    '${dotenv.env['BASE_URL']}/api/Files/getImage/${user.img!}',
                                     fit: BoxFit.cover,
-                                  ),
+                                  )
+                                      : Image.asset('lib/assets/logos/testLogo.png'),
                                 ),
                               ),
                             ),
