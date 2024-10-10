@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
@@ -12,6 +12,7 @@ import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:path_provider/path_provider.dart'; // For accessing the temp directory
+import 'dart:typed_data';
 
 class QuestionResponseWidget extends StatefulWidget {
   final int questionId;
@@ -37,6 +38,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   List<ActionM> _actions = [];
   final ImagePicker _picker = ImagePicker();
   List<XFile>? _imageFiles;
+  Uint8List? webImage ;
 
   @override
   void initState() {
@@ -54,14 +56,17 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
 
   void _submitForm() async {
     if (widget.response == 'Non') {
-      if (_formKey.currentState?.validate() ?? false) {
         _formKey.currentState?.save();
 
-        if (_imageFiles != null && _imageFiles!.isNotEmpty) {
+        // Check if webImage is available for upload
+
           try {
-            final firstFile = _imageFiles!.first;
-            final fileName =
-                await MissionService().uploadFile(File(firstFile.path));
+            // Upload the web image instead of a file
+            var fileName = null;
+            if (webImage != null) {
+              fileName = await MissionService().uploadFile(
+                  webImage!, "your-image.jpg"); // Provide a default file name
+            }
 
             final updatedQuestion = QuestionMission(
               id: widget.questionId,
@@ -70,32 +75,25 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
               commentaire: _commentController.text,
               clouture: null,
               actionId: _actions
-                  .firstWhere(
-                      (action) => action.id.toString() == _selectedAction)
+                  .firstWhere((action) => action.id.toString() == _selectedAction)
                   .id,
               fileName: fileName,
             );
 
-            await MissionService()
-                .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Question updated successfully')));
+            await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question updated successfully')));
             Navigator.pop(context, true); // Navigate back
 
           } catch (e) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text('Failed to upload file')));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Une erreur est survenue lors de l'envoi du réponse" )));
           }
-        } else {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('No file selected')));
-        }
-      }
+
+
     } else {
-      if (_imageFiles != null && _imageFiles!.isNotEmpty) {
-        final firstFile = _imageFiles!.first;
-        final fileName =
-            await MissionService().uploadFile(File(firstFile.path));
+      // Handle the case where response is not 'Non'
+      if (webImage != null) {
+        // Upload the web image for the else case
+        final fileName = await MissionService().uploadFile(webImage, "your-image.jpg"); // Provide a default file name
 
         final updatedQuestion = QuestionMission(
           id: widget.questionId,
@@ -105,10 +103,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           clouture: null,
           fileName: fileName,
         );
-        await MissionService()
-            .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Question updated successfully')));
+        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question updated successfully')));
         Navigator.pop(context, true); // Navigate back
 
       } else {
@@ -119,15 +115,13 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           commentaire: _commentController.text,
           clouture: null,
         );
-        await MissionService()
-            .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Question updated successfully')));
+        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question updated successfully')));
         Navigator.pop(context, true); // Navigate back
-
       }
     }
   }
+
 
   void _onActionChanged(ActionM? newValue) {
     setState(() {
@@ -137,17 +131,42 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   }
 
   Future<void> _pickImages() async {
-    final List<XFile>? selectedImages = await _picker.pickMultiImage();
-    if (selectedImages != null) {
-      setState(() {
-        _imageFiles = selectedImages;
-      });
+    if(!kIsWeb){
+      final List<XFile>? selectedImages = await _picker.pickMultiImage();
+      if (selectedImages != null) {
+        setState(() {
+          _imageFiles = selectedImages;
+        });
+      }
+    }else {
+      final ImagePicker _picker =ImagePicker();
+      XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if(image != null){
+        var selected = await image.readAsBytes();
+        setState(() {
+          webImage = selected;
+        });
+      }else {
+        print('Failed to store the image');
+      }
     }
+
   }
 
- void _showImageViewer(int index) {
-    if (_imageFiles != null && _imageFiles!.isNotEmpty) {
-      final imageProvider = FileImage(File(_imageFiles![index].path));
+  void _showImageViewer() {
+    if (kIsWeb && webImage != null) {
+      final imageProvider = MemoryImage(webImage!); // Use MemoryImage for web Uint8List
+      showImageViewer(
+        context,
+        imageProvider,
+        immersive: false,
+        onViewerDismissed: () {
+          print("Image viewer dismissed");
+        },
+      );
+    } else if (!kIsWeb && _imageFiles != null && _imageFiles!.isNotEmpty) {
+      // Handle for mobile/desktop platforms using FileImage
+      final imageProvider = FileImage(File(_imageFiles![0].path));
       showImageViewer(
         context,
         imageProvider,
@@ -158,6 +177,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       );
     }
   }
+
 
   /*void _openCamera() async {
     // Navigate to CaptureImageScreen and await result
@@ -365,9 +385,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               minimumSize: Size(double.infinity, 48),
                             ),
                           ), */
+
                           SizedBox(height: 15),
-                          /* if (_imageFiles != null &&
-                              _imageFiles!.isNotEmpty) ...[
+                          if (webImage != null || (_imageFiles != null && _imageFiles!.isNotEmpty)) ...[
+                            Text('Selected Images', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 8),
                             ImageSlideshow(
                               width: double.infinity,
                               height: 300,
@@ -378,44 +400,89 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                 print('Page changed: $value');
                               },
                               isLoop: true,
-                              children:
-                                  _imageFiles!.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final imageFile = entry.value;
-
-                                return Stack(
-                                  children: [
-                                    Container(
-                                      margin:
-                                          EdgeInsets.symmetric(horizontal: 8.0),
-                                      // Margin on the sides
-                                      child: GestureDetector(
-                                        onTap: () => _showImageViewer(index),
-                                        child: Image.file(
-                                          File(imageFile.path),
-                                          fit: BoxFit.cover,
-                                          width: double
-                                              .infinity, // Ensure image takes the full width
+                              children: [
+                                // Display the web image
+                                if (kIsWeb && webImage != null)
+                                  Stack(
+                                    children: [
+                                      Container(
+                                        margin: EdgeInsets.symmetric(horizontal: 8.0),
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            _showImageViewer(); // Show the image viewer for web image
+                                          },
+                                          child: Image.memory(
+                                            webImage!,
+                                            fit: BoxFit.fill,
+                                            width: 500,
+                                            height: 500,
+                                            alignment: Alignment.center,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    Positioned(
-                                      right: 8,
-                                      top: 8,
-                                      child: IconButton(
-                                        icon: Icon(Iconsax.trash,
-                                            color: Colors.red),
-                                        onPressed: () {
-                                          _removeImage(index);
-                                        },
+                                      Positioned(
+                                        right: 8,
+                                        top: 8,
+                                        child: IconButton(
+                                          icon: Icon(Iconsax.trash, color: Colors.red),
+                                          onPressed: () {
+                                            setState(() {
+                                              // Clear the web image
+                                              webImage = Uint8List(0); // Remove the image
+                                            });
+                                          },
+                                        ),
                                       ),
+                                    ],
+                                  )
+                                // Display message when no image is selected
+                                else if (kIsWeb && webImage == null)
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(
+                                      'No image selected',
+                                      style: TextStyle(fontSize: 16, color: Colors.grey),
                                     ),
-                                  ],
-                                );
-                              }).toList(),
+                                  ),
+                                // Display the picked image files (for mobile/desktop)
+                                if (!kIsWeb && _imageFiles != null && _imageFiles!.isNotEmpty)
+                                  ..._imageFiles!.asMap().entries.map((entry) {
+                                    final index = entry.key;
+                                    final imageFile = entry.value;
+
+                                    return Stack(
+                                      children: [
+                                        Container(
+                                          margin: EdgeInsets.symmetric(horizontal: 8.0),
+                                          child: GestureDetector(
+                                            onTap: () => _showImageViewer(), // Show image viewer for picked files
+                                            child: Image.file(
+                                              File(imageFile.path),
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          right: 8,
+                                          top: 8,
+                                          child: IconButton(
+                                            icon: Icon(Iconsax.trash, color: Colors.red),
+                                            onPressed: () {
+                                              _removeImage(index); // Remove the image from the list
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                              ],
+
+
                             ),
                           ],
-                          SizedBox(height: 20), */
+                          SizedBox(height: 20),
+
                           ElevatedButton(
                             onPressed: _submitForm,
                             //_submitForm,

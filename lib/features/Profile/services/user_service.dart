@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
@@ -10,7 +9,6 @@ import 'dart:html';
 
 class UserService {
   String _baseUrl = "${dotenv.env['BASE_URL']}"; // Replace with your actual base URL
-  final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
 
   Future<void> _loadAuthToken() async {
@@ -20,7 +18,7 @@ class UserService {
 
   }
   Future<UserModel?> getUserById() async {
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    String? userIdString = await window.localStorage['currentUserId'];
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
     final url = Uri.parse('$_baseUrl/api/Caisses/$_currentUserID');
     final response = await http.get(url);
@@ -34,7 +32,7 @@ class UserService {
   }
 
   Future<bool> updateUser(UserModel user) async {
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    String? userIdString = await window.localStorage['currentUserId'];
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
     final url = Uri.parse('$_baseUrl/api/Caisses/$_currentUserID?updatePassword=false');
     final headers = {

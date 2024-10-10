@@ -1,5 +1,5 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
@@ -8,7 +8,7 @@ import 'package:supervisormobile/features/Profile/screens/userinfo_edit.dart';
 import 'package:supervisormobile/features/Profile/services/user_service.dart';
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
-import 'dart:html' as html;
+import 'dart:html';
 
 class ProfileInfo extends StatefulWidget {
   const ProfileInfo({super.key});
@@ -26,18 +26,13 @@ class _ProfileInfoState extends State<ProfileInfo> {
     _userDetails = UserService().getUserById();
   }
 
-  void _openEditUserInfo(UserModel user) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditUserInfoScreen(user: user),
-      ),
-    );
-  }
-
   Future<void> _handleLogout() async {
-    // Clear local storage directly
-    html.window.localStorage.clear(); // Clear all local storage items
+    // Clear local storage directly for web
+    // Check if this is running on the web platform
+    if (kIsWeb) {
+      // Clear all local storage items
+      window.localStorage.clear();
+    }
 
     // Navigate to the login screen and remove all previous routes
     Navigator.of(context).pushAndRemoveUntil(
@@ -88,15 +83,11 @@ class _ProfileInfoState extends State<ProfileInfo> {
                               height: 120,
                               child: Container(
                                 padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
+                                child: ClipOval(
+                                  child: Image.network(
+                                    user.img ?? 'default_image_url', // Replace with actual image URL or default image
+                                    fit: BoxFit.cover,
                                   ),
-                                ),
-                                child: ClipRRect(
-
                                 ),
                               ),
                             ),
@@ -114,24 +105,6 @@ class _ProfileInfoState extends State<ProfileInfo> {
                           style: TextStyle(fontSize: 16, color: TColors.grey),
                         ),
                         const SizedBox(height: 20),
-                        OutlinedButton(
-                          onPressed: () => _openEditUserInfo(user),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: TColors.accent,
-                            side: BorderSide(color: TColors.accent),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Iconsax.edit, size: 20, color: TColors.accent),
-                              const SizedBox(width: 8),
-                              Text('Modifier Profile'),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   );
@@ -156,87 +129,24 @@ class _ProfileInfoState extends State<ProfileInfo> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: TColors.primary, width: 2),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(
-                                  'Tel: ${user.tel ?? 'Not available'}',
-                                  style: TextStyle(fontSize: 18),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Icon(Iconsax.call, color: TColors.primary),
-                            ),
-                          ],
-                        ),
+                      _buildInfoCard(
+                        title: 'Tel: ${user.tel ?? 'Not available'}',
+                        icon: Iconsax.call,
                       ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: TColors.primary, width: 2),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(
-                                  'Role: ${user.role?.libelle ?? 'Not available'}',
-                                  style: TextStyle(fontSize: 18),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Icon(Iconsax.user, color: TColors.primary),
-                            ),
-                          ],
-                        ),
+                      _buildInfoCard(
+                        title: 'Role: ${user.role?.libelle ?? 'Not available'}',
+                        icon: Iconsax.user,
                       ),
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: TColors.primary, width: 2),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(
-                                  'Appartient à: ${user.groups?.isNotEmpty == true ? 'Groupe , ${user.groups![0].groupName}' : "Boutique , ${user.boutique?.libelle ?? ''}"}',
-                                  style: TextStyle(fontSize: 18),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Icon(Iconsax.group, color: TColors.primary),
-                            ),
-                          ],
-                        ),
+                      _buildInfoCard(
+                        title: 'Appartient à: ${user.groups?.isNotEmpty == true ? 'Groupe , ${user.groups![0].groupName}' : "Boutique , ${user.boutique?.libelle ?? ''}"}',
+                        icon: Iconsax.group,
                       ),
                       SizedBox(height: 30),
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16.0),
                         child: ElevatedButton(
                           onPressed: () {
-                            // Add your logout logic here
+                            _handleLogout();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: TColors.primary,
@@ -261,6 +171,34 @@ class _ProfileInfoState extends State<ProfileInfo> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({required String title, required IconData icon}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(
+        border: Border.all(color: TColors.primary, width: 2),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                title,
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Icon(icon, color: TColors.primary),
+          ),
+        ],
       ),
     );
   }

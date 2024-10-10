@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -307,21 +308,20 @@ class MissionService {
   }
 
 
-  Future<String> uploadFile(io.File file) async { // Use io.File here
+  Future<String> uploadFile(Uint8List? imageData, String? fileName) async {
     final Uri uri = Uri.parse('${dotenv.env['BASE_URL']}/api/Files'); // Construct the URI for your file upload endpoint
 
-    // Determine the MIME type based on the file extension
-    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+    // Determine the MIME type based on the file extension or content
+    final mimeType = lookupMimeType(fileName!) ?? 'application/octet-stream';
     final mimeTypeParts = mimeType.split('/');
 
     var request = http.MultipartRequest('POST', uri)
       ..headers['Content-Type'] = 'multipart/form-data'
       ..files.add(
-        http.MultipartFile(
+        http.MultipartFile.fromBytes(
           'image', // Name of the file parameter in your API
-          file.readAsBytes().asStream(),
-          file.lengthSync(),
-          filename: file.path.split('/').last,
+          imageData!, // Use Uint8List directly
+          filename: fileName,
           contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
         ),
       );
