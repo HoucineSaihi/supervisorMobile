@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:camera/camera.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
@@ -146,7 +145,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     }
   }
 
-  void _showImageViewer(int index) {
+ void _showImageViewer(int index) {
     if (_imageFiles != null && _imageFiles!.isNotEmpty) {
       final imageProvider = FileImage(File(_imageFiles![index].path));
       showImageViewer(
@@ -160,7 +159,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     }
   }
 
-  void _openCamera() async {
+  /*void _openCamera() async {
     // Navigate to CaptureImageScreen and await result
     final Uint8List? imageBytes = await Navigator.push(
       context,
@@ -203,7 +202,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         print('Error saving image to file: $e');
       }
     }
-  }
+  } */
 
   void _removeImage(int index) {
     setState(() {
@@ -357,7 +356,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               minimumSize: Size(double.infinity, 48),
                             ),
                           ),
-                          SizedBox(height: 16),
+                         /* SizedBox(height: 16),
                           OutlinedButton.icon(
                             onPressed: _openCamera,
                             icon: Icon(Icons.camera_alt, size: 24),
@@ -365,9 +364,9 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                             style: OutlinedButton.styleFrom(
                               minimumSize: Size(double.infinity, 48),
                             ),
-                          ),
+                          ), */
                           SizedBox(height: 15),
-                          if (_imageFiles != null &&
+                          /* if (_imageFiles != null &&
                               _imageFiles!.isNotEmpty) ...[
                             ImageSlideshow(
                               width: double.infinity,
@@ -416,9 +415,10 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               }).toList(),
                             ),
                           ],
-                          SizedBox(height: 20),
+                          SizedBox(height: 20), */
                           ElevatedButton(
                             onPressed: _submitForm,
+                            //_submitForm,
                             child: Text('Valider'),
                             style: ElevatedButton.styleFrom(
                               minimumSize: Size(double.infinity, 48),

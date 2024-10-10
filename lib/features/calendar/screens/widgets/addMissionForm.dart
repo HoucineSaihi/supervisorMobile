@@ -6,6 +6,7 @@ import 'package:supervisormobile/features/calendar/services/missionService.dart'
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:html';
 
 class AddMissionForm extends StatefulWidget {
   final DateTime? Date; // Add this parameter
@@ -85,7 +86,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
       );
       return;
     }
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    String? userIdString = await window.localStorage['currentUserId'];
     var _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
     final selectedMission = _notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId);

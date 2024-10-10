@@ -4,13 +4,11 @@ import 'package:iconsax/iconsax.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
-import 'package:supervisormobile/features/Profile/screens/image_picker.dart';
 import 'package:supervisormobile/features/Profile/screens/userinfo_edit.dart';
 import 'package:supervisormobile/features/Profile/services/user_service.dart';
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'dart:html' as html;
 
 class ProfileInfo extends StatefulWidget {
   const ProfileInfo({super.key});
@@ -21,39 +19,25 @@ class ProfileInfo extends StatefulWidget {
 
 class _ProfileInfoState extends State<ProfileInfo> {
   late Future<UserModel?> _userDetails;
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
-
-
-
 
   @override
   void initState() {
     super.initState();
-    // Initialize with static user ID
-
     _userDetails = UserService().getUserById();
-  }
-
-  void _openImagePicker(UserModel user) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ImagePickerScreen(user: user),
-      ),
-    );
   }
 
   void _openEditUserInfo(UserModel user) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditUserInfoScreen(user: user), // Navigate to the new screen
+        builder: (context) => EditUserInfoScreen(user: user),
       ),
     );
   }
 
   Future<void> _handleLogout() async {
-    await _storage.deleteAll();
+    // Clear local storage directly
+    html.window.localStorage.clear(); // Clear all local storage items
 
     // Navigate to the login screen and remove all previous routes
     Navigator.of(context).pushAndRemoveUntil(
@@ -61,7 +45,6 @@ class _ProfileInfoState extends State<ProfileInfo> {
           (Route<dynamic> route) => false,
     );
   }
-
 
   Future<void> _handleRefresh() async {
     setState(() {
@@ -113,33 +96,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                                   ),
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(100),
-                                  child: user.img != null && user.img!.isNotEmpty
-                                      ? Image.network(
-                                    '${dotenv.env['BASE_URL']}/api/Files/getImage/${user.img!}',
-                                    fit: BoxFit.cover,
-                                  )
-                                      : Image.asset('lib/assets/logos/testLogo.png'),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap: () => _openImagePicker(user),
-                                child: Container(
-                                  width: 35,
-                                  height: 35,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(100),
-                                  ),
-                                  child: const Icon(
-                                    Iconsax.edit,
-                                    size: 20,
-                                    color: Colors.black,
-                                  ),
+
                                 ),
                               ),
                             ),
@@ -273,54 +230,30 @@ class _ProfileInfoState extends State<ProfileInfo> {
                             ),
                           ],
                         ),
-                      ),SizedBox(height: 30,),
+                      ),
+                      SizedBox(height: 30),
                       Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16.0), // Margin on the left and right
+                        margin: const EdgeInsets.symmetric(horizontal: 16.0),
                         child: ElevatedButton(
                           onPressed: () {
                             // Add your logout logic here
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: TColors.primary, // Background color
+                            backgroundColor: TColors.primary,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8), // Button border radius
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: 14), // Button padding
-                            textStyle: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center, // Center text and icon
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              ElevatedButton(
-                                onPressed: _handleLogout,  // Call the logout function here
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: TColors.primary, // Background color
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8), // Button border radius
-                                  ),
-                                  padding: EdgeInsets.symmetric(vertical: 14), // Button padding
-                                  textStyle: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center, // Center text and icon
-                                  children: [
-                                    Icon(Iconsax.logout, color: Colors.white),
-                                    SizedBox(width: 8),
-                                    Text('Se Déconnecter', style: TextStyle(color: Colors.white)),
-                                  ],
-                                ),
-                              ),
+                              const Icon(Iconsax.logout, size: 20, color: Colors.white),
+                              const SizedBox(width: 8),
+                              const Text('Se déconnecter', style: TextStyle(color: Colors.white)),
                             ],
                           ),
                         ),
-                      )
-
+                      ),
                     ],
                   ),
                 );

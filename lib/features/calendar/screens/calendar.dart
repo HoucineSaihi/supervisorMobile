@@ -19,6 +19,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:sticky_float_button/sticky_float_button.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
+import 'dart:html'; // Import for web localStorage
 
 class CalendarPlanning extends StatefulWidget {
   const CalendarPlanning({super.key});
@@ -338,11 +339,14 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   int _currentUserID = 0;
 
   Future<void> _loadAuthToken() async {
-    // Retrieve the user ID from secure storage
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    // Retrieve the user ID from the browser's local storage
+    String? userIdString = await window.localStorage['currentUserId'];
+
+    // Update the state
     setState(() {
       // Convert the string to an integer, default to 0 if null or invalid
       _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+      print(_currentUserID);
     });
   }
 
@@ -805,31 +809,3 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   }
 }
 
-class StickyFloatButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-  final double iconSize;
-  final Color buttonColor;
-  final Color iconColor;
-
-  StickyFloatButton({
-    required this.icon,
-    required this.onPressed,
-    this.iconSize = 24.0,
-    this.buttonColor = Colors.blue,
-    this.iconColor = Colors.white,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton(
-      onPressed: onPressed,
-      backgroundColor: buttonColor,
-      child: Icon(
-        icon,
-        size: iconSize,
-        color: iconColor,
-      ),
-    );
-  }
-}

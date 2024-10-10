@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
+import 'dart:html';
 
 class UserService {
   String _baseUrl = "${dotenv.env['BASE_URL']}"; // Replace with your actual base URL
@@ -14,7 +15,7 @@ class UserService {
 
   Future<void> _loadAuthToken() async {
     // Retrieve the user ID from secure storage
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    String? userIdString = await window.localStorage['currentUserId'];
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
   }
@@ -62,7 +63,7 @@ class UserService {
     }
   }
 
-  Future<String> uploadFile(File file) async {
+ /* Future<String> uploadFile(File file) async {
     final Uri uri = Uri.parse('$_baseUrl/api/Files'); // Construct the URI for your file upload endpoint
 
     // Determine the MIME type based on the file extension
@@ -70,7 +71,8 @@ class UserService {
     final mimeTypeParts = mimeType.split('/');
 
     var request = http.MultipartRequest('POST', uri)
-      ..headers['accept'] = '*/*'
+    supposed to be nejma / nejma in headers
+      ..headers['accept'] = ''
       ..headers['Content-Type'] = 'multipart/form-data'
       ..files.add(
         http.MultipartFile(
@@ -91,5 +93,5 @@ class UserService {
     } else {
       throw Exception('Failed to upload file');
     }
-  }
+  } */
 }

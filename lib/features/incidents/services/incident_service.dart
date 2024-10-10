@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'dart:html'; // Import for web localStorage
 
 class IncidentService {
   final String _baseUrl = '${dotenv.env['BASE_URL']}/api/MissionQuestions';
@@ -10,7 +11,7 @@ class IncidentService {
 
   Future<void> _loadAuthToken() async {
     // Retrieve the user ID from secure storage
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    String? userIdString = await window.localStorage['currentUserId'];;
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
   }
@@ -27,7 +28,7 @@ class IncidentService {
     DateTime? dateClotDb,
     DateTime? dateClotF,
   }) async {
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    String? userIdString = await window.localStorage['currentUserId'];
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
     final Map<String, String> queryParams = {};
 

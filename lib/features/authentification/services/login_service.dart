@@ -1,37 +1,39 @@
 import 'dart:convert';
+import 'dart:html'; // Import for web localStorage
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorageService {
-  final _storage = FlutterSecureStorage();
-
+  // Save login data to localStorage
   Future<void> saveLoginData(Map<String, dynamic> data) async {
-    await _storage.write(key: 'token', value: data['token']);
-    await _storage.write(key: 'expires', value: data['expires']);
-    await _storage.write(key: 'currentUserId', value: data['currentUserId'].toString());
-    await _storage.write(key: 'currentName', value: data['currentName']);
-    await _storage.write(key: 'role', value: data['role'].toString());
-    await _storage.write(key: 'idBoutique', value: data['idBoutique']?.toString() ?? '');
+    window.localStorage['token'] = data['token'];
+    window.localStorage['expires'] = data['expires'];
+    window.localStorage['currentUserId'] = data['currentUserId'].toString();
+    window.localStorage['currentName'] = data['currentName'];
+    window.localStorage['role'] = data['role'].toString();
+    window.localStorage['idBoutique'] = data['idBoutique']?.toString() ?? '';
   }
 
+  // Retrieve token from localStorage
   Future<String?> getToken() async {
-    return await _storage.read(key: 'token');
+    return window.localStorage['token'];
   }
 
+  // Retrieve login data from localStorage
   Future<Map<String, String?>> getLoginData() async {
     return {
-      'token': await _storage.read(key: 'token'),
-      'expires': await _storage.read(key: 'expires'),
-      'currentUserId': await _storage.read(key: 'currentUserId'),
-      'currentName': await _storage.read(key: 'currentName'),
-      'role': await _storage.read(key: 'role'),
-      'idBoutique': await _storage.read(key: 'idBoutique'),
+      'token': window.localStorage['token'],
+      'expires': window.localStorage['expires'],
+      'currentUserId': window.localStorage['currentUserId'],
+      'currentName': window.localStorage['currentName'],
+      'role': window.localStorage['role'],
+      'idBoutique': window.localStorage['idBoutique'],
     };
   }
 
+  // Clear all stored data in localStorage
   Future<void> clear() async {
-    await _storage.deleteAll();
+    window.localStorage.clear();
   }
 }
 

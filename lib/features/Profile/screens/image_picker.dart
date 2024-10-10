@@ -1,3 +1,5 @@
+
+/*
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -159,3 +161,6 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
     );
   }
 }
+
+*/
+

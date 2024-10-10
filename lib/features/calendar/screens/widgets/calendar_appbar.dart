@@ -3,7 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_icons/cart_notif_icon.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
-
+import 'dart:html';
 class THomeAppBar extends StatefulWidget {
   const THomeAppBar({super.key});
 
@@ -23,7 +23,8 @@ class _THomeAppBarState extends State<THomeAppBar> {
 
   Future<void> _loadAuthToken() async {
     // Retrieve the token from secure storage
-    String? token = await _storage.read(key: 'currentName');
+
+    String? token = await window.localStorage['currentName'];
     setState(() {
       _currentUserName = token ?? 'No token found';
     });

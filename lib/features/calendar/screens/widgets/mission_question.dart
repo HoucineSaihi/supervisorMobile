@@ -169,7 +169,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                           height: 32, // Smaller height for buttons
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () async {
+                            onPressed: () async { /*
                               final shouldRefresh = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -181,7 +181,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
 
                               if (shouldRefresh == true) {
                                 _handleRefresh();
-                              }
+                              }  */
                             },
                             icon: Icon(
                               question.reponse == 'Oui'
@@ -206,7 +206,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                           height: 32, // Smaller height for buttons
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () async {
+                            onPressed: () async { /*
                               final shouldRefresh = Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -217,7 +217,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                               );
                               if (shouldRefresh == true) {
                                 _handleRefresh();
-                              }
+                              } */
                             },
                             icon: Icon(
                               question.reponse == 'Oui'
