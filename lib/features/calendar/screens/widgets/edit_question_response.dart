@@ -1,9 +1,10 @@
-/*
+
 import 'dart:io';
 
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
@@ -32,8 +33,8 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   bool _isActionDropdownVisible = false;
   bool _isImageEnlarged = false;
 
-  File? _imageFile;
-  List<File> _images = [];
+  Uint8List? _imageFile;
+  List<Uint8List> _images = [];
 
   void updateQuestion() async {
     try {
@@ -105,9 +106,9 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
   Future<void> _fetchImage(String filename) async {
     try {
-      final file = await MissionService().getImage(filename);
+      final Uint8List file = (await MissionService().getImage(filename)) as Uint8List;
       setState(() {
-        _imageFile = file;
+        _imageFile = file ;
         _images.add(file); // Add to the image list for slideshow
       });
     } catch (e) {
@@ -118,9 +119,18 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     }
   }
 
-  void _showImageViewer(int index) {
-    final imageProvider = Image.file(_images[index]).image;
-    showImageViewer(context, imageProvider,useSafeArea: true,immersive: false);
+  void _showImageViewer() {
+    if (kIsWeb && _imageFile != null) {
+      final imageProvider = MemoryImage(_imageFile!); // Use MemoryImage for web Uint8List
+      showImageViewer(
+        context,
+        imageProvider,
+        immersive: false,
+        onViewerDismissed: () {
+          print("Image viewer dismissed");
+        },
+      );
+    }
   }
 
 
@@ -233,7 +243,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Modifier reponse '),
+          title: Text('Consulter Réponse '),
           leading: IconButton(
             icon: Icon(Icons.arrow_back),
               onPressed: () {
@@ -301,7 +311,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                           ),
                                         ),
                                       ),
-                                      IconButton(
+                                     /* IconButton(
                                         icon: Icon(Iconsax.edit),
                                         onPressed: () async {
                                           bool shouldRefresh = await _showResponseEditDialog(question.reponse ?? '', question.id);
@@ -318,7 +328,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
                                             }); // Refresh the UI
                                           }
-                                        },                                      ),
+                                        },                                      ), */
                                     ],
                                   ),
                                 ],
@@ -352,13 +362,13 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 ],
                               ),
                             ),
-                            IconButton(
+                            /*IconButton(
                               icon: Icon(Iconsax.edit),
                               onPressed: _toggleCommentEdit,
-                            ),
+                            ), */
                           ],
                         ),
-                        if (_isEditingComment)
+                       /* if (_isEditingComment)
                           Row(
                             children: [
                               Expanded(
@@ -378,7 +388,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 ),
                               ),
                             ],
-                          ),
+                          ), */
                       ],
                     ),
                     SizedBox(height: 20),
@@ -405,13 +415,13 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 ],
                               ),
                             ),
-                            IconButton(
+                            /*IconButton(
                               icon: Icon(Iconsax.edit),
                               onPressed: _toggleActionDropdown,
-                            ),
+                            ), */
                           ],
                         ),
-                        if (_isActionDropdownVisible)
+                        /* if (_isActionDropdownVisible)
                           FutureBuilder<List<ActionM>>(
                             future: _actionsFuture,
                             builder: (context, snapshot) {
@@ -490,7 +500,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 ),
                               );
                             },
-                          ),
+                          ), */
                       ],
                     ),
                     SizedBox(height: 20),
@@ -498,7 +508,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                       ImageSlideshow(
                         width: double.infinity,
                         height: _isImageEnlarged ? 500 : 300,
-                        initialPage: 0,
+                        initialPage: 0, // Always start from the first image
                         indicatorColor: Colors.blue,
                         indicatorBackgroundColor: Colors.grey,
                         onPageChanged: (value) {
@@ -507,21 +517,22 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                         isLoop: true,
                         children: _images.map((image) {
                           return SafeArea(
-                            child:
-                            GestureDetector(
-                                onTap: () => _showImageViewer(_images.indexOf(image)),
-                                child: SafeArea(child:
-                                Image.file(
+                            child: GestureDetector(
+                              onTap: () => _showImageViewer(),
+                              child: SafeArea(
+                                child: Image.memory(
                                   image,
-                                  fit: BoxFit.cover,
-                                ),)
-                            )
+                                  fit: BoxFit.cover, // Adjust how the image fits
+                                ),
+                              ),
+                            ),
                           );
                         }).toList(),
                       ),
                     ],
+
                     SizedBox(height: 20),
-                    ElevatedButton(
+                    /* ElevatedButton(
                       onPressed: () {
                         updateQuestion();
 
@@ -530,7 +541,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size(double.infinity, 50), // Full width and fixed height
                       ),
-                    )
+                    ) */
 
                   ],
                 );
@@ -543,5 +554,5 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   }
 
 
-}   */
+}
 

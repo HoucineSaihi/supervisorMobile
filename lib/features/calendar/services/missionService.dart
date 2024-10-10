@@ -337,26 +337,18 @@ class MissionService {
     }
   }
 
-  /*Future<File> getImage(String filename) async {
+  Future<Uint8List> getImage(String filename) async {
     final Uri uri = Uri.parse('${dotenv.env['BASE_URL']}/api/Files/getImage/$filename');
 
     final response = await http.get(uri, headers: {'accept': 'image/jpeg'});
 
     if (response.statusCode == 200) {
-      final bytes = response.bodyBytes;
-
-      // Create a temporary file to save the image
-      final tempDir = await Directory.systemTemp.createTemp();
-      final file = File('${tempDir.path}/$filename');
-
-      // Write the image bytes to the file
-      await file.writeAsBytes(bytes);
-
-      return file;
+      final bytes = response.bodyBytes; // Get the image bytes directly
+      return bytes; // Return the bytes as Uint8List
     } else {
       throw Exception('Failed to retrieve image: ${response.reasonPhrase}');
     }
-  } */
+  }
 
 
 

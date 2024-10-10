@@ -394,13 +394,13 @@ var _statusValidation = null;
       ),
       contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0), // Adjusted padding for SafeArea
       positive: AwesomeSheetAction(
-        onPressed: () { /*
+        onPressed: () {
           Navigator.of(context).pop();
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => EditQuestionResponse(questionId: item["id"] ?? 0),
             ),
-          ); */
+          );
         },
         title: 'Consulter',
         icon: Iconsax.eye,
