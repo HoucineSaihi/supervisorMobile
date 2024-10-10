@@ -257,7 +257,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                     return DropdownMenuItem<ChoixReponseQuestion>(
                                       value: choice,
                                       child: Text(
-                                          '${choice.libelle ?? 'No Label'} -- ${choice.valeur ?? 'No Value'}'), // Show libelle and valeur
+                                          '${choice.libelle ?? 'No Label'} = ${choice.valeur ?? 'No Value'}'), // Show libelle and valeur
                                     );
                                   }).toList(),
                                   onChanged: (ChoixReponseQuestion? newValue) {
@@ -336,14 +336,20 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                 );
                               },
                             ),
-
+                              SizedBox(height: 16.0),
                             _selectedAction != null
                                 ? Row(
                               children: [
-                                Text('Action : ${_selectedAction?.description ?? ''}'),
+                                Flexible( // Use Flexible to allow the Text to wrap
+                                  child: Text(
+                                    'Action: ${_selectedAction?.description ?? ''}',
+                                    softWrap: true, // Allows text to break into multiple lines
+                                    overflow: TextOverflow.visible, // Makes sure the overflow is handled
+                                  ),
+                                ),
                               ],
                             )
-                                : SizedBox.shrink(), // Returns an empty widget when _selectedAction is null
+                                : SizedBox.shrink(),// Returns an empty widget when _selectedAction is null
 
 
                             SizedBox(height: 16),
