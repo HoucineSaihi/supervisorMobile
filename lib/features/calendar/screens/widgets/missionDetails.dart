@@ -111,14 +111,18 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
             onPressed: () {
               Navigator.pop(context,true); // Navigate back
             },
+          ),actions: [
+          IconButton(
+            icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
+            onPressed: () {
+              // Your function to reload or refresh
+              _handleRefresh();
+            },
           ),
+        ],
         ),
-        body: LiquidPullToRefresh(
-          onRefresh: _handleRefresh,
-          springAnimationDurationInMilliseconds: 300, // Speed up the animation
-          height: 60.0, // Adjust the height as needed
-          color: TColors.primary,
-          child: FutureBuilder<Mission>(
+        body:
+          FutureBuilder<Mission>(
             future: _missionFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -379,7 +383,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
               );
             },
           ),
-        ),
+
       ),
     );
   }

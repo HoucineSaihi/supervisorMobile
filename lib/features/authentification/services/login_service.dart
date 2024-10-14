@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 class SecureStorageService {
   // Save login data to localStorage
   Future<void> saveLoginData(Map<String, dynamic> data) async {
+
+    window.localStorage.clear();
     window.localStorage['token'] = data['token'];
     window.localStorage['expires'] = data['expires'];
     window.localStorage['currentUserId'] = data['currentUserId'].toString();
@@ -38,7 +40,7 @@ class SecureStorageService {
 }
 
 class LoginService {
-  final String _baseURL = '${dotenv.env['BASE_URL']}/api/Caisses/login';
+  final String _baseURL = 'http://192.168.2.59:8080/api/Caisses/login';
   final SecureStorageService _storageService = SecureStorageService();
 
   Future<Map<String, dynamic>> login(String username, String password) async {

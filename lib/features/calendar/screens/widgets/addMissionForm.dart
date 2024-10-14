@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/missionDetails.dart';
@@ -176,6 +177,18 @@ class _AddMissionFormState extends State<AddMissionForm> {
           child: Column(
             children: [
               // Boutique Selection
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
+                    onPressed: () {
+                      // Your function to reload or refresh
+                      _initializeData();
+                    },
+                  ),
+                ],
+              ),
               DropdownButtonFormField<int>(
                 decoration: InputDecoration(
                   labelText: 'Choisir une boutique',

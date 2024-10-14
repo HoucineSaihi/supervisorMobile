@@ -8,7 +8,7 @@ import 'package:supervisormobile/features/Profile/models/user_model.dart';
 import 'dart:html';
 
 class UserService {
-  String _baseUrl = "${dotenv.env['BASE_URL']}"; // Replace with your actual base URL
+  String _baseUrl = "http://192.168.2.59:8080"; // Replace with your actual base URL
   int _currentUserID = 0;
 
   Future<void> _loadAuthToken() async {

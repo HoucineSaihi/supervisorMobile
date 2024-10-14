@@ -87,8 +87,6 @@ flutter:
     - lib/assets/on_boarding_images/
     - lib/assets/logos/testLogo.png
     - lib/assets/fonts/Poppins/
-    - config.env
-
   fonts:
     - family: Poppins
       fonts:

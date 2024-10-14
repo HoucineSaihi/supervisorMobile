@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:html'; // Import for web localStorage
 
 class IncidentService {
-  final String _baseUrl = '${dotenv.env['BASE_URL']}/api/MissionQuestions';
+  final String _baseUrl = 'http://192.168.2.59:8080/api/MissionQuestions';
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
 

@@ -69,13 +69,20 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
               }
             },
           ),
+          actions: [
+                IconButton(
+                  icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
+                  onPressed: () {
+                    // Your function to reload or refresh
+                    _handleRefresh();
+                  },
+                ),
+              ],
+
+
         ),
-        body: LiquidPullToRefresh(
-          onRefresh: _handleRefresh,
-          springAnimationDurationInMilliseconds: 300, // Speed up the animation
-          height: 60.0, // Adjust the height as needed
-          color: TColors.primary, // Customize the color as needed
-          child: ListView.builder(
+        body:  // Customize the color as needed
+          ListView.builder(
             itemCount: _questions.length,
             itemBuilder: (context, index) {
               final question = _questions[index];
@@ -241,7 +248,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
               );
             },
           ),
-        ),
+
       ),
     );
   }

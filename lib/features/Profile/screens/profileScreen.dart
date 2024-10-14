@@ -51,12 +51,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: LiquidPullToRefresh(
-        onRefresh: _handleRefresh,
-        springAnimationDurationInMilliseconds: 300,
-        height: 60.0,
-        color: TColors.primary,
-        child: SingleChildScrollView(
+      body: SingleChildScrollView(
           child: TPrimaryHeaderContainer(
             height: 400,
             child: SafeArea(
@@ -133,6 +128,18 @@ class _ProfileInfoState extends State<ProfileInfo> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
+                            onPressed: () {
+                              // Your function to reload or refresh
+                              _handleRefresh();
+                            },
+                          ),
+                        ],
+                      ),
                       _buildInfoCard(
                         title: 'Tel: ${user.tel ?? 'Not available'}',
                         icon: Iconsax.call,
@@ -175,7 +182,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
             ),
           ),
         ),
-      ),
+
     );
   }
 

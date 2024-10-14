@@ -513,12 +513,7 @@ var _statusValidation = null;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body:  LiquidPullToRefresh(
-        onRefresh: _handleRefresh,
-        springAnimationDurationInMilliseconds: 300, // Speed up the animation
-        height: 60.0, // Adjust the height as needed
-        color: TColors.primary,
-        child:Padding(
+      body: Padding(
           padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0), // Add top spacing from the device's top bar
           child: Column(
             children: [
@@ -533,6 +528,14 @@ var _statusValidation = null;
                       });
                     },
                   ),
+                    IconButton(
+                      icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
+                      onPressed: () {
+                        // Your function to reload or refresh
+                        _handleRefresh();
+                      },
+                    ),
+
                 ],
               ),
               Expanded(
@@ -568,7 +571,7 @@ var _statusValidation = null;
             ],
           ),
         ),
-      ),
+
     );
   }
 

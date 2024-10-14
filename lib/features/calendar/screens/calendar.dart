@@ -382,12 +382,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
     }
 
     return Scaffold(
-      body: LiquidPullToRefresh(
-        onRefresh: loadMissions,
-        springAnimationDurationInMilliseconds: 300, // Speed up the animation
-        height: 60.0, // Adjust the height as needed
-        color: TColors.primary,
-        child: SingleChildScrollView(
+      body: SingleChildScrollView(
           child: Container(
             constraints: BoxConstraints(
               minHeight: MediaQuery.of(context).size.height,
@@ -467,6 +462,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                           return Column(
                             children: [
+
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 // Center the text widgets
@@ -534,6 +530,18 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
             
                           return Column(
                             children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
+                                    onPressed: () {
+                                      // Your function to reload or refresh
+                                      loadMissions();
+                                    },
+                                  ),
+                                ],
+                              ),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center, // Center the children horizontally
                                 children: [
@@ -815,7 +823,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
             ),
           ),
         ),
-      ),
+
     );
   }
 }

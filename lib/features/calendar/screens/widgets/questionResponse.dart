@@ -230,6 +230,18 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     });
   }
 
+  void _handleRefresh(){
+    _questionFuture = MissionService().getQuestionDetails(widget.questionId);
+    _actionsFuture = MissionService().getActions();
+    _actionsFuture.then((actions) {
+      if (mounted) {
+        setState(() {
+          _actions = actions;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -246,6 +258,15 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                 Navigator.pop(context,true); // Navigate back
               }
           ),
+          actions: [
+            IconButton(
+              icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
+              onPressed: () {
+                // Your function to reload or refresh
+                _handleRefresh();
+              },
+            ),
+          ],
         ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
