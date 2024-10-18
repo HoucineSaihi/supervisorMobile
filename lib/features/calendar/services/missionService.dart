@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
@@ -310,48 +311,34 @@ class MissionService {
   }
 
 
-  Future<String> uploadFile(Uint8List? imageData) async {
-    // Construct the URI for your file upload endpoint
-    final Uri uri = Uri.parse('${dotenv.env['BASE_URL']}/api/Files');
+  Future<String> uploadFile(File file) async {
+    final Uri uri = Uri.parse('${_baseUrl}/api/Files'); // Construct the URI for your file upload endpoint
 
-    // Set a default filename
-    String defaultFileName = 'image.jpg';
+    // Determine the MIME type based on the file extension
+    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+    final mimeTypeParts = mimeType.split('/');
 
-    // Prepare the multipart request
-    var request = http.MultipartRequest('POST', uri);
+    var request = http.MultipartRequest('POST', uri)
+      ..headers['accept'] = '*/*'
+      ..headers['Content-Type'] = 'multipart/form-data'
+      ..files.add(
+        http.MultipartFile(
+          'image', // Name of the file parameter in your API
+          file.readAsBytes().asStream(),
+          file.lengthSync(),
+          filename: file.path.split('/').last,
+          contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+        ),
+      );
 
-    // Add the required headers (optional, depending on the API)
-    request.headers['Accept'] = '*/*';
+    final response = await request.send();
 
-    // Add the image file to the multipart request as 'IFormFile'
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'image', // Name of the file parameter in your API (must match 'IFormFile' field name)
-        imageData!, // Image data as bytes (Uint8List)
-        filename: defaultFileName, // Default filename
-        contentType: MediaType('image', 'jpeg'), // Media type (assuming JPEG conversion as per your backend)
-      ),
-    );
-
-    try {
-      // Send the request
-      final response = await request.send();
-
-      // Handle the response
-      if (response.statusCode == 200) {
-        final responseString = await response.stream.bytesToString();
-        final responseData = json.decode(responseString);
-        return responseData['file']; // Extract the filename from the response
-      } else {
-        // Log error details to the web console
-        print('Error: Failed to upload file. Status Code: ${response.statusCode}');
-        print('Response Body: ${await response.stream.bytesToString()}');
-        throw Exception('Failed to upload file: Status Code ${response.statusCode}');
-      }
-    } catch (e) {
-      // Log exception details to the web console
-      print('Exception caught: $e');
-      throw Exception('Failed to upload file: $e');
+    if (response.statusCode == 200) {
+      final responseString = await response.stream.bytesToString();
+      final responseData = json.decode(responseString);
+      return responseData['file']; // Extract the filename from the response
+    } else {
+      throw Exception('Failed to upload file');
     }
   }
 
