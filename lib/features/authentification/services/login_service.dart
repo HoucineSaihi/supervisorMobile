@@ -3,6 +3,8 @@ import 'dart:html'; // Import for web localStorage
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../utils/constants/apiURL.dart';
+
 class SecureStorageService {
   // Save login data to localStorage
   Future<void> saveLoginData(Map<String, dynamic> data) async {
@@ -40,7 +42,9 @@ class SecureStorageService {
 }
 
 class LoginService {
-  final String _baseURL = 'http://192.168.2.59:8080/api/Caisses/login';
+  static const String _baseUrl = Apiurl.URL; // Replace with your actual base URL
+
+  final String _baseURL = '${_baseUrl}/api/Caisses/login';
   final SecureStorageService _storageService = SecureStorageService();
 
   Future<Map<String, dynamic>> login(String username, String password) async {

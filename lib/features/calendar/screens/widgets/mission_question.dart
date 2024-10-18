@@ -99,7 +99,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                       children: [
                         Expanded(
                           child: Text(
-                            'Q: ${question.description ?? 'No Description'}',
+                            'Q: ${question.description ?? 'Aucune Description'}',
                             style: TextStyle(fontSize: 18), // Slightly larger font size
                           ),
                         ),
@@ -196,7 +196,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                   : Icons.cancel,
                               color: Colors.white,
                             ),
-                            label: Text(question.reponse ?? 'Response'),
+                            label: Text(question.reponse ?? 'Réponse'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isResponseYes ? Colors.green : Colors.red,
                               padding: EdgeInsets.symmetric(horizontal: 16.0), // Adjust padding as needed
@@ -232,7 +232,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                   : Icons.cancel,
                               color: Colors.white,
                             ),
-                            label: Text(question.reponse ?? 'Response'),
+                            label: Text(question.reponse ?? 'Réponse'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isResponseYes ? Colors.green : Colors.red,
                               padding: EdgeInsets.symmetric(horizontal: 16.0), // Adjust padding as needed

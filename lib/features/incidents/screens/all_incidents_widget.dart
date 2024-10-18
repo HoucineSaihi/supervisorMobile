@@ -10,6 +10,8 @@ import 'package:supervisormobile/features/incidents/services/incident_service.da
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 
+import '../../calendar/models/actionsModel.dart';
+
 class AllIncidentsWidget extends StatefulWidget {
   AllIncidentsWidget({Key? key}) : super(key: key);
 
@@ -19,6 +21,9 @@ class AllIncidentsWidget extends StatefulWidget {
 
 class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   late final IncidentService _incidentService;
+  late Future<List<ActionM>> _actionsFuture;
+  List<ActionM> _actions = [];
+
 
   List<Map<String, dynamic>> _incidents = [];
   bool _isLoading = true;
@@ -41,18 +46,27 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   DateTime? _dateClotF;
 
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+  int? _selectedActionId;
 
   @override
   void initState() {
     super.initState();
     _incidentService = IncidentService();
-
     _missionService.getBoutiques().then((boutiques) {
       setState(() {
         _boutiques = boutiques;
       });
 
       _fetchIncidents(userId: 2);
+    });
+
+    _actionsFuture = MissionService().getActions();
+    _actionsFuture.then((actions) {
+      if (mounted) {
+        setState(() {
+          _actions = actions;
+        });
+      }
     });
   }
   int _totalIncidents = 0;
@@ -80,7 +94,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         mLibelle: mLibelle,
         smLibelle: smLibelle,
         qLibelle: qLibelle,
-        actionId: actionId,
+        actionId: _selectedActionId,
         btqLibelle: btqLibelle,
         statusValidation: statusValidation,
         userId: userId,
@@ -103,37 +117,39 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   }
 
 
-  void _applyFilters() {
-    _fetchIncidents(
+  void _applyFilters() async {
+    await _fetchIncidents(
       mLibelle: _missionLibelleController.text,
       smLibelle: _sousMissionLibelleController.text,
       qLibelle: _questionLibelleController.text,
-      actionId: int.tryParse(_actionIdController.text),
+      actionId: _selectedActionId,
       btqLibelle: _boutiqueLibelleController.text,
       statusValidation: int.tryParse(_statusValidationController.text),
       userId: 2, // Assuming userId is 2 for this example
       dateDb: _dateDb,
       dateF: _dateF,
-      dateClotDb: _dateClotDb,
-      dateClotF: _dateClotF,
+      dateClotDb: _dateClotDb ,
+      dateClotF: _dateClotF ,
     );
+
   }
   Future<void> _handleRefresh() async {
     setState(() async { await _fetchIncidents(
       mLibelle: _missionLibelleController.text,
       smLibelle: _sousMissionLibelleController.text,
       qLibelle: _questionLibelleController.text,
-      actionId: int.tryParse(_actionIdController.text),
+      actionId: _selectedActionId,
       btqLibelle: _boutiqueLibelleController.text,
       statusValidation: int.tryParse(_statusValidationController.text),
       userId: 2, // Assuming userId is 2 for this example
       dateDb: _dateDb,
       dateF: _dateF,
-      dateClotDb: _dateClotDb,
-      dateClotF: _dateClotF,
+      dateClotDb: _dateClotDb ,
+      dateClotF: _dateClotF ,
     );
   });
         }
+
   Future<void> _selectDate(BuildContext context, DateTime? initialDate, Function(DateTime?) onDateSelected) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -147,23 +163,23 @@ var _statusValidation = null;
 
   Widget _buildFilterForm() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextField(
           controller: _missionLibelleController,
           decoration: InputDecoration(labelText: 'Mission Libelle'),
         ),
-        SizedBox(height: 10), // Add spacing between input fields
+        SizedBox(height: 10),
         TextField(
           controller: _sousMissionLibelleController,
           decoration: InputDecoration(labelText: 'Sous Mission Libelle'),
         ),
-        SizedBox(height: 10), // Add spacing between input fields
+        SizedBox(height: 10),
         TextField(
           controller: _questionLibelleController,
           decoration: InputDecoration(labelText: 'Question Libelle'),
         ),
-        SizedBox(height: 10), // Add spacing between input fields
+        SizedBox(height: 10),
         DropdownButtonFormField<String>(
           decoration: InputDecoration(
             labelText: 'Choisir une boutique',
@@ -188,9 +204,9 @@ var _statusValidation = null;
           },
           value: _boutiqueLibelleController.text.isNotEmpty
               ? _boutiqueLibelleController.text
-              : null, // Prevents null error if text is empty
+              : null,
         ),
-        SizedBox(height: 10), // Add spacing between input fields
+        SizedBox(height: 10),
         DropdownButtonFormField<int>(
           value: _statusValidation,
           decoration: InputDecoration(
@@ -206,11 +222,41 @@ var _statusValidation = null;
             setState(() {
               _statusValidation = value;
               _statusValidationController.text =
-                  value?.toString() ?? ''; // Sync with TextEditingController
+                  value?.toString() ?? '';
             });
           },
         ),
-        SizedBox(height: 10), // Add spacing between input fields
+        SizedBox(height: 10),
+        DropdownButtonFormField<int>(
+          decoration: InputDecoration(
+            labelText: 'Choisir une action',
+            border: OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem<int>(
+              value: null,
+              child: Text('Tous'),
+            ),
+            ..._actions.map((action) {
+              return DropdownMenuItem<int>(
+                value: action.id,
+                child: Text(
+                  action.description,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              );
+            }).toList(),
+          ],
+          onChanged: (int? newValue) {
+            setState(() {
+              _selectedActionId = newValue;
+            });
+          },
+          value: _selectedActionId,
+        ),
+        SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -223,10 +269,10 @@ var _statusValidation = null;
                 }),
                 child: Text(_dateDb != null
                     ? _dateFormat.format(_dateDb!)
-                    : 'Select Date DB'),
+                    : 'Date Début'),
               ),
             ),
-            SizedBox(width: 10), // Add spacing between date pickers
+            SizedBox(width: 10),
             Expanded(
               child: TextButton(
                 onPressed: () => _selectDate(context, _dateF, (date) {
@@ -236,56 +282,27 @@ var _statusValidation = null;
                 }),
                 child: Text(_dateF != null
                     ? _dateFormat.format(_dateF!)
-                    : 'Select Date F'),
+                    : 'Date Fin'),
               ),
             ),
           ],
         ),
-        SizedBox(height: 10), // Add spacing between date pickers
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: TextButton(
-                onPressed: () => _selectDate(context, _dateClotDb, (date) {
-                  setState(() {
-                    _dateClotDb = date;
-                  });
-                }),
-                child: Text(_dateClotDb != null
-                    ? _dateFormat.format(_dateClotDb!)
-                    : 'Select Date Clot DB'),
-              ),
-            ),
-            SizedBox(width: 10), // Add spacing between date pickers
-            Expanded(
-              child: TextButton(
-                onPressed: () => _selectDate(context, _dateClotF, (date) {
-                  setState(() {
-                    _dateClotF = date;
-                  });
-                }),
-                child: Text(_dateClotF != null
-                    ? _dateFormat.format(_dateClotF!)
-                    : 'Select Date Clot F'),
-              ),
-            ),
-          ],
-        ),
+        SizedBox(height: 15),
         SizedBox(
-          width: double.infinity, // Makes the button take the full width
+          width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: _applyFilters,
-            icon: Icon(Iconsax.filter, size: 20), // Replace with the icon you want
+            icon: Icon(Iconsax.filter, size: 20),
             label: Text('Appliquer Filtre'),
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 16), // Adjust padding if needed
+              padding: EdgeInsets.symmetric(vertical: 16),
             ),
           ),
         ),
       ],
     );
   }
+
 
 
 

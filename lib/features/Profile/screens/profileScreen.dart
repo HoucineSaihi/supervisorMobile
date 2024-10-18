@@ -11,6 +11,8 @@ import 'package:supervisormobile/features/authentification/screens/login/login.d
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'dart:html';
 
+import '../../../utils/constants/apiURL.dart';
+
 class ProfileInfo extends StatefulWidget {
   const ProfileInfo({super.key});
 
@@ -20,7 +22,7 @@ class ProfileInfo extends StatefulWidget {
 
 class _ProfileInfoState extends State<ProfileInfo> {
   late Future<UserModel?> _userDetails;
-
+  String _baseUrl = Apiurl.URL;
   @override
   void initState() {
     super.initState();
@@ -83,7 +85,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                                   borderRadius: BorderRadius.circular(100),
                                   child: user.img != null && user.img!.isNotEmpty
                                       ? Image.network(
-                                    '${dotenv.env['BASE_URL']}/api/Files/getImage/${user.img!}',
+                                    '${_baseUrl}/api/Files/getImage/${user.img!}',
                                     fit: BoxFit.cover,
                                   )
                                       : Image.asset('lib/assets/logos/testLogo.png'),

@@ -246,7 +246,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Libelle: ${boutique.libelle ?? 'No Libelle'}',
+                  'Libellé: ${boutique.libelle ?? 'No Libelle'}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -256,7 +256,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'City: ${boutique.city ?? 'No City'}',
+                  'Cité: ${boutique.city ?? 'No City'}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -266,7 +266,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Region: ${boutique.region ?? 'No Region'}',
+                  'Région: ${boutique.region ?? 'No Region'}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -276,7 +276,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Country: ${boutique.country ?? 'No Country'}',
+                  'Pays: ${boutique.country ?? 'No Country'}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -286,7 +286,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Address: ${boutique.adress ?? 'No Address'}',
+                  'Addresse: ${boutique.adress ?? 'No Address'}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -300,7 +300,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Close'),
+              child: Text('Fermer'),
             ),
           ],
         );
@@ -399,6 +399,9 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         lastDay: DateTime.utc(2030, 12, 31),
                         focusedDay: _focusedDay,
                         calendarFormat: _calendarFormat,
+                        daysOfWeekHeight: 30,
+                        startingDayOfWeek : StartingDayOfWeek.monday,
+                          availableCalendarFormats : const {CalendarFormat. month : 'Mois', CalendarFormat. twoWeeks : '2 Semaine', CalendarFormat. week : 'Semaine'} ,
                         selectedDayPredicate: (day) {
                           return isSameDay(_selectedDay, day);
                         },
@@ -468,7 +471,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                 // Center the text widgets
                                 children: [
                                   Text(
-                                    'Vous avez 0 missions pour ce jour',
+                                    'Vous avez 0 checklists a faire pour ce jour',
                                     style: TextStyle(
                                       color: isDarkMode
                                           ? TColors.textWhite
@@ -479,7 +482,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                         .center, // Center text within the text widget
                                   ),
                                   SizedBox(height: 8),
-                                  Text(
+                                  /*Text(
                                     'Cliquer sur ajouter une mission, pour faire un planning',
                                     style: TextStyle(
                                       color: TColors.darkGrey,
@@ -487,7 +490,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                     ),
                                     textAlign: TextAlign
                                         .center, // Center text within the text widget
-                                  ),
+                                  ),*/
                                 ],
                               ),
                               SizedBox(height: 16),
@@ -509,7 +512,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                     }
                                   },
                                   icon: Icon(Iconsax.add, color: TColors.buttonPrimary), // Add the icon
-                                  label: Text('Ajouter une mission'),
+                                  label: Text('Ajouter une checklist'),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: TColors.buttonPrimary, side: BorderSide(color: TColors.buttonPrimary, width: 2), // Border color and width
                                     padding: EdgeInsets.symmetric(vertical: 16.0),
@@ -563,7 +566,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                         }
                                       },
                                       icon: Icon(Iconsax.add), // Add the icon
-                                      label: Text('Ajouter une mission'),
+                                      label: Text('Ajouter une checklist'),
                                       style: OutlinedButton.styleFrom(
                                         padding: EdgeInsets.symmetric(vertical: 16.0),
                                         textStyle: TextStyle(fontSize: 16),
@@ -579,8 +582,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                   Center(
                                     child: Text(
                                       allTermine
-                                          ? 'Tous les missions terminées ✔️'
-                                          : 'Vous avez ${statusCounts[1] ?? 0} mission Planifié',
+                                          ? 'Tous les checklist terminées ✔️'
+                                          : 'Vous avez ${statusCounts[1] ?? 0} checklist Planifiée',
                                       style: TextStyle(
                                         color: isDarkMode
                                             ? TColors.textWhite
@@ -591,10 +594,10 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                           .center, // Center the text within its container
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  /*SizedBox(height: 8),
                                   Center(
                                     child: Text(
-                                      'Tous les missions sont regroupés par boutique',
+                                      'Tous les checklists sont regroupées par boutique',
                                       style: TextStyle(
                                         color: TColors.darkGrey,
                                         fontSize: 14,
@@ -602,7 +605,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                       textAlign: TextAlign
                                           .center, // Center the text within its container
                                     ),
-                                  ),
+                                  ),*/
                                 ],
                               ),
                               SizedBox(height: 16),
@@ -751,7 +754,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                         ),
                                                         SizedBox(height: 8),
                                                         Text(
-                                                          'Libelle: ${mission.libelle ?? 'No Libelle'}',
+                                                          'Libellé: ${mission.libelle ?? 'No Libelle'}',
                                                           style: TextStyle(
                                                             color: Color(int.parse(
                                                                 colors['secondary']!

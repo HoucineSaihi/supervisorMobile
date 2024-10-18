@@ -8,7 +8,6 @@ void main() async{
 
   WidgetsFlutterBinding.ensureInitialized();
   window.localStorage.clear();
- await dotenv.load(fileName: 'config.env');
   runApp(const App());
 }
 

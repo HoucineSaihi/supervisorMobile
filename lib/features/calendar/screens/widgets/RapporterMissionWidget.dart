@@ -39,7 +39,7 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
         SnackBar(
           content: AwesomeSnackbarContent(
             title: 'Error!',
-            message: 'Please select a date.',
+            message: 'Sélectionner une date.',
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,
@@ -61,8 +61,8 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Success!',
-            message: 'Mission updated successfully.',
+            title: 'Succés!',
+            message: 'Mission modifiée avec succés.',
             contentType: ContentType.success,
           ),
           behavior: SnackBarBehavior.floating,
@@ -78,8 +78,8 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Error!',
-            message: 'Failed to update mission: $e',
+            title: 'Erreur!',
+            message: 'Une erreur est survenue lors de la modification',
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,

@@ -77,7 +77,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
         SnackBar(
           content: AwesomeSnackbarContent(
             title: 'Error!',
-            message: 'Please select both boutique and mission.',
+            message: 'Sélectionner une boutique et une checklist .',
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,
@@ -91,14 +91,26 @@ class _AddMissionFormState extends State<AddMissionForm> {
     var _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
     final selectedMission = _notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId);
+    DateTime originalDate = widget.Date!; // The original date from widget
 
+// Create a new DateTime with the same date but change the time part to 00:00:10
+    DateTime updatedDate = DateTime(
+        originalDate.year,    // Keep the original year
+        originalDate.month,   // Keep the original month
+        originalDate.day,     // Keep the original day
+        0,                    // Set hour to 00
+        0,                    // Set minutes to 00
+        10,                   // Set seconds to 10
+        0,                    // Set milliseconds to 0
+        0                     // Set microseconds to 0
+    );
     // Reset mission properties
     selectedMission.id = 0;
     selectedMission.boutique = null;
     selectedMission.boutiqueId = _selectedBoutiqueId;
     selectedMission.userId = _currentUserID; // Set the user ID as needed
     selectedMission.status = 1;
-    selectedMission.planifiedAt = widget.Date; // Use the selectedDate here
+    selectedMission.planifiedAt =  updatedDate;// Use the selectedDate here
 
     // Process each sousMission
     for (var sousMission in selectedMission.sousMissions ?? []) {
@@ -118,8 +130,8 @@ class _AddMissionFormState extends State<AddMissionForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Success!',
-            message: 'Mission added successfully.',
+            title: 'Succés!',
+            message: 'Checklist ajoutée avec succés.',
             contentType: ContentType.success,
           ),
           behavior: SnackBarBehavior.floating,
@@ -170,7 +182,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Ajouter une mission'),
+          title: Text('Ajouter une checklist'),
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -233,7 +245,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
               // Mission Selection
               DropdownButtonFormField<int>(
                 decoration: InputDecoration(
-                  labelText: 'Choisir une mission',
+                  labelText: 'Choisir une checklist',
                   border: OutlineInputBorder(),
                 ),
                 items: _notPlanifiedMissions.map((mission) {
@@ -258,7 +270,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
                   onTap: () => _navigateToMissionDetails(_selectedMissionId!),
                   child: Card(
                     child: ListTile(
-                      title: Text('Mission Info'),
+                      title: Text('Checklist Info'),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

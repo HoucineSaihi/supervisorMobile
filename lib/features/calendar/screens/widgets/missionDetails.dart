@@ -67,8 +67,8 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Success',
-            message: 'Mission validated successfully.',
+            title: 'Succés',
+            message: 'Checklist validée avec succés.',
             contentType: ContentType.success,
           ),
           backgroundColor: Colors.transparent,
@@ -82,8 +82,8 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Error',
-            message: 'Failed to validate mission: $e',
+            title: 'Erreur',
+            message: 'Erreur lors de la validation.: $e',
             contentType: ContentType.failure,
           ),
           backgroundColor: Colors.transparent,
@@ -105,7 +105,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Detail de la mission '),
+          title: Text('Détails de la checklist '),
           leading: IconButton(
             icon: Icon(Iconsax.arrow_left), // Back arrow icon
             onPressed: () {
@@ -130,7 +130,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
               } else if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
               } else if (!snapshot.hasData) {
-                return Center(child: Text('No data found'));
+                return Center(child: Text('Aucune catégorie trouvée'));
               }
 
               final mission = snapshot.data!;
@@ -147,7 +147,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Mission: ${mission.libelle ?? 'No Title'}',
+                                  'Checklist: ${mission.libelle ?? 'Aucun titre'}',
                                   style: TextStyle(
                                       fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
@@ -208,7 +208,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              'Categorie: ${sousMission.libelle ?? 'No Title'}',
+                                              'Catégorie: ${sousMission.libelle ?? 'N/A'}',
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
@@ -321,7 +321,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Reporté',
+                                'Reportée',
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -344,7 +344,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Annulé',
+                                'Annulée',
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -367,7 +367,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Terminé',
+                                'Terminée',
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,

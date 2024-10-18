@@ -2,10 +2,14 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'dart:html'; // Import for web localStorage
+import 'dart:html';
+
+import '../../../utils/constants/apiURL.dart'; // Import for web localStorage
 
 class IncidentService {
-  final String _baseUrl = 'http://192.168.2.59:8080/api/MissionQuestions';
+  static const _baseURLFromService = Apiurl.URL; // Replace with your actual base URL
+
+  final String _baseUrl = '${_baseURLFromService}/api/MissionQuestions';
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
 

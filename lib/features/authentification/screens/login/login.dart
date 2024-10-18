@@ -120,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16.0),
+                      const SizedBox(height: 16.0),/*
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: const Text("Mot de passe oublié ?"),
                           ),
                         ],
-                      ),
+                      ),*/
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(

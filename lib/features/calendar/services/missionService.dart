@@ -1,18 +1,19 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
-import 'package:http_parser/http_parser.dart';
-import 'package:mime/mime.dart';
+
 import 'dart:html';
 import 'dart:io' as io;
+
+import '../../../utils/constants/apiURL.dart';
 
 class MissionService {
 
@@ -27,7 +28,8 @@ class MissionService {
 
   }
 
-  final String baseURL = '${dotenv.env['BASE_URL']}';
+  String _baseUrl = Apiurl.URL; // Replace with your actual base URL
+
 
   // API endpoints using baseURL
   late final String apiUrl;
@@ -35,9 +37,9 @@ class MissionService {
   late final String actionsUrl;
 
   MissionService() {
-    apiUrl = 'http://192.168.2.59:8080/api/Missions/getMissionsForAreaManager';
-    missionDetailsUrl = 'http://192.168.2.59:8080/api/Missions/missionAllQuestion';
-    actionsUrl = 'http://192.168.2.59:8080/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
+    apiUrl = '${_baseUrl}/api/Missions/getMissionsForAreaManager';
+    missionDetailsUrl = '${_baseUrl}/api/Missions/missionAllQuestion';
+    actionsUrl = '${_baseUrl}/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
   }
 
   Future<List<Mission>> getPlanifiedMissions(List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt) async {
@@ -81,7 +83,7 @@ class MissionService {
 
   Future<QuestionMission> getQuestionDetails(int questionId) async {
     final response = await http.get(
-      Uri.parse('http://192.168.2.59:8080/api/MissionQuestions/$questionId'),
+      Uri.parse('${_baseUrl}/api/MissionQuestions/$questionId'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -113,7 +115,7 @@ class MissionService {
   }
 
   Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion) async {
-    final String url = 'http://192.168.2.59:8080/api/MissionQuestions/$questionId';
+    final String url = '${_baseUrl}/api/MissionQuestions/$questionId';
 
     final response = await http.put(
       Uri.parse(url),
@@ -132,7 +134,7 @@ class MissionService {
   }
 
   Future<void> updateMission(int missionId, Mission updatedMission,int status) async {
-    final String url = 'http://192.168.2.59:8080/api/Missions/$missionId';
+    final String url = '${_baseUrl}/api/Missions/$missionId';
     updatedMission.status = status;
     final response = await http.put(
       Uri.parse(url),
@@ -158,7 +160,7 @@ class MissionService {
     List<int> userIdArray = [];
     userIdArray.add(_currentUserID);
 
-    final String boutiquesUrl = 'http://192.168.2.59:8080/api/Boutiques/getBoutiquesByUserIDs';
+    final String boutiquesUrl = '${_baseUrl}/api/Boutiques/getBoutiquesByUserIDs';
 
     final response = await http.post(
       Uri.parse(boutiquesUrl),
@@ -183,7 +185,7 @@ class MissionService {
     String? userIdString = await window.localStorage['currentUserId'];
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
-    final String url = 'http://192.168.2.59:8080/api/Missions/GetAllNotPlanifiedMissions/$_currentUserID'; // Static userID is 2
+    final String url = '${_baseUrl}/api/Missions/GetAllNotPlanifiedMissions/$_currentUserID'; // Static userID is 2
 
     final response = await http.get(
       Uri.parse(url),
@@ -203,7 +205,7 @@ class MissionService {
 
   Future<void> addMission(Mission mission) async {
     final response = await http.post(
-      Uri.parse('http://192.168.2.59:8080/api/Missions'),
+      Uri.parse('${_baseUrl}/api/Missions'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -271,7 +273,7 @@ class MissionService {
   } */
 
   Future<List<QuestionMission>> getQuestionsForSousMission(int sousMissionId) async {
-    final String url = 'http://192.168.2.59:8080/api/MissionQuestions?idSousMission=$sousMissionId';
+    final String url = '${_baseUrl}/api/MissionQuestions?idSousMission=$sousMissionId';
 
     final response = await http.get(
       Uri.parse(url),
@@ -291,7 +293,7 @@ class MissionService {
 
   Future<List<ChoixReponseQuestion>> getAllChoixReponse(int modeleReponseID) async {
 
-    final String url = 'http://192.168.2.59:8080/api/ChoixReponseQuestion/$modeleReponseID';
+    final String url = '${_baseUrl}/api/ChoixReponseQuestion/$modeleReponseID';
     final response = await http.get(
       Uri.parse(url),
       headers: <String, String>{
@@ -308,37 +310,53 @@ class MissionService {
   }
 
 
-  Future<String> uploadFile(Uint8List? imageData, String? fileName) async {
-    final Uri uri = Uri.parse('${dotenv.env['BASE_URL']}/api/Files'); // Construct the URI for your file upload endpoint
+  Future<String> uploadFile(Uint8List? imageData) async {
+    // Construct the URI for your file upload endpoint
+    final Uri uri = Uri.parse('${dotenv.env['BASE_URL']}/api/Files');
 
-    // Determine the MIME type based on the file extension or content
-    final mimeType = lookupMimeType(fileName!) ?? 'application/octet-stream';
-    final mimeTypeParts = mimeType.split('/');
+    // Set a default filename
+    String defaultFileName = 'image.jpg';
 
-    var request = http.MultipartRequest('POST', uri)
-      ..headers['Content-Type'] = 'multipart/form-data'
-      ..files.add(
-        http.MultipartFile.fromBytes(
-          'image', // Name of the file parameter in your API
-          imageData!, // Use Uint8List directly
-          filename: fileName,
-          contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
-        ),
-      );
+    // Prepare the multipart request
+    var request = http.MultipartRequest('POST', uri);
 
-    final response = await request.send();
+    // Add the required headers (optional, depending on the API)
+    request.headers['Accept'] = '*/*';
 
-    if (response.statusCode == 200) {
-      final responseString = await response.stream.bytesToString();
-      final responseData = json.decode(responseString);
-      return responseData['file']; // Extract the filename from the response
-    } else {
-      throw Exception('Failed to upload file');
+    // Add the image file to the multipart request as 'IFormFile'
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'image', // Name of the file parameter in your API (must match 'IFormFile' field name)
+        imageData!, // Image data as bytes (Uint8List)
+        filename: defaultFileName, // Default filename
+        contentType: MediaType('image', 'jpeg'), // Media type (assuming JPEG conversion as per your backend)
+      ),
+    );
+
+    try {
+      // Send the request
+      final response = await request.send();
+
+      // Handle the response
+      if (response.statusCode == 200) {
+        final responseString = await response.stream.bytesToString();
+        final responseData = json.decode(responseString);
+        return responseData['file']; // Extract the filename from the response
+      } else {
+        // Log error details to the web console
+        print('Error: Failed to upload file. Status Code: ${response.statusCode}');
+        print('Response Body: ${await response.stream.bytesToString()}');
+        throw Exception('Failed to upload file: Status Code ${response.statusCode}');
+      }
+    } catch (e) {
+      // Log exception details to the web console
+      print('Exception caught: $e');
+      throw Exception('Failed to upload file: $e');
     }
   }
 
   Future<Uint8List> getImage(String filename) async {
-    final Uri uri = Uri.parse('http://192.168.2.59:8080/api/Files/getImage/$filename');
+    final Uri uri = Uri.parse('${_baseUrl}/api/Files/getImage/$filename');
 
     final response = await http.get(uri, headers: {'accept': 'image/jpeg'});
 

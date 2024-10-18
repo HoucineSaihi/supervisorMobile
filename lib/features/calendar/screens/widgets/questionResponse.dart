@@ -65,7 +65,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
             var fileName = null;
             if (webImage != null) {
               fileName = await MissionService().uploadFile(
-                  webImage!, "your-image.jpg"); // Provide a default file name
+                  webImage!); // Provide a default file name
             }
 
             final updatedQuestion = QuestionMission(
@@ -74,14 +74,14 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
               reponse: widget.response,
               commentaire: _commentController.text,
               clouture: null,
-              actionId: _actions
+              actionId: _selectedAction != null ? _actions
                   .firstWhere((action) => action.id.toString() == _selectedAction)
-                  .id,
+                  .id : null,
               fileName: fileName,
             );
 
             await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question updated successfully')));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Réponse enregistrée succés.')));
             Navigator.pop(context, true); // Navigate back
 
           } catch (e) {
@@ -93,7 +93,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       // Handle the case where response is not 'Non'
       if (webImage != null) {
         // Upload the web image for the else case
-        final fileName = await MissionService().uploadFile(webImage, "your-image.jpg"); // Provide a default file name
+        final fileName = await MissionService().uploadFile(webImage); // Provide a default file name
 
         final updatedQuestion = QuestionMission(
           id: widget.questionId,
@@ -104,7 +104,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           fileName: fileName,
         );
         await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question updated successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question modifiée avec succés')));
         Navigator.pop(context, true); // Navigate back
 
       } else {
@@ -116,7 +116,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           clouture: null,
         );
         await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question updated successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question modifiée avec succés')));
         Navigator.pop(context, true); // Navigate back
       }
     }
@@ -251,7 +251,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Repondre au question'),
+          title: Text('Répondre au question'),
           leading: IconButton(
               icon: Icon(Icons.arrow_back),
               onPressed: () {
@@ -282,9 +282,9 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return Center(child: CircularProgressIndicator());
                       } else if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
+                        return Center(child: Text('Erreur: ${snapshot.error}'));
                       } else if (!snapshot.hasData) {
-                        return Center(child: Text('No data found'));
+                        return Center(child: Text('Aucune question trouvée'));
                       }
 
                       final question = snapshot.data!;
@@ -293,7 +293,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Question: ${question.description ?? 'No Description'}",
+                            "Question: ${question.description ?? 'Aucune Description'}",
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold),
                           ),
@@ -319,11 +319,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                       child: CircularProgressIndicator());
                                 } else if (snapshot.hasError) {
                                   return Center(
-                                      child: Text('Error: ${snapshot.error}'));
+                                      child: Text('Erreur: ${snapshot.error}'));
                                 } else if (!snapshot.hasData ||
                                     snapshot.data!.isEmpty) {
                                   return Center(
-                                      child: Text('No actions available'));
+                                      child: Text('Aucune action disponible'));
                                 }
 
                                 final actions = snapshot.data!;
@@ -358,7 +358,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   ),
                                   validator: (value) {
                                     if (value == null) {
-                                      return 'Please select an action';
+                                      return 'Sélectionner une action';
                                     }
                                     return null;
                                   },
@@ -379,7 +379,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                             maxLines: 4,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter a comment';
+                                return 'Entrer un commentaire';
                               }
                               return null;
                             },
@@ -409,7 +409,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
 
                           SizedBox(height: 15),
                           if (webImage != null || (_imageFiles != null && _imageFiles!.isNotEmpty)) ...[
-                            Text('Selected Images', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text('Image sélectionnée', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                             SizedBox(height: 8),
                             ImageSlideshow(
                               width: double.infinity,
@@ -461,7 +461,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   Padding(
                                     padding: const EdgeInsets.all(16.0),
                                     child: Text(
-                                      'No image selected',
+                                      'Aucune image sélectionnée',
                                       style: TextStyle(fontSize: 16, color: Colors.grey),
                                     ),
                                   ),
