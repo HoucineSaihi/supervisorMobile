@@ -13,17 +13,17 @@ import 'package:supervisormobile/features/calendar/screens/widgets/questionRespo
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 
-class EditQuestionResponse extends StatefulWidget {
+class consultIncidentWidget extends StatefulWidget {
   final int questionId;
 
-  const EditQuestionResponse({Key? key, required this.questionId})
+  const consultIncidentWidget({Key? key, required this.questionId})
       : super(key: key);
 
   @override
-  _EditQuestionResponseState createState() => _EditQuestionResponseState();
+  consultIncidentWidgetState createState() => consultIncidentWidgetState();
 }
 
-class _EditQuestionResponseState extends State<EditQuestionResponse> {
+class consultIncidentWidgetState extends State<consultIncidentWidget> {
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
   final TextEditingController _commentController = TextEditingController();
@@ -245,7 +245,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
         appBar: AppBar(
           title: Text('Consulter Réponse '),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back),
+              icon: Icon(Icons.arrow_back),
               onPressed: () {
                 Navigator.pop(context,true); // Navigate back
               }
@@ -311,7 +311,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                           ),
                                         ),
                                       ),
-                                      IconButton(
+                                     /* IconButton(
                                         icon: Icon(Iconsax.edit),
                                         onPressed: () async {
                                           bool shouldRefresh = await _showResponseEditDialog(question.reponse ?? '', question.id);
@@ -328,7 +328,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
                                             }); // Refresh the UI
                                           }
-                                        },                                      ),
+                                        },                                      ),*/
                                     ],
                                   ),
                                 ],
@@ -362,13 +362,13 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 ],
                               ),
                             ),
-                            IconButton(
+                           /* IconButton(
                               icon: Icon(Iconsax.edit),
                               onPressed: _toggleCommentEdit,
-                            ),
+                            ),*/
                           ],
                         ),
-                        if (_isEditingComment)
+                        /*if (_isEditingComment)
                           Row(
                             children: [
                               Expanded(
@@ -388,7 +388,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 ),
                               ),
                             ],
-                          ),
+                          ),*/
                       ],
                     ),
                     SizedBox(height: 20),
@@ -415,13 +415,13 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 ],
                               ),
                             ),
-                            IconButton(
+                           /* IconButton(
                               icon: Icon(Iconsax.edit),
                               onPressed: _toggleActionDropdown,
-                            ),
+                            ),*/
                           ],
                         ),
-                         if (_isActionDropdownVisible)
+                        /*if (_isActionDropdownVisible)
                           FutureBuilder<List<ActionM>>(
                             future: _actionsFuture,
                             builder: (context, snapshot) {
@@ -502,7 +502,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                             },
                           ),
                       ],
-                    ),
+                    ),*/
                     SizedBox(height: 20),
                     if (_images.isNotEmpty) ...[
                       ImageSlideshow(
@@ -531,8 +531,8 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                       ),
                     ],
 
-                    SizedBox(height: 20),
-                     ElevatedButton(
+                    /*SizedBox(height: 20),
+                    ElevatedButton(
                       onPressed: () {
                         updateQuestion();
 
@@ -541,9 +541,9 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size(double.infinity, 50), // Full width and fixed height
                       ),
-                    )
+                    )*/
 
-                  ],
+                  ])]
                 );
               },
             ),

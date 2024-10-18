@@ -190,6 +190,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                         },
                                         mode: widget.mode,
                                         sousMissionID: sousMission.id!,
+                                        status : mission.status!
                                       ),
                                     ),
                                   );

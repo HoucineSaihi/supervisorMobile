@@ -12,13 +12,15 @@ class QuestionsListWidget extends StatefulWidget {
   final Function(int questionId, String response) onResponseSelected;
   final int mode; // Add this line to accept mode
   final int sousMissionID;
+  final int status;
 
   const QuestionsListWidget({
     Key? key,
     required this.questions,
     required this.onResponseSelected,
     required this.mode,
-    required this.sousMissionID
+    required this.sousMissionID,
+    required this.status
   }) : super(key: key);
 
   @override
@@ -145,19 +147,18 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                 height: 32, // Smaller height for buttons
                                 child: ElevatedButton.icon(
                                   onPressed: () async {
-                                    final shouldRefresh = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => QuestionResponseWidget(
-                                          questionId: question.id ?? 0,
-                                          response: "Oui",
-                                        ),
-                                      ),
-                                    );
-                                    if (shouldRefresh == true) {
-                                      // Handle refresh logic if necessary
+
+                                      final updatedQuestion = QuestionMission(
+                                        id: question.id,
+                                        description: "",
+                                        reponse: "Oui",
+                                        commentaire: "",
+                                        clouture: null,
+                                      );
+                                      await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question modifiée avec succés')));
                                       _handleRefresh();
-                                    }
+
                                   },
                                   icon: Icon(Icons.check, color: Colors.white),
                                   label: Text('Oui'),
@@ -176,19 +177,24 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                           height: 32, // Smaller height for buttons
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () async { /*
-                              final shouldRefresh = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EditQuestionResponse(
-                                    questionId: question.id ?? 0,
+                            onPressed: () async {
+                              if(widget.status != 1 && widget.status != 2 ) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')));
+                              }else {
+                                final shouldRefresh = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditQuestionResponse(
+                                      questionId: question.id ?? 0,
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
 
-                              if (shouldRefresh == true) {
-                                _handleRefresh();
-                              }  */
+                                if (shouldRefresh == true) {
+                                  _handleRefresh();
+                                }
+                              }
+
                             },
                             icon: Icon(
                               question.reponse == 'Oui'

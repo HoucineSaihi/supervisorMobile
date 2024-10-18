@@ -11,6 +11,7 @@ import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 
 import '../../calendar/models/actionsModel.dart';
+import '../../calendar/screens/widgets/consult_incident_widget.dart';
 
 class AllIncidentsWidget extends StatefulWidget {
   AllIncidentsWidget({Key? key}) : super(key: key);
@@ -415,7 +416,7 @@ var _statusValidation = null;
           Navigator.of(context).pop();
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => EditQuestionResponse(questionId: item["id"] ?? 0),
+              builder: (context) => consultIncidentWidget(questionId: item["id"] ?? 0),
             ),
           );
         },

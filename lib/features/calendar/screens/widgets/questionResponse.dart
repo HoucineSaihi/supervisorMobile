@@ -55,17 +55,36 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   }
 
   void _submitForm() async {
+    print('enetered');
     if (widget.response == 'Non') {
         _formKey.currentState?.save();
+        print('here');
 
         // Check if webImage is available for upload
-
           try {
             // Upload the web image instead of a file
+
             var fileName = null;
             if (webImage != null) {
+              print('here1');
+
+              final tempDir = await getTemporaryDirectory();
+              print('here2');
+
+              final tempFilePath = '${tempDir.path}/temp_image.jpg';
+              print('here3');
+
+              File tempFile = File(tempFilePath);
+              print('here4');
+
+              // Write the Uint8List to a file
+              await tempFile.writeAsBytes(webImage!);
+              print('here5');
+
               fileName = await MissionService().uploadFile(
-                  webImage!); // Provide a default file name
+                  tempFile); // Provide a default file name
+              print('here6');
+
             }
 
             final updatedQuestion = QuestionMission(
@@ -79,7 +98,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                   .id : null,
               fileName: fileName,
             );
-
+            print(updatedQuestion);
             await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Réponse enregistrée succés.')));
             Navigator.pop(context, true); // Navigate back
@@ -93,7 +112,13 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       // Handle the case where response is not 'Non'
       if (webImage != null) {
         // Upload the web image for the else case
-        final fileName = await MissionService().uploadFile(webImage); // Provide a default file name
+        final tempDir = await getTemporaryDirectory();
+        final tempFilePath = '${tempDir.path}/temp_image.jpg';
+        File tempFile = File(tempFilePath);
+
+        // Write the Uint8List to a file
+        await tempFile.writeAsBytes(webImage!);
+        final fileName = await MissionService().uploadFile(tempFile); // Provide a default file name
 
         final updatedQuestion = QuestionMission(
           id: widget.questionId,
@@ -121,6 +146,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       }
     }
   }
+
+
 
 
   void _onActionChanged(ActionM? newValue) {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:io' as io;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -12,7 +13,6 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
 
 import 'dart:html';
-import 'dart:io' as io;
 
 import '../../../utils/constants/apiURL.dart';
 
@@ -311,7 +311,7 @@ class MissionService {
   }
 
 
-  Future<String> uploadFile(File file) async {
+  Future<String> uploadFile(io.File file) async {
     final Uri uri = Uri.parse('${_baseUrl}/api/Files'); // Construct the URI for your file upload endpoint
 
     // Determine the MIME type based on the file extension
@@ -331,14 +331,24 @@ class MissionService {
         ),
       );
 
-    final response = await request.send();
+    try {
+      final response = await request.send();
 
-    if (response.statusCode == 200) {
-      final responseString = await response.stream.bytesToString();
-      final responseData = json.decode(responseString);
-      return responseData['file']; // Extract the filename from the response
-    } else {
-      throw Exception('Failed to upload file');
+      if (response.statusCode == 200) {
+        final responseString = await response.stream.bytesToString();
+        final responseData = json.decode(responseString);
+        return responseData['file']; // Extract the filename from the response
+      } else {
+        // Print error details to the console
+        final errorResponse = await response.stream.bytesToString();
+        print('Error Status Code: ${response.statusCode}');
+        print('Error Response: $errorResponse');
+        throw Exception('Failed to upload file');
+      }
+    } catch (e) {
+      // Print the exception details in the console
+      print('Exception occurred during file upload: $e');
+      throw Exception('File upload failed due to an error');
     }
   }
 
