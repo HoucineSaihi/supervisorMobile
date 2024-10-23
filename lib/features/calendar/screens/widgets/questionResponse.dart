@@ -3,6 +3,7 @@ import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
@@ -32,13 +33,14 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
   final TextEditingController _commentController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   String? _selectedAction;
   bool _showAdditionalWidgets = false;
   List<ActionM> _actions = [];
   final ImagePicker _picker = ImagePicker();
   List<XFile>? _imageFiles;
-  Uint8List? webImage ;
+  Uint8List? webImage;
 
   @override
   void initState() {
@@ -57,57 +59,60 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   void _submitForm() async {
     print('enetered');
     if (widget.response == 'Non') {
-        _formKey.currentState?.save();
-        print('here');
+      _formKey.currentState?.save();
+      print('here');
 
-        // Check if webImage is available for upload
-          try {
-            // Upload the web image instead of a file
+      // Check if webImage is available for upload
+      try {
+        // Upload the web image instead of a file
 
-            var fileName = null;
-            if (webImage != null) {
-              print('here1');
+        var fileName = null;
+        if (webImage != null) {
+          print('here1');
 
-              final tempDir = await getTemporaryDirectory();
-              print('here2');
+          final tempDir = await getTemporaryDirectory();
+          print('here2');
 
-              final tempFilePath = '${tempDir.path}/temp_image.jpg';
-              print('here3');
+          final tempFilePath = '${tempDir.path}/temp_image.jpg';
+          print('here3');
 
-              File tempFile = File(tempFilePath);
-              print('here4');
+          File tempFile = File(tempFilePath);
+          print('here4');
 
-              // Write the Uint8List to a file
-              await tempFile.writeAsBytes(webImage!);
-              print('here5');
+          // Write the Uint8List to a file
+          await tempFile.writeAsBytes(webImage!);
+          print('here5');
 
-              fileName = await MissionService().uploadFile(
-                  tempFile); // Provide a default file name
-              print('here6');
+          fileName = await MissionService()
+              .uploadFile(tempFile); // Provide a default file name
+          print('here6');
+        }
 
-            }
-
-            final updatedQuestion = QuestionMission(
-              id: widget.questionId,
-              description: "",
-              reponse: widget.response,
-              commentaire: _commentController.text,
-              clouture: null,
-              actionId: _selectedAction != null ? _actions
-                  .firstWhere((action) => action.id.toString() == _selectedAction)
-                  .id : null,
-              fileName: fileName,
-            );
-            print(updatedQuestion);
-            await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Réponse enregistrée succés.')));
-            Navigator.pop(context, true); // Navigate back
-
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Une erreur est survenue lors de l'envoi du réponse" )));
-          }
-
-
+        final updatedQuestion = QuestionMission(
+            id: widget.questionId,
+            description: "",
+            reponse: widget.response,
+            commentaire: _commentController.text,
+            clouture: null,
+            actionId: _selectedAction != null
+                ? _actions
+                    .firstWhere(
+                        (action) => action.id.toString() == _selectedAction)
+                    .id
+                : null,
+            fileName: fileName,
+            noteLibre: int.tryParse(_noteController.text));
+        print(updatedQuestion);
+        await MissionService()
+            .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Réponse enregistrée succés.')));
+        Navigator.pop(context, true); // Navigate back
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:
+                Text("Une erreur est survenue lors de l'envoi du réponse")));
+      }
     } else {
       // Handle the case where response is not 'Non'
       if (webImage != null) {
@@ -118,7 +123,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
 
         // Write the Uint8List to a file
         await tempFile.writeAsBytes(webImage!);
-        final fileName = await MissionService().uploadFile(tempFile); // Provide a default file name
+        final fileName = await MissionService()
+            .uploadFile(tempFile); // Provide a default file name
 
         final updatedQuestion = QuestionMission(
           id: widget.questionId,
@@ -128,10 +134,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           clouture: null,
           fileName: fileName,
         );
-        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question modifiée avec succés')));
+        await MissionService()
+            .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Question modifiée avec succés')));
         Navigator.pop(context, true); // Navigate back
-
       } else {
         final updatedQuestion = QuestionMission(
           id: widget.questionId,
@@ -140,15 +147,14 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           commentaire: _commentController.text,
           clouture: null,
         );
-        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question modifiée avec succés')));
+        await MissionService()
+            .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Question modifiée avec succés')));
         Navigator.pop(context, true); // Navigate back
       }
     }
   }
-
-
-
 
   void _onActionChanged(ActionM? newValue) {
     setState(() {
@@ -158,31 +164,31 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   }
 
   Future<void> _pickImages() async {
-    if(!kIsWeb){
+    if (!kIsWeb) {
       final List<XFile>? selectedImages = await _picker.pickMultiImage();
       if (selectedImages != null) {
         setState(() {
           _imageFiles = selectedImages;
         });
       }
-    }else {
-      final ImagePicker _picker =ImagePicker();
+    } else {
+      final ImagePicker _picker = ImagePicker();
       XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-      if(image != null){
+      if (image != null) {
         var selected = await image.readAsBytes();
         setState(() {
           webImage = selected;
         });
-      }else {
+      } else {
         print('Failed to store the image');
       }
     }
-
   }
 
   void _showImageViewer() {
     if (kIsWeb && webImage != null) {
-      final imageProvider = MemoryImage(webImage!); // Use MemoryImage for web Uint8List
+      final imageProvider =
+          MemoryImage(webImage!); // Use MemoryImage for web Uint8List
       showImageViewer(
         context,
         imageProvider,
@@ -204,7 +210,6 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       );
     }
   }
-
 
   /*void _openCamera() async {
     // Navigate to CaptureImageScreen and await result
@@ -257,7 +262,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     });
   }
 
-  void _handleRefresh(){
+  void _handleRefresh() {
     _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
     _actionsFuture.then((actions) {
@@ -282,12 +287,12 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           leading: IconButton(
               icon: Icon(Icons.arrow_back),
               onPressed: () {
-                Navigator.pop(context,true); // Navigate back
-              }
-          ),
+                Navigator.pop(context, true); // Navigate back
+              }),
           actions: [
             IconButton(
-              icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
+              icon: Icon(Iconsax.refresh),
+              // Replace with the reload icon you are using
               onPressed: () {
                 // Your function to reload or refresh
                 _handleRefresh();
@@ -412,6 +417,26 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                             },
                           ),
                           SizedBox(height: 16),
+                          Text('Note Libre',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          TextFormField(
+                            controller: _noteController,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: 'Saisir une note libre.',
+                            ),
+                            maxLines: 1,
+                            // For a single line input (adjust if needed)
+                            keyboardType: TextInputType.number,
+                            // Restrict to number input
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              // Allow only digits
+                            ],
+                          ),
+                          SizedBox(height: 16),
                           Text('Joindre des images',
                               style: TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.bold)),
@@ -424,7 +449,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               minimumSize: Size(double.infinity, 48),
                             ),
                           ),
-                         /* SizedBox(height: 16),
+                          /* SizedBox(height: 16),
                           OutlinedButton.icon(
                             onPressed: _openCamera,
                             icon: Icon(Icons.camera_alt, size: 24),
@@ -435,8 +460,12 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                           ), */
 
                           SizedBox(height: 15),
-                          if (webImage != null || (_imageFiles != null && _imageFiles!.isNotEmpty)) ...[
-                            Text('Image sélectionnée', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          if (webImage != null ||
+                              (_imageFiles != null &&
+                                  _imageFiles!.isNotEmpty)) ...[
+                            Text('Image sélectionnée',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
                             SizedBox(height: 8),
                             ImageSlideshow(
                               width: double.infinity,
@@ -454,7 +483,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   Stack(
                                     children: [
                                       Container(
-                                        margin: EdgeInsets.symmetric(horizontal: 8.0),
+                                        margin: EdgeInsets.symmetric(
+                                            horizontal: 8.0),
                                         child: GestureDetector(
                                           onTap: () {
                                             _showImageViewer(); // Show the image viewer for web image
@@ -472,11 +502,13 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                         right: 8,
                                         top: 8,
                                         child: IconButton(
-                                          icon: Icon(Iconsax.trash, color: Colors.red),
+                                          icon: Icon(Iconsax.trash,
+                                              color: Colors.red),
                                           onPressed: () {
                                             setState(() {
                                               // Clear the web image
-                                              webImage = Uint8List(0); // Remove the image
+                                              webImage = Uint8List(
+                                                  0); // Remove the image
                                             });
                                           },
                                         ),
@@ -489,11 +521,14 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                     padding: const EdgeInsets.all(16.0),
                                     child: Text(
                                       'Aucune image sélectionnée',
-                                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                                      style: TextStyle(
+                                          fontSize: 16, color: Colors.grey),
                                     ),
                                   ),
                                 // Display the picked image files (for mobile/desktop)
-                                if (!kIsWeb && _imageFiles != null && _imageFiles!.isNotEmpty)
+                                if (!kIsWeb &&
+                                    _imageFiles != null &&
+                                    _imageFiles!.isNotEmpty)
                                   ..._imageFiles!.asMap().entries.map((entry) {
                                     final index = entry.key;
                                     final imageFile = entry.value;
@@ -501,9 +536,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                     return Stack(
                                       children: [
                                         Container(
-                                          margin: EdgeInsets.symmetric(horizontal: 8.0),
+                                          margin: EdgeInsets.symmetric(
+                                              horizontal: 8.0),
                                           child: GestureDetector(
-                                            onTap: () => _showImageViewer(), // Show image viewer for picked files
+                                            onTap: () => _showImageViewer(),
+                                            // Show image viewer for picked files
                                             child: Image.file(
                                               File(imageFile.path),
                                               fit: BoxFit.cover,
@@ -515,9 +552,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                           right: 8,
                                           top: 8,
                                           child: IconButton(
-                                            icon: Icon(Iconsax.trash, color: Colors.red),
+                                            icon: Icon(Iconsax.trash,
+                                                color: Colors.red),
                                             onPressed: () {
-                                              _removeImage(index); // Remove the image from the list
+                                              _removeImage(
+                                                  index); // Remove the image from the list
                                             },
                                           ),
                                         ),
@@ -525,12 +564,9 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                     );
                                   }).toList(),
                               ],
-
-
                             ),
                           ],
                           SizedBox(height: 20),
-
                           ElevatedButton(
                             onPressed: _submitForm,
                             //_submitForm,

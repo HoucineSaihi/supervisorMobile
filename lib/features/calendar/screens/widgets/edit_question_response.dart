@@ -6,6 +6,7 @@ import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
@@ -27,9 +28,13 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
   final TextEditingController _commentController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+
   ActionM? _selectedAction;
   bool _isEditingComment = false;
   bool _isEditingResponse = false;
+  bool _isEditingNote = false;
+
   bool _isActionDropdownVisible = false;
   bool _isImageEnlarged = false;
 
@@ -42,17 +47,18 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
       final updatedComment = _isEditingComment ? _commentController.text : question.commentaire;
       final updatedActionId = _isActionDropdownVisible && _selectedAction != null ? _selectedAction!.id : question.actionId;
-
+      final updatedNote = _isEditingNote ? int.tryParse(_noteController.text) : question.noteLibre ;
       question.commentaire = updatedComment;
       question.actionId = updatedActionId;
+      question.noteLibre = updatedNote;
 
       await MissionService().updateMissionQuestion(widget.questionId, question);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Success!',
-            message: 'Question updated successfully.',
+            title: 'Succés!',
+            message: 'Question modifiée avec succés.',
             contentType: ContentType.success,
           ),
           behavior: SnackBarBehavior.floating,
@@ -60,16 +66,14 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           elevation: 0,
         ),
       );
+      Navigator.of(context).pop(); // Return false
 
-      setState(() {
-        _questionFuture = MissionService().getQuestionDetails(widget.questionId);
-      });
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Error!',
-            message: 'Failed to update question: $error',
+            title: 'Erreur!',
+            message: 'Une erreur est survenue lors de la modification de la réponse: $error',
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,
@@ -232,6 +236,12 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     });
   }
 
+  void _toggleNoteEdit() {
+    setState(() {
+      _isEditingNote = !_isEditingNote;
+    });
+  }
+
   void _toggleActionDropdown() {
     setState(() {
       _isActionDropdownVisible = !_isActionDropdownVisible;
@@ -383,6 +393,63 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                       ),
                                       maxLines: 4,
                                       autofocus: true,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Note:',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    '${question.noteLibre ?? 'Aucune note attribuée'}',
+                                    overflow: TextOverflow.visible,
+                                    softWrap: true,
+                                    style: TextStyle(fontSize: 16.0),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Iconsax.edit),
+                              onPressed: _toggleNoteEdit,
+                            ),
+                          ],
+                        ),
+                        if (_isEditingNote)
+                          Row(
+                            children: [
+                              SizedBox(height: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    TextFormField(
+                                      controller: _noteController,
+                                      decoration: InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        labelText: 'Saisir une note libre.',
+                                      ),
+                                      maxLines: 1, // For a single line input (adjust if needed)
+                                      keyboardType: TextInputType.number, // Restrict to number input
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly, // Allow only digits
+                                      ],
                                     ),
                                   ],
                                 ),

@@ -1,5 +1,6 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart'; // For date formatting
@@ -39,6 +40,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   final TextEditingController _actionIdController = TextEditingController();
   final TextEditingController _boutiqueLibelleController = TextEditingController();
   final TextEditingController _statusValidationController = TextEditingController();
+  final TextEditingController _noteLibreController = TextEditingController();
+
   List<BoutiqueModel> _boutiques = [];
 
   DateTime? _dateDb;
@@ -84,6 +87,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     DateTime? dateF,
     DateTime? dateClotDb,
     DateTime? dateClotF,
+    String? noteLibre,
   }) async {
     setState(() {
       _isLoading = true;
@@ -103,6 +107,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         dateF: dateF,
         dateClotDb: dateClotDb,
         dateClotF: dateClotF,
+        noteLibre: noteLibre
       );
       setState(() {
         _incidents = List<Map<String, dynamic>>.from(incidents);
@@ -131,6 +136,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       dateF: _dateF,
       dateClotDb: _dateClotDb ,
       dateClotF: _dateClotF ,
+      noteLibre: _noteLibreController.text ?? null
     );
 
   }
@@ -147,6 +153,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       dateF: _dateF,
       dateClotDb: _dateClotDb ,
       dateClotF: _dateClotF ,
+        noteLibre: _noteLibreController.text ?? null
     );
   });
         }
@@ -179,6 +186,20 @@ var _statusValidation = null;
         TextField(
           controller: _questionLibelleController,
           decoration: InputDecoration(labelText: 'Question Libelle'),
+        ),
+        SizedBox(height: 10),
+
+        TextField(
+          controller: _noteLibreController,
+          decoration: InputDecoration(labelText: 'Note attribuée'),
+          maxLines: 1,
+          // For a single line input (adjust if needed)
+          keyboardType: TextInputType.number,
+          // Restrict to number input
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            // Allow only digits
+          ],
         ),
         SizedBox(height: 10),
         DropdownButtonFormField<String>(

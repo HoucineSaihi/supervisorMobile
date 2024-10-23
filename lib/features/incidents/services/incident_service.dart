@@ -31,11 +31,13 @@ class IncidentService {
     DateTime? dateF,
     DateTime? dateClotDb,
     DateTime? dateClotF,
+    String? noteLibre
   }) async {
     String? userIdString = await window.localStorage['currentUserId'];
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
     final Map<String, String> queryParams = {};
 
+    if (noteLibre != null) queryParams['noteLibre'] = noteLibre;
     if (mLibelle != null) queryParams['mLibelle'] = mLibelle;
     if (smLibelle != null) queryParams['smLibelle'] = smLibelle;
     if (qLibelle != null) queryParams['qLibelle'] = qLibelle;

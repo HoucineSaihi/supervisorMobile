@@ -354,7 +354,7 @@ class consultIncidentWidgetState extends State<consultIncidentWidget> {
                                   ),
                                   SizedBox(height: 4),
                                   Text(
-                                    '${question.commentaire ?? 'Aucun commentaire'}',
+                                    '${question.commentaire == '' ? 'Aucun commentaire' : question.commentaire}',
                                     overflow: TextOverflow.visible,
                                     softWrap: true,
                                     style: TextStyle(fontSize: 16.0),
@@ -389,6 +389,36 @@ class consultIncidentWidgetState extends State<consultIncidentWidget> {
                               ),
                             ],
                           ),*/
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Note:',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    '${question.noteLibre ?? 'Aucune note attribuée'}',
+                                    overflow: TextOverflow.visible,
+                                    softWrap: true,
+                                    style: TextStyle(fontSize: 16.0),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          ],
+                        ),
+
                       ],
                     ),
                     SizedBox(height: 20),
