@@ -1,4 +1,3 @@
-
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 
@@ -14,6 +13,9 @@ class QuestionMission {
   String? fileName;
   ChoixReponseQuestion? choixReponseQuestion;
   int? reponseID;
+  int? selectedResponseValue;
+  double? questionCoefficient;
+  bool? incident;
 
   QuestionMission({
     required this.id,
@@ -26,22 +28,28 @@ class QuestionMission {
     this.commentaire,
     this.fileName,
     this.choixReponseQuestion,
-    this.reponseID
+    this.reponseID,
+    this.selectedResponseValue,
+    this.questionCoefficient,
+    this.incident,
   });
 
   factory QuestionMission.fromJson(Map<String, dynamic> json) {
     return QuestionMission(
-        id: json['id'] as int,
-        description: json['description'] as String?,
-        sousMissionId: json['sousMissionId'] as int?,
-        reponse: json['reponse'] as String?,
-        clouture: json['clouture'] != null ? DateTime.parse(json['clouture']) : null,
-        actionId: json['actionId'] as int?,
-        actions: json['actions'] != null ? ActionM.fromJson(json['actions']) : null,
-        commentaire: json['commentaire'] as String?,
-        fileName: json['fileName'] as String?,
-        choixReponseQuestion: json['choixReponseQuestion'] != null ? ChoixReponseQuestion.fromJson(json['choixReponseQuestion']) : null,
-        reponseID: json['reponseID'] as int?
+      id: json['id'] as int,
+      description: json['description'] as String?,
+      sousMissionId: json['sousMissionId'] as int?,
+      reponse: json['reponse'] as String?,
+      clouture: json['clouture'] != null ? DateTime.parse(json['clouture']) : null,
+      actionId: json['actionId'] as int?,
+      actions: json['actions'] != null ? ActionM.fromJson(json['actions']) : null,
+      commentaire: json['commentaire'] as String?,
+      fileName: json['fileName'] as String?,
+      choixReponseQuestion: json['choixReponseQuestion'] != null ? ChoixReponseQuestion.fromJson(json['choixReponseQuestion']) : null,
+      reponseID: json['reponseID'] as int?,
+      selectedResponseValue: json['selectedResponseValue'] as int?,
+      questionCoefficient: (json['questionCoefficient'] as num?)?.toDouble(),
+      incident: json['incident'] as bool?,
     );
   }
 
@@ -51,12 +59,16 @@ class QuestionMission {
       'description': description,
       'sousMissionId': sousMissionId,
       'reponse': reponse,
-      'clouture': clouture?.toIso8601String(), // Convert DateTime to ISO8601 string
+      'clouture': clouture?.toIso8601String(),
       'actionId': actionId,
-      'actions': actions?.toJson(), // Assuming ActionM has a toJson() method
+      'actions': actions?.toJson(),
       'commentaire': commentaire,
       'fileName': fileName,
-      'reponseID' : reponseID,
+      'choixReponseQuestion': choixReponseQuestion?.toJson(),
+      'reponseID': reponseID,
+      'selectedResponseValue': selectedResponseValue,
+      'questionCoefficient': questionCoefficient,
+      'incident': incident,
     };
   }
 }

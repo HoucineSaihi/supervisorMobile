@@ -36,6 +36,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
 
   ActionM? _selectedAction;
   int? selectedResponseID;
+  int? selectedResponseVallue;
   bool _showAdditionalWidgets = false;
   List<ActionM> _actions = [];
   final ImagePicker _picker = ImagePicker();
@@ -72,18 +73,18 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       // Create the updated question object
       final updatedQuestion = QuestionMission(
         id: widget.questionId,
-        description: "", // Or some default value
         commentaire: _commentController.text,
-        clouture: null,
         actionId: _selectedAction?.id,
         fileName: fileName, // Add fileName if available, otherwise null
         reponseID: selectedResponseID,
+        selectedResponseValue: selectedResponseVallue
       );
 
       print("-----------------------------------Valeur JSON \n");
       print(updatedQuestion.actionId);
       print(updatedQuestion.reponseID);
       print(updatedQuestion.fileName);
+      print(selectedResponseVallue);
 
       try {
         await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
@@ -262,7 +263,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   }).toList(),
                                   onChanged: (ChoixReponseQuestion? newValue) {
                                     setState(() {
-                                      selectedResponseID = newValue?.id; // Assuming `id` is the identifier for the response
+                                      selectedResponseID = newValue?.id;
+                                      selectedResponseVallue=   newValue?.valeur;      // Assuming `id` is the identifier for the response
                                     });
                                   },
                                   validator: (value) {
