@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:camera/camera.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
@@ -13,6 +13,7 @@ import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:path_provider/path_provider.dart'; // For accessing the temp directory
+import 'dart:typed_data';
 
 class QuestionResponseWidget extends StatefulWidget {
   final int questionId;
@@ -29,15 +30,18 @@ class QuestionResponseWidget extends StatefulWidget {
 }
 
 class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
+
+  final TextEditingController _noteController = TextEditingController();
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
   final TextEditingController _commentController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  String? _selectedAction;
+  ActionM? _selectedAction;
   bool _showAdditionalWidgets = false;
   List<ActionM> _actions = [];
   final ImagePicker _picker = ImagePicker();
   List<XFile>? _imageFiles;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -54,15 +58,19 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   }
 
   void _submitForm() async {
-    if (widget.response == 'Non') {
-      if (_formKey.currentState?.validate() ?? false) {
-        _formKey.currentState?.save();
+    setState(() => _isLoading = true); // Start loader
 
+    try {
+      // Determine actionId based on condition
+      final actionId = (_selectedAction != null && _selectedAction!.id == 0)
+          ? null
+          : _selectedAction?.id;
+
+      if (widget.response == 'Non') {
         if (_imageFiles != null && _imageFiles!.isNotEmpty) {
           try {
             final firstFile = _imageFiles!.first;
-            final fileName =
-                await MissionService().uploadFile(File(firstFile.path));
+            final fileName = await MissionService().uploadFile(File(firstFile.path));
 
             final updatedQuestion = QuestionMission(
               id: widget.questionId,
@@ -70,70 +78,92 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
               reponse: widget.response,
               commentaire: _commentController.text,
               clouture: null,
-              actionId: _actions
-                  .firstWhere(
-                      (action) => action.id.toString() == _selectedAction)
-                  .id,
+              actionId: actionId,
               fileName: fileName,
+              noteLibre: int.tryParse(_noteController.text),
             );
 
-            await MissionService()
-                .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+            await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
             ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Question updated successfully')));
             Navigator.pop(context, true); // Navigate back
 
           } catch (e) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text('Failed to upload file')));
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to upload file: $e')));
           }
         } else {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('No file selected')));
+          final updatedQuestion = QuestionMission(
+            id: widget.questionId,
+            description: "",
+            reponse: widget.response,
+            commentaire: _commentController.text,
+            clouture: null,
+            actionId: actionId,
+            noteLibre: int.tryParse(_noteController.text),
+          );
+
+          await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Question updated successfully')));
+          Navigator.pop(context, true); // Navigate back
+        }
+      } else {
+        if (_imageFiles != null && _imageFiles!.isNotEmpty) {
+          try {
+            final firstFile = _imageFiles!.first;
+            final fileName = await MissionService().uploadFile(File(firstFile.path));
+
+            final updatedQuestion = QuestionMission(
+              id: widget.questionId,
+              description: "",
+              reponse: widget.response,
+              commentaire: _commentController.text,
+              clouture: null,
+              fileName: fileName,
+              noteLibre: int.tryParse(_noteController.text),
+            );
+
+            await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Question updated successfully')));
+            Navigator.pop(context, true); // Navigate back
+
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to upload file: $e')));
+          }
+        } else {
+          final updatedQuestion = QuestionMission(
+            id: widget.questionId,
+            description: "",
+            reponse: widget.response,
+            commentaire: _commentController.text,
+            clouture: null,
+            noteLibre: int.tryParse(_noteController.text),
+          );
+
+          await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Question updated successfully')));
+          Navigator.pop(context, true); // Navigate back
         }
       }
-    } else {
-      if (_imageFiles != null && _imageFiles!.isNotEmpty) {
-        final firstFile = _imageFiles!.first;
-        final fileName =
-            await MissionService().uploadFile(File(firstFile.path));
-
-        final updatedQuestion = QuestionMission(
-          id: widget.questionId,
-          description: "",
-          reponse: widget.response,
-          commentaire: _commentController.text,
-          clouture: null,
-          fileName: fileName,
-        );
-        await MissionService()
-            .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Question updated successfully')));
-        Navigator.pop(context, true); // Navigate back
-
-      } else {
-        final updatedQuestion = QuestionMission(
-          id: widget.questionId,
-          description: "",
-          reponse: widget.response,
-          commentaire: _commentController.text,
-          clouture: null,
-        );
-        await MissionService()
-            .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Question updated successfully')));
-        Navigator.pop(context, true); // Navigate back
-
-      }
+    } catch (e) {
+      // General error handling for unexpected issues
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An unexpected error occurred: $e')));
+    } finally {
+      setState(() => _isLoading = false); // Stop loader
     }
   }
 
+
+
+
   void _onActionChanged(ActionM? newValue) {
     setState(() {
-      _selectedAction = newValue?.id.toString();
-      _showAdditionalWidgets = newValue?.description == 'non';
+      _selectedAction = newValue;
     });
   }
 
@@ -211,22 +241,45 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     });
   }
 
+
+
+  void _handleRefresh() {
+    _questionFuture = MissionService().getQuestionDetails(widget.questionId);
+    _actionsFuture = MissionService().getActions();
+    _actionsFuture.then((actions) {
+      if (mounted) {
+        setState(() {
+          _actions = actions;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final TextStyle textStyle =
-        TextStyle(color: isDarkMode ? Colors.black : Colors.black);
+    TextStyle(color: isDarkMode ? Colors.black : Colors.black);
 
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Repondre au question'),
+          title: Text('Répondre au question'),
           leading: IconButton(
               icon: Icon(Icons.arrow_back),
               onPressed: () {
-                Navigator.pop(context,true); // Navigate back
-              }
-          ),
+                Navigator.pop(context, true); // Navigate back
+              }),
+          actions: [
+            IconButton(
+              icon: Icon(Iconsax.refresh),
+              // Replace with the reload icon you are using
+              onPressed: () {
+                // Your function to reload or refresh
+                _handleRefresh();
+              },
+            ),
+          ],
         ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -242,9 +295,9 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return Center(child: CircularProgressIndicator());
                       } else if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
+                        return Center(child: Text('Erreur: ${snapshot.error}'));
                       } else if (!snapshot.hasData) {
-                        return Center(child: Text('No data found'));
+                        return Center(child: Text('Aucune question trouvée'));
                       }
 
                       final question = snapshot.data!;
@@ -253,7 +306,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Question: ${question.description ?? 'No Description'}",
+                            "Question: ${question.description ?? 'Aucune Description'}",
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold),
                           ),
@@ -279,24 +332,34 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                       child: CircularProgressIndicator());
                                 } else if (snapshot.hasError) {
                                   return Center(
-                                      child: Text('Error: ${snapshot.error}'));
+                                      child: Text('Erreur: ${snapshot.error}'));
                                 } else if (!snapshot.hasData ||
                                     snapshot.data!.isEmpty) {
                                   return Center(
-                                      child: Text('No actions available'));
+                                      child: Text('Aucune action disponible'));
                                 }
 
                                 final actions = snapshot.data!;
 
+                                // Add the "None" option at the start of the list
+                                final noneAction = ActionM(id: 0, description: 'Aucune action');
+                                final allActions = [noneAction, ...actions];
+
                                 return CustomDropdown<ActionM>.search(
                                   hintText: 'Select Action',
-                                  items: actions,
+                                  items: allActions,
                                   excludeSelected: false,
-                                  onChanged: _onActionChanged,
+                                  onChanged: (value) {
+                                    // Handle the "None" option when selected
+                                    if (value?.id == -1) {
+                                      _selectedAction = null;  // Deselect logic
+                                    } else {
+                                      _onActionChanged(value);
+                                    }
+                                  },
                                   decoration: CustomDropdownDecoration(
                                     expandedFillColor: Colors.grey,
-                                    expandedBorder:
-                                        Border.all(color: Colors.white),
+                                    expandedBorder: Border.all(color: Colors.white),
                                     expandedShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.5),
@@ -310,14 +373,13 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                     noResultFoundStyle: textStyle,
                                     errorStyle: textStyle,
                                     listItemStyle: textStyle,
-                                    searchFieldDecoration:
-                                        SearchFieldDecoration(
+                                    searchFieldDecoration: SearchFieldDecoration(
                                       textStyle: TextStyle(color: Colors.black),
                                       hintStyle: TextStyle(color: Colors.black),
                                     ),
                                   ),
                                   validator: (value) {
-                                    if (value == null) {
+                                    if (value == null || value.id == -1) {
                                       return 'Please select an action';
                                     }
                                     return null;
@@ -325,6 +387,20 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                 );
                               },
                             ),
+                          SizedBox(height: 16),
+                          _selectedAction != null
+                              ? Row(
+                            children: [
+                              Flexible( // Use Flexible to allow the Text to wrap
+                                child: Text(
+                                  'Action: ${_selectedAction?.description ?? ''}',
+                                  softWrap: true, // Allows text to break into multiple lines
+                                  overflow: TextOverflow.visible, // Makes sure the overflow is handled
+                                ),
+                              ),
+                            ],
+                          )
+                              : SizedBox.shrink(),
                           SizedBox(height: 16),
                           Text('Commentaire',
                               style: TextStyle(
@@ -339,10 +415,27 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                             maxLines: 4,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter a comment';
+                                return 'Entrer un commentaire';
                               }
                               return null;
                             },
+                          ),
+                          SizedBox(height: 16),
+                          Text('Note Libre',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          TextFormField(
+                            controller: _noteController,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: 'Saisir une note libre.',
+                            ),
+                            maxLines: 1, // For a single line input (adjust if needed)
+                            keyboardType: TextInputType.numberWithOptions(signed: true, decimal: false), // Allow signed numbers
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'^-?\d*$')), // Allow only digits with an optional leading '-'
+                            ],
                           ),
                           SizedBox(height: 16),
                           Text('Joindre des images',
@@ -357,7 +450,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               minimumSize: Size(double.infinity, 48),
                             ),
                           ),
-                          SizedBox(height: 16),
+                           SizedBox(height: 16),
                           OutlinedButton.icon(
                             onPressed: _openCamera,
                             icon: Icon(Icons.camera_alt, size: 24),
@@ -366,6 +459,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               minimumSize: Size(double.infinity, 48),
                             ),
                           ),
+
                           SizedBox(height: 15),
                           if (_imageFiles != null &&
                               _imageFiles!.isNotEmpty) ...[
@@ -380,7 +474,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               },
                               isLoop: true,
                               children:
-                                  _imageFiles!.asMap().entries.map((entry) {
+                              _imageFiles!.asMap().entries.map((entry) {
                                 final index = entry.key;
                                 final imageFile = entry.value;
 
@@ -388,7 +482,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   children: [
                                     Container(
                                       margin:
-                                          EdgeInsets.symmetric(horizontal: 8.0),
+                                      EdgeInsets.symmetric(horizontal: 8.0),
                                       // Margin on the sides
                                       child: GestureDetector(
                                         onTap: () => _showImageViewer(index),
@@ -418,8 +512,12 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                           ],
                           SizedBox(height: 20),
                           ElevatedButton(
-                            onPressed: _submitForm,
-                            child: Text('Valider'),
+                            onPressed: _isLoading ? null : _submitForm, // Disable button when loading
+                            child: _isLoading
+                                ? CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                                : Text('Valider'),
                             style: ElevatedButton.styleFrom(
                               minimumSize: Size(double.infinity, 48),
                             ),

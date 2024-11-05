@@ -26,9 +26,9 @@ class NavigationMenu extends StatelessWidget {
           selectedIndex: controller.selectedIndex.value,
           onDestinationSelected: (index) => controller.changeIndex(index),
           backgroundColor: darkMode ? TColors.black : TColors.white,
-              indicatorColor: darkMode ? TColors.white.withOpacity(0.1) : TColors.black.withOpacity(0.1),
+          indicatorColor: darkMode ? TColors.white.withOpacity(0.1) : TColors.black.withOpacity(0.1),
 
-              destinations: const [
+          destinations: const [
             NavigationDestination(icon: Icon(Iconsax.calendar), label: 'Calendrier'),
             NavigationDestination(icon: Icon(Iconsax.task), label: 'Incidents'),
             NavigationDestination(icon: Icon(Iconsax.user), label: 'Profile'),
@@ -47,7 +47,7 @@ class NavigationController extends GetxController {
 
   final List<Widget> screens = [
     const CalendarPlanning(),
-     AllIncidentsWidget(),
+    AllIncidentsWidget(),
     ProfileInfo(),
   ];
 

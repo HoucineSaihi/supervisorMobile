@@ -6,7 +6,6 @@ import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
@@ -14,27 +13,23 @@ import 'package:supervisormobile/features/calendar/screens/widgets/questionRespo
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 
-class EditQuestionResponse extends StatefulWidget {
+class consultIncidentWidget extends StatefulWidget {
   final int questionId;
 
-  const EditQuestionResponse({Key? key, required this.questionId})
+  const consultIncidentWidget({Key? key, required this.questionId})
       : super(key: key);
 
   @override
-  _EditQuestionResponseState createState() => _EditQuestionResponseState();
+  consultIncidentWidgetState createState() => consultIncidentWidgetState();
 }
 
-class _EditQuestionResponseState extends State<EditQuestionResponse> {
+class consultIncidentWidgetState extends State<consultIncidentWidget> {
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
   final TextEditingController _commentController = TextEditingController();
-  final TextEditingController _noteController = TextEditingController();
-
   ActionM? _selectedAction;
   bool _isEditingComment = false;
   bool _isEditingResponse = false;
-  bool _isEditingNote = false;
-
   bool _isActionDropdownVisible = false;
   bool _isImageEnlarged = false;
 
@@ -47,18 +42,17 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
       final updatedComment = _isEditingComment ? _commentController.text : question.commentaire;
       final updatedActionId = _isActionDropdownVisible && _selectedAction != null ? _selectedAction!.id : question.actionId;
-      final updatedNote = _isEditingNote ? int.tryParse(_noteController.text) : question.noteLibre ;
+
       question.commentaire = updatedComment;
       question.actionId = updatedActionId;
-      question.noteLibre = updatedNote;
 
       await MissionService().updateMissionQuestion(widget.questionId, question);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Succés!',
-            message: 'Question modifiée avec succés.',
+            title: 'Success!',
+            message: 'Question updated successfully.',
             contentType: ContentType.success,
           ),
           behavior: SnackBarBehavior.floating,
@@ -66,14 +60,16 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           elevation: 0,
         ),
       );
-      Navigator.of(context).pop(); // Return false
 
+      setState(() {
+        _questionFuture = MissionService().getQuestionDetails(widget.questionId);
+      });
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Erreur!',
-            message: 'Une erreur est survenue lors de la modification de la réponse: $error',
+            title: 'Error!',
+            message: 'Failed to update question: $error',
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,
@@ -227,12 +223,6 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     });
   }
 
-  void _toggleNoteEdit() {
-    setState(() {
-      _isEditingNote = !_isEditingNote;
-    });
-  }
-
   void _toggleActionDropdown() {
     setState(() {
       _isActionDropdownVisible = !_isActionDropdownVisible;
@@ -271,48 +261,48 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                 final newActionDescription = _selectedAction?.description ?? '';
 
                 return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Description:',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-                        ),
-                        SizedBox(height: 4),
-                        Text('${question.description ?? 'No Description'}', style: TextStyle(fontSize: 16.0)),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Réponse:',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          '${question.reponse ?? 'No Response'}',
-                                          style: TextStyle(
-                                            fontSize: 16.0,
-                                            color: question.reponse == 'Oui'
-                                                ? Colors.green
-                                                : Colors.red,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Description:',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                          ),
+                          SizedBox(height: 4),
+                          Text('${question.description ?? 'No Description'}', style: TextStyle(fontSize: 16.0)),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Réponse:',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '${question.reponse ?? 'No Response'}',
+                                            style: TextStyle(
+                                              fontSize: 16.0,
+                                              color: question.reponse == 'Oui'
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      IconButton(
+                                        /* IconButton(
                                         icon: Icon(Iconsax.edit),
                                         onPressed: () async {
                                           bool shouldRefresh = await _showResponseEditDialog(question.reponse ?? '', question.id);
@@ -329,47 +319,47 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
                                             }); // Refresh the UI
                                           }
-                                        },                                      ),
-                                    ],
-                                  ),
-                                ],
+                                        },                                      ),*/
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Commentaire:',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    '${question.commentaire ?? 'Aucun commentaire'}',
-                                    overflow: TextOverflow.visible,
-                                    softWrap: true,
-                                    style: TextStyle(fontSize: 16.0),
-                                  ),
-                                ],
+                            ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Commentaire:',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      '${question.commentaire == '' ? 'Aucun commentaire' : question.commentaire}',
+                                      overflow: TextOverflow.visible,
+                                      softWrap: true,
+                                      style: TextStyle(fontSize: 16.0),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            IconButton(
+                              /* IconButton(
                               icon: Icon(Iconsax.edit),
                               onPressed: _toggleCommentEdit,
-                            ),
-                          ],
-                        ),
-                        if (_isEditingComment)
+                            ),*/
+                            ],
+                          ),
+                          /*if (_isEditingComment)
                           Row(
                             children: [
                               Expanded(
@@ -389,97 +379,70 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 ),
                               ),
                             ],
-                          ),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Note:',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    '${question.noteLibre ?? 'Aucune note attribuée'}',
-                                    overflow: TextOverflow.visible,
-                                    softWrap: true,
-                                    style: TextStyle(fontSize: 16.0),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Iconsax.edit),
-                              onPressed: _toggleNoteEdit,
-                            ),
-                          ],
-                        ),
-                        if (_isEditingNote)
+                          ),*/
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Row(
                             children: [
-                              SizedBox(height: 10),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    TextFormField(
-                                      controller: _noteController,
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(),
-                                        labelText: 'Saisir une note libre.',
-                                      ),
-                                      maxLines: 1, // For a single line input (adjust if needed)
-                                      keyboardType: TextInputType.number, // Restrict to number input
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly, // Allow only digits
-                                      ],
+                                    Text(
+                                      'Note:',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      '${question.noteLibre ?? 'Aucune note attribuée'}',
+                                      overflow: TextOverflow.visible,
+                                      softWrap: true,
+                                      style: TextStyle(fontSize: 16.0),
                                     ),
                                   ],
                                 ),
                               ),
+
                             ],
                           ),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Action:',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Action:',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        '${currentAction?.description ?? 'Aucune action'}',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(fontSize: 16.0),
+                                      ),
+                                    ],
                                   ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    '${currentAction?.description ?? 'Aucune action'}',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontSize: 16.0),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
+                                ),
+                                /* IconButton(
                               icon: Icon(Iconsax.edit),
                               onPressed: _toggleActionDropdown,
+                            ),*/
+                              ],
                             ),
-                          ],
-                        ),
-                        if (_isActionDropdownVisible)
+                            /*if (_isActionDropdownVisible)
                           FutureBuilder<List<ActionM>>(
                             future: _actionsFuture,
                             builder: (context, snapshot) {
@@ -560,36 +523,36 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                             },
                           ),
                       ],
-                    ),
-                    SizedBox(height: 20),
-                    if (_images.isNotEmpty) ...[
-                      ImageSlideshow(
-                        width: double.infinity,
-                        height: _isImageEnlarged ? 500 : 300,
-                        initialPage: 0,
-                        indicatorColor: Colors.blue,
-                        indicatorBackgroundColor: Colors.grey,
-                        onPageChanged: (value) {
-                          print('Page changed: $value');
-                        },
-                        isLoop: true,
-                        children: _images.map((image) {
-                          return SafeArea(
-                              child:
-                              GestureDetector(
-                                  onTap: () => _showImageViewer(_images.indexOf(image)),
-                                  child: SafeArea(child:
-                                  Image.file(
-                                    image,
-                                    fit: BoxFit.cover,
-                                  ),)
-                              )
-                          );
-                        }).toList(),
-                      ),
-                    ],
+                    ),*/
+                            SizedBox(height: 20),
+                            if (_images.isNotEmpty) ...[
+                              ImageSlideshow(
+                                width: double.infinity,
+                                height: _isImageEnlarged ? 500 : 300,
+                                initialPage: 0,
+                                indicatorColor: Colors.blue,
+                                indicatorBackgroundColor: Colors.grey,
+                                onPageChanged: (value) {
+                                  print('Page changed: $value');
+                                },
+                                isLoop: true,
+                                children: _images.map((image) {
+                                  return SafeArea(
+                                      child:
+                                      GestureDetector(
+                                          onTap: () => _showImageViewer(_images.indexOf(image)),
+                                          child: SafeArea(child:
+                                          Image.file(
+                                            image,
+                                            fit: BoxFit.cover,
+                                          ),)
+                                      )
+                                  );
+                                }).toList(),
+                              ),
+                            ],
 
-                    SizedBox(height: 20),
+                            /*SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () {
                         updateQuestion();
@@ -599,9 +562,9 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size(double.infinity, 50), // Full width and fixed height
                       ),
-                    )
+                    )*/
 
-                  ],
+                          ])]
                 );
               },
             ),
