@@ -8,6 +8,8 @@ import 'package:supervisormobile/utils/Helpers/helper_functions.dart';
 import 'package:supervisormobile/utils/constants/TImages.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:supervisormobile/utils/constants/sizes.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,11 +24,29 @@ class _LoginScreenState extends State<LoginScreen> {
   final _loginService = LoginService(); // Instantiate LoginService
   bool _isLoading = false;
   bool _isPasswordObscured = true;
+  final _secureStorage = const FlutterSecureStorage();
+
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfLoggedIn();
+  }
 
   void _togglePasswordVisibility() {
     setState(() {
       _isPasswordObscured = !_isPasswordObscured;
     });
+  }
+
+  Future<void> _checkIfLoggedIn() async {
+    // Check for current_user_id in secure storage
+    final currentUserId = await _secureStorage.read(key: 'currentUserId');
+
+    // If current_user_id exists, redirect to Calendar screen
+    if (currentUserId != null) {
+      Get.off(() => const CalendarPlanning()); // Navigate to Calendar
+    }
   }
 
   Future<void> _login() async {
