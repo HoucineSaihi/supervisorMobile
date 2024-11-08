@@ -17,6 +17,7 @@ class QuestionMission {
   double? questionCoefficient;
   bool? incident;
 
+
   QuestionMission({
     required this.id,
     this.description,

@@ -18,6 +18,12 @@ class Mission {
   bool? activated;
   List<SousMission>? sousMissions;
   int? modelReponseQuestionId;
+  int? conformite_ID;
+
+  double? scoreMax;
+  int? totalQuestion;
+  double? tauxConformite;
+
   Mission({
     required this.id,
     this.libelle,
@@ -33,7 +39,11 @@ class Mission {
     this.userId,
     this.activated,
     this.sousMissions,
-    this.modelReponseQuestionId
+    this.modelReponseQuestionId,
+    this.conformite_ID,
+    this.scoreMax,
+    this.totalQuestion,
+    this.tauxConformite,
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) {
@@ -55,7 +65,10 @@ class Mission {
           ? (json['sousMissions'] as List).map((i) => SousMission.fromJson(i)).toList()
           : null,
       modelReponseQuestionId: json['modelReponseQuestionId'] as int?,
-
+      conformite_ID: json['conformite_ID'] as int?,
+      scoreMax: (json['scoreMax'] as num?)?.toDouble(),
+      totalQuestion: json['totalQuestion'] as int?,
+      tauxConformite: (json['tauxConformite'] as num?)?.toDouble(),
     );
   }
 
@@ -75,7 +88,11 @@ class Mission {
       'userId': userId,
       'activated': activated,
       'sousMissions': sousMissions?.map((e) => e.toJson()).toList(),
-      'modelReponseQuestionId': modelReponseQuestionId
+      'modelReponseQuestionId': modelReponseQuestionId,
+      'conformite_ID': conformite_ID,
+      'scoreMax': scoreMax,
+      'totalQuestion': totalQuestion,
+      'tauxConformite': tauxConformite,
     };
   }
 }

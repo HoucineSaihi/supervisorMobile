@@ -9,6 +9,11 @@ class SousMission {
   int? missionId;
   List<QuestionMission>? missionQuestions;
 
+  int? sommeValeurPositive;
+  double? sommeCalculPoint;
+  double? scoreMax;
+  double? tauxConformiteCategorie;
+
   SousMission({
     this.id,
     this.libelle,
@@ -17,6 +22,10 @@ class SousMission {
     this.dateCreation,
     this.missionId,
     this.missionQuestions,
+    this.sommeValeurPositive,
+    this.sommeCalculPoint,
+    this.scoreMax,
+    this.tauxConformiteCategorie,
   });
 
   factory SousMission.fromJson(Map<String, dynamic> json) {
@@ -30,6 +39,10 @@ class SousMission {
       missionQuestions: json['missionQuestions'] != null
           ? (json['missionQuestions'] as List).map((i) => QuestionMission.fromJson(i)).toList()
           : null,
+      sommeValeurPositive: json['sommeValeurPositive'] as int?,
+      sommeCalculPoint: (json['sommeCalculPoint'] as num?)?.toDouble(),
+      scoreMax: (json['scoreMax'] as num?)?.toDouble(),
+      tauxConformiteCategorie: (json['tauxConformiteCategorie'] as num?)?.toDouble(),
     );
   }
 
@@ -42,6 +55,10 @@ class SousMission {
       'dateCreation': dateCreation?.toIso8601String(),
       'missionId': missionId,
       'missionQuestions': missionQuestions?.map((q) => q.toJson()).toList(),
+      'sommeValeurPositive': sommeValeurPositive,
+      'sommeCalculPoint': sommeCalculPoint,
+      'scoreMax': scoreMax,
+      'tauxConformiteCategorie': tauxConformiteCategorie,
     };
   }
 }
