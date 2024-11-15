@@ -13,6 +13,9 @@ class SousMission {
   double? sommeCalculPoint;
   double? scoreMax;
   double? tauxConformiteCategorie;
+  int? nombreQuestion;
+  int? coefficient_ID;
+  double? selectedCoefficient;
 
   SousMission({
     this.id,
@@ -26,6 +29,9 @@ class SousMission {
     this.sommeCalculPoint,
     this.scoreMax,
     this.tauxConformiteCategorie,
+    this.nombreQuestion,
+    this.coefficient_ID,
+    this.selectedCoefficient
   });
 
   factory SousMission.fromJson(Map<String, dynamic> json) {
@@ -43,6 +49,9 @@ class SousMission {
       sommeCalculPoint: (json['sommeCalculPoint'] as num?)?.toDouble(),
       scoreMax: (json['scoreMax'] as num?)?.toDouble(),
       tauxConformiteCategorie: (json['tauxConformiteCategorie'] as num?)?.toDouble(),
+        nombreQuestion : (json['nombreQuestion'] as int?),
+        coefficient_ID : (json['coefficient_ID'] as int?),
+        selectedCoefficient : (json['selectedCoefficient'] as num?)?.toDouble()
     );
   }
 
@@ -59,6 +68,9 @@ class SousMission {
       'sommeCalculPoint': sommeCalculPoint,
       'scoreMax': scoreMax,
       'tauxConformiteCategorie': tauxConformiteCategorie,
+      'nombreQuestion':nombreQuestion,
+      'coefficient_ID':coefficient_ID,
+      'selectedCoefficient':selectedCoefficient
     };
   }
 }
