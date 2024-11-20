@@ -9,13 +9,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: 'config.env');
 
-  // Check if the date is beyond the allowed limit
-  final currentDate = DateTime.now();
-  final cutoffDate = DateTime(2024, 11, 15); // November 15, 2024
-
-  if (currentDate.isAfter(cutoffDate)) {
-    runApp(const DateExceededApp());
-  } else {
     runApp(const App());
-  }
+
 }

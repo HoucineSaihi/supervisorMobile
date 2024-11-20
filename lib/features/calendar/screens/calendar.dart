@@ -454,34 +454,47 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                     ,
                   ],
                 ),
-                secondChild:  FutureBuilder<List<Mission>>(
-                  future: futureMissions,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return CircularProgressIndicator();
-                    } else if (snapshot.hasError) {
-                      return Text('Error: ${snapshot.error}');
-                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Column(
-                        children: [
+                secondChild: Column(
+                  children: [
+                  Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
+                      onPressed: () {
+                        // Your function to reload or refresh
+                        loadMissions();
+                      },
+                    ),
+                  ],),
+                FutureBuilder<List<Mission>>(
+                        future: futureMissions,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return CircularProgressIndicator();
+                          } else if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return Column(
+                              children: [
 
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            // Center the text widgets
-                            children: [
-                              Text(
-                                'Vous avez 0 checklists a faire pour ce jour',
-                                style: TextStyle(
-                                  color: isDarkMode
-                                      ? TColors.textWhite
-                                      : TColors.darkGrey,
-                                  fontSize: 16,
-                                ),
-                                textAlign: TextAlign
-                                    .center, // Center text within the text widget
-                              ),
-                              SizedBox(height: 8),
-                              /*Text(
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  // Center the text widgets
+                                  children: [
+                                    Text(
+                                      'Vous avez 0 checklists a faire pour ce jour',
+                                      style: TextStyle(
+                                        color: isDarkMode
+                                            ? TColors.textWhite
+                                            : TColors.darkGrey,
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign
+                                          .center, // Center text within the text widget
+                                    ),
+                                    SizedBox(height: 8),
+                                    /*Text(
                                     'Cliquer sur ajouter une mission, pour faire un planning',
                                     style: TextStyle(
                                       color: TColors.darkGrey,
@@ -490,110 +503,99 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                     textAlign: TextAlign
                                         .center, // Center text within the text widget
                                   ),*/
-                            ],
-                          ),
-                          SizedBox(height: 16),
-                          SizedBox(
-                            width: 250.0, // Set a fixed width for the button
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final shouldRefresh = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AddMissionForm(Date: _selectedDay),
+                                  ],
+                                ),
+                                SizedBox(height: 16),
+                                SizedBox(
+                                  width: 250.0, // Set a fixed width for the button
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final shouldRefresh = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => AddMissionForm(Date: _selectedDay),
+                                        ),
+                                      );
+                                      if(shouldRefresh == true){
+                                        setState(() {
+                                          futureMissions = MissionService()
+                                              .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
+                                        });
+                                      }
+                                    },
+                                    icon: Icon(Iconsax.add, color: TColors.buttonPrimary), // Add the icon
+                                    label: Text('Ajouter une checklist'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: TColors.buttonPrimary, side: BorderSide(color: TColors.buttonPrimary, width: 2), // Border color and width
+                                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                                      textStyle: TextStyle(fontSize: 16),
+                                    ),
                                   ),
-                                );
-                                if(shouldRefresh == true){
-                                  setState(() {
-                                    futureMissions = MissionService()
-                                        .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
-                                  });
-                                }
-                              },
-                              icon: Icon(Iconsax.add, color: TColors.buttonPrimary), // Add the icon
-                              label: Text('Ajouter une checklist'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: TColors.buttonPrimary, side: BorderSide(color: TColors.buttonPrimary, width: 2), // Border color and width
-                                padding: EdgeInsets.symmetric(vertical: 16.0),
-                                textStyle: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                          ),
+                                ),
 
 
-                        ],
-                      );
-                    } else {
-                      final missions = snapshot.data!;
-                      final statusCounts = countMissionsByStatus(missions);
-                      final totalMissions = missions.length;
-                      final allTermine = (statusCounts[1] ?? 0) == 0 && (statusCounts[2] ?? 0) == 0 &&
-                          (statusCounts[6] ?? 0) > 0;
+                              ],
+                            );
+                          } else {
+                            final missions = snapshot.data!;
+                            final statusCounts = countMissionsByStatus(missions);
+                            final totalMissions = missions.length;
+                            final allTermine = (statusCounts[1] ?? 0) == 0 && (statusCounts[2] ?? 0) == 0 &&
+                                (statusCounts[6] ?? 0) > 0;
 
-                      return Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              IconButton(
-                                icon: Icon(Iconsax.refresh), // Replace with the reload icon you are using
-                                onPressed: () {
-                                  // Your function to reload or refresh
-                                  loadMissions();
-                                },
-                              ),
-                            ],
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center, // Center the children horizontally
-                            children: [
-                              SizedBox(
-                                width: 250.0, // Set a fixed width for the button
-                                child: OutlinedButton.icon(
-                                  onPressed: () async {
-                                    final shouldRefresh = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => AddMissionForm(Date: _selectedDay),
+                            return Column(
+                              children: [
+
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center, // Center the children horizontally
+                                  children: [
+                                    SizedBox(
+                                      width: 250.0, // Set a fixed width for the button
+                                      child: OutlinedButton.icon(
+                                        onPressed: () async {
+                                          final shouldRefresh = await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => AddMissionForm(Date: _selectedDay),
+                                            ),
+                                          );
+                                          if(shouldRefresh == true ) {
+                                            setState(() {
+                                              futureMissions = MissionService()
+                                                  .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
+                                            });
+                                          }
+                                        },
+                                        icon: Icon(Iconsax.add), // Add the icon
+                                        label: Text('Ajouter une checklist'),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                                          textStyle: TextStyle(fontSize: 16),
+                                        ),
                                       ),
-                                    );
-                                    if(shouldRefresh == true ) {
-                                      setState(() {
-                                        futureMissions = MissionService()
-                                            .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
-                                      });
-                                    }
-                                  },
-                                  icon: Icon(Iconsax.add), // Add the icon
-                                  label: Text('Ajouter une checklist'),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(vertical: 16.0),
-                                    textStyle: TextStyle(fontSize: 16),
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 15),
+                                SizedBox(height: 15),
 
-                          Column(
-                            children: [
-                              Center(
-                                child: Text(
-                                  allTermine
-                                      ? 'Tous les checklist terminées ✔️'
-                                      : '${statusCounts[1] ?? 0} checklist Planifiée et ${statusCounts[2] ?? 0} en cours  ',
-                                  style: TextStyle(
-                                    color: isDarkMode
-                                        ? TColors.textWhite
-                                        : TColors.dark,
-                                    fontSize: 16,
-                                  ),
-                                  textAlign: TextAlign
-                                      .center, // Center the text within its container
-                                ),
-                              ),
-                              /*SizedBox(height: 8),
+                                Column(
+                                  children: [
+                                    Center(
+                                      child: Text(
+                                        allTermine
+                                            ? 'Tous les checklist terminées ✔️'
+                                            : '${statusCounts[1] ?? 0} checklist Planifiée et ${statusCounts[2] ?? 0} en cours  ',
+                                        style: TextStyle(
+                                          color: isDarkMode
+                                              ? TColors.textWhite
+                                              : TColors.dark,
+                                          fontSize: 16,
+                                        ),
+                                        textAlign: TextAlign
+                                            .center, // Center the text within its container
+                                      ),
+                                    ),
+                                    /*SizedBox(height: 8),
                                   Center(
                                     child: Text(
                                       'Tous les checklists sont regroupées par boutique',
@@ -605,169 +607,201 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                           .center, // Center the text within its container
                                     ),
                                   ),*/
-                            ],
-                          ),
-                          SizedBox(height: 16),
-                          SingleChildScrollView(
-                            child: GroupedListView<Mission, String>(
-                              shrinkWrap: true,
-                              elements: missions,
-                              groupBy: (Mission mission) =>
-                              mission.boutique?.libelle ?? 'No Boutique',
-                              groupSeparatorBuilder: (String boutiqueLibelle) {
-                                // Find a sample mission with the given boutiqueLibelle
-                                final sampleMission = missions.firstWhere(
-                                      (mission) =>
-                                  mission.boutique?.libelle == boutiqueLibelle,
-                                );
+                                  ],
+                                ),
+                                SizedBox(height: 16),
+                                SingleChildScrollView(
+                                  child: GroupedListView<Mission, String>(
+                                    shrinkWrap: true,
+                                    elements: missions,
+                                    groupBy: (Mission mission) =>
+                                    mission.boutique?.libelle ?? 'No Boutique',
+                                    groupSeparatorBuilder: (String boutiqueLibelle) {
+                                      // Find a sample mission with the given boutiqueLibelle
+                                      final sampleMission = missions.firstWhere(
+                                            (mission) =>
+                                        mission.boutique?.libelle == boutiqueLibelle,
+                                      );
 
-                                return Center(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      // Pass the boutique object to the _showBoutiqueInfo method
-                                      _showBoutiqueInfo(
-                                          context, sampleMission.boutique!);
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.store,
-                                            // Replace with appropriate icon
-                                            color: isDarkMode
-                                                ? Colors.white
-                                                : Colors.black,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            boutiqueLibelle,
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: isDarkMode
-                                                  ? Colors.white
-                                                  : Colors.black,
+                                      return Center(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            // Pass the boutique object to the _showBoutiqueInfo method
+                                            _showBoutiqueInfo(
+                                                context, sampleMission.boutique!);
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.store,
+                                                  // Replace with appropriate icon
+                                                  color: isDarkMode
+                                                      ? Colors.white
+                                                      : Colors.black,
+                                                ),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  boutiqueLibelle,
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isDarkMode
+                                                        ? Colors.white
+                                                        : Colors.black,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                              itemBuilder: (context, Mission mission) {
-                                final statusData = getStatusColors(mission.status);
-                                final colors = getStatusColors(mission.status);
-                                final percentage =
-                                calculateAnsweredPercentage(mission);
+                                        ),
+                                      );
+                                    },
+                                    itemBuilder: (context, Mission mission) {
+                                      final statusData = getStatusColors(mission.status);
+                                      final colors = getStatusColors(mission.status);
+                                      final percentage =
+                                      calculateAnsweredPercentage(mission);
 
-                                return GestureDetector(
-                                  onTap: () async {
-                                    final shouldRefresh = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              MissionDetailsWidget(missionId: mission.id,mode: 1,)                                  ),
-                                    );
-                                    if(shouldRefresh == true){
-                                      setState(() {
-                                        futureMissions = MissionService()
-                                            .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
-                                      });
-                                    }
-                                  },
-                                  onLongPress: () {
-                                    _showModal(context,
-                                        mission); // Pass the mission to the modal
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        vertical: 8.0, horizontal: 16.0),
-                                    decoration: BoxDecoration(
-                                      color: TColors.softGrey,
-                                      border: Border(
-                                        left: BorderSide(
-                                          color: Color(int.parse(colors['primary']!
-                                              .replaceFirst('0x', '0xff'))),
-                                          width:
-                                          8.0, // Adjust the width of the border as needed
-                                        ),
-                                      ),
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.grey.withOpacity(0.5),
-                                          spreadRadius: 2,
-                                          blurRadius: 5,
-                                          offset: Offset(
-                                              0, 3), // changes position of shadow
-                                        ),
-                                      ],
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                        children: [
-                                          // Row for code and libelle with status
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                      return GestureDetector(
+                                        onTap: () async {
+                                          final shouldRefresh = await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    MissionDetailsWidget(missionId: mission.id,mode: 1,)                                  ),
+                                          );
+                                          if(shouldRefresh == true){
+                                            setState(() {
+                                              futureMissions = MissionService()
+                                                  .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
+                                            });
+                                          }
+                                        },
+                                        onLongPress: () {
+                                          _showModal(context,
+                                              mission); // Pass the mission to the modal
+                                        },
+                                        child: Container(
+                                          margin: const EdgeInsets.symmetric(
+                                              vertical: 8.0, horizontal: 16.0),
+                                          decoration: BoxDecoration(
+                                            color: TColors.softGrey,
+                                            border: Border(
+                                              left: BorderSide(
+                                                color: Color(int.parse(colors['primary']!
+                                                    .replaceFirst('0x', '0xff'))),
+                                                width:
+                                                8.0, // Adjust the width of the border as needed
+                                              ),
+                                            ),
+                                            borderRadius: BorderRadius.circular(8.0),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.grey.withOpacity(0.5),
+                                                spreadRadius: 2,
+                                                blurRadius: 5,
+                                                offset: Offset(
+                                                    0, 3), // changes position of shadow
+                                              ),
+                                            ],
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                              children: [
+                                                // Row for code and libelle with status
+                                                Row(
                                                   children: [
-                                                    Row(
-                                                      children: [
-                                                        Expanded(
-                                                          child: Text(
-                                                            'Code: ${mission.missionCode ?? 'No Code'}',
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                        CrossAxisAlignment.start,
+                                                        children: [
+                                                          Row(
+                                                            children: [
+                                                              Expanded(
+                                                                child: Text(
+                                                                  'Code: ${mission.missionCode ?? 'No Code'}',
+                                                                  style: TextStyle(
+                                                                    color: Color(int.parse(
+                                                                        colors['secondary']!
+                                                                            .replaceFirst(
+                                                                            '0x',
+                                                                            '0xff'))),
+                                                                    fontWeight:
+                                                                    FontWeight.bold,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                '${statusData['status'] ?? 'Unknown'}',
+                                                                style: TextStyle(
+                                                                  color: Color(int.parse(
+                                                                      statusData[
+                                                                      'secondary']!
+                                                                          .replaceFirst(
+                                                                          '0x',
+                                                                          '0xff'))),
+                                                                  fontWeight:
+                                                                  FontWeight.bold,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          SizedBox(height: 8),
+                                                          Text(
+                                                            'Libellé: ${mission.libelle ?? 'No Libelle'}',
                                                             style: TextStyle(
                                                               color: Color(int.parse(
                                                                   colors['secondary']!
                                                                       .replaceFirst(
-                                                                      '0x',
-                                                                      '0xff'))),
-                                                              fontWeight:
-                                                              FontWeight.bold,
+                                                                      '0x', '0xff'))),
+                                                              fontWeight: FontWeight.bold,
                                                             ),
                                                           ),
-                                                        ),
-                                                        Text(
-                                                          '${statusData['status'] ?? 'Unknown'}',
-                                                          style: TextStyle(
-                                                            color: Color(int.parse(
-                                                                statusData[
-                                                                'secondary']!
-                                                                    .replaceFirst(
-                                                                    '0x',
-                                                                    '0xff'))),
-                                                            fontWeight:
-                                                            FontWeight.bold,
+                                                          SizedBox(height: 8),
+                                                          Text(
+                                                            'Description: ${mission.description ?? 'No Description'}',
+                                                            style: TextStyle(
+                                                              color: Color(int.parse(
+                                                                  colors['secondary']!
+                                                                      .replaceFirst(
+                                                                      '0x', '0xff'))),
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    SizedBox(height: 8),
-                                                    Text(
-                                                      'Libellé: ${mission.libelle ?? 'No Libelle'}',
-                                                      style: TextStyle(
-                                                        color: Color(int.parse(
-                                                            colors['secondary']!
-                                                                .replaceFirst(
-                                                                '0x', '0xff'))),
-                                                        fontWeight: FontWeight.bold,
+                                                        ],
                                                       ),
                                                     ),
-                                                    SizedBox(height: 8),
+                                                  ],
+                                                ),
+                                                SizedBox(height: 16),
+                                                // Linear progress indicator
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: LinearProgressIndicator(
+                                                        value: percentage / 100,
+                                                        backgroundColor: Colors.grey[200],
+                                                        color: Color(int.parse(
+                                                            colors['primary']!
+                                                                .replaceFirst(
+                                                                '0x', '0xff'))),
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    // Space between the progress indicator and text
                                                     Text(
-                                                      'Description: ${mission.description ?? 'No Description'}',
+                                                      '${percentage.toStringAsFixed(0)}%',
+                                                      // Display percentage as text
                                                       style: TextStyle(
                                                         color: Color(int.parse(
-                                                            colors['secondary']!
+                                                            colors['primary']!
                                                                 .replaceFirst(
                                                                 '0x', '0xff'))),
                                                         fontWeight: FontWeight.bold,
@@ -775,51 +809,25 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                     ),
                                                   ],
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                          SizedBox(height: 16),
-                                          // Linear progress indicator
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: LinearProgressIndicator(
-                                                  value: percentage / 100,
-                                                  backgroundColor: Colors.grey[200],
-                                                  color: Color(int.parse(
-                                                      colors['primary']!
-                                                          .replaceFirst(
-                                                          '0x', '0xff'))),
-                                                ),
-                                              ),
-                                              SizedBox(width: 8),
-                                              // Space between the progress indicator and text
-                                              Text(
-                                                '${percentage.toStringAsFixed(0)}%',
-                                                // Display percentage as text
-                                                style: TextStyle(
-                                                  color: Color(int.parse(
-                                                      colors['primary']!
-                                                          .replaceFirst(
-                                                          '0x', '0xff'))),
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-                  },
-                ),
+                                ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+
+
+
+                  ],
+                )
+
               ),
             ],
           ),

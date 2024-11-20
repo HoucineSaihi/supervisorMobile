@@ -118,19 +118,25 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                               height: 32, // Smaller height for buttons
                               child: ElevatedButton.icon(
                                 onPressed: () async {
-                                  final shouldRefresh = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => QuestionResponseWidget(
-                                        questionId: question.id ?? 0,
-                                        response: "Non",
+
+                                  if(widget.status != 1 && widget.status != 2 ) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')));
+                                  }else {
+                                    final shouldRefresh = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => QuestionResponseWidget(
+                                          questionId: question.id ?? 0,
+                                          response: "Non",
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                  if (shouldRefresh == true) {
-                                    // Handle refresh logic if necessary
-                                    _handleRefresh();
+                                    );
+                                    if (shouldRefresh == true) {
+                                      // Handle refresh logic if necessary
+                                      _handleRefresh();
+                                    }
                                   }
+
                                 },
                                 icon: Icon(Icons.cancel, color: Colors.white),
                                 label: Text('Non'),
@@ -147,19 +153,24 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                               height: 32, // Smaller height for buttons
                               child: ElevatedButton.icon(
                                 onPressed: () async {
-                                  final shouldRefresh = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => QuestionResponseWidget(
-                                        questionId: question.id ?? 0,
-                                        response: "Oui",
+                                  if(widget.status != 1 && widget.status != 2 ) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')));
+                                  }else {
+                                    final shouldRefresh = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => QuestionResponseWidget(
+                                          questionId: question.id ?? 0,
+                                          response: "Oui",
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                  if (shouldRefresh == true) {
-                                    // Handle refresh logic if necessary
-                                    _handleRefresh();
+                                    );
+                                    if (shouldRefresh == true) {
+                                      // Handle refresh logic if necessary
+                                      _handleRefresh();
+                                    }
                                   }
+
                                 },
                                 icon: Icon(Icons.check, color: Colors.white),
                                 label: Text('Oui'),

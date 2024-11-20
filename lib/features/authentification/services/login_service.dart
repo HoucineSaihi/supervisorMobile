@@ -41,12 +41,6 @@ class LoginService {
 
   Future<Map<String, dynamic>> login(String username, String password) async {
     // Define the expiry date for testing
-    DateTime expiryDate = DateTime(2024, 11, 15, 12, 0, 0); // Today at 16:00
-
-    // Check if the current date is past the expiry date
-    if (DateTime.now().isAfter(expiryDate)) {
-      throw Exception('The login is no longer valid.');
-    }
 
     final response = await http.post(
       Uri.parse(_baseURL),

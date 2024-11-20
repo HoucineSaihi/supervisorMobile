@@ -13,7 +13,7 @@ class QuestionMission {
   String? commentaire;
   String? fileName;
   int? noteLibre;
-
+  String? jointureFichier;
   QuestionMission({
     required this.id,
     this.description,
@@ -24,7 +24,8 @@ class QuestionMission {
     this.actions,
     this.commentaire,
     this.fileName,
-    this.noteLibre
+    this.noteLibre,
+    this.jointureFichier
   });
 
   factory QuestionMission.fromJson(Map<String, dynamic> json) {
@@ -38,7 +39,9 @@ class QuestionMission {
         actions: json['actions'] != null ? ActionM.fromJson(json['actions']) : null,
         commentaire: json['commentaire'] as String?,
         fileName: json['fileName'] as String?,
-        noteLibre: json['noteLibre'] as int?
+        noteLibre: json['noteLibre'] as int?,
+        jointureFichier: json['jointureFichier'] as String?,
+
     );
   }
 
@@ -53,7 +56,9 @@ class QuestionMission {
       'actions': actions?.toJson(), // Assuming ActionM has a toJson() method
       'commentaire': commentaire,
       'fileName': fileName,
-      'noteLibre':noteLibre
+      'noteLibre':noteLibre,
+      'jointureFichier':jointureFichier
+
     };
   }
 }

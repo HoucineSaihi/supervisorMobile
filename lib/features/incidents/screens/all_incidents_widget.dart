@@ -362,44 +362,109 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item["missionLibelle"] ?? 'No mission',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                    Row(
+                      children: [
+                        const Text(
+                          "Checklist: ",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            item["missionLibelle"] ?? 'No mission',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      item["sousMissionLibelle"] ?? 'No sous-mission',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Text(
+                          "Catégorie: ",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            item["sousMissionLibelle"] ?? 'No sous-mission',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      item["questionLibelle"] ?? 'No question',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Text(
+                          "Question: ",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            item["questionLibelle"] ?? 'No question',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w400,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      item["actionLibelle"] ?? 'No action',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Text(
+                          "Action: ",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            item["actionLibelle"] ?? 'No action',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w400,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      item["responsable"] ?? 'No responsable',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Text(
+                          "Responsable: ",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            item["responsable"] ?? 'No responsable',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w400,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -418,6 +483,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         ),
       ),
     );
+
   }
 
 

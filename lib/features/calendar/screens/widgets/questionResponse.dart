@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
@@ -30,7 +31,6 @@ class QuestionResponseWidget extends StatefulWidget {
 }
 
 class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
-
   final TextEditingController _noteController = TextEditingController();
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
@@ -42,6 +42,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   final ImagePicker _picker = ImagePicker();
   List<XFile>? _imageFiles;
   bool _isLoading = false;
+  File? jointureFichier;
+  PlatformFile? infoFichier;
 
   @override
   void initState() {
@@ -57,6 +59,22 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     });
   }
 
+  Future<String> uploadFile(File file) async {
+    try {
+      // Call the MissionService's uploadJointure method to upload the file
+      final String uploadedFileName = await MissionService().uploadJointure(file);
+
+      // Return the uploaded file's name
+      return uploadedFileName; // No need to access as a Map, just return the file name
+    } catch (e) {
+      // Handle errors, e.g., if the upload fails
+      print('Error during file upload: $e');
+      return ''; // Return an empty string or a custom error message if needed
+    }
+  }
+
+
+
   void _submitForm() async {
     setState(() => _isLoading = true); // Start loader
 
@@ -70,7 +88,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         if (_imageFiles != null && _imageFiles!.isNotEmpty) {
           try {
             final firstFile = _imageFiles!.first;
-            final fileName = await MissionService().uploadFile(File(firstFile.path));
+            final fileName =
+                await MissionService().uploadFile(File(firstFile.path));
 
             final updatedQuestion = QuestionMission(
               id: widget.questionId,
@@ -81,13 +100,14 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
               actionId: actionId,
               fileName: fileName,
               noteLibre: int.tryParse(_noteController.text),
+              jointureFichier: jointureFichier != null ? await uploadFile(jointureFichier!) : null, // Corrected logic
             );
 
-            await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+            await MissionService()
+                .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
             ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Question updated successfully')));
             Navigator.pop(context, true); // Navigate back
-
           } catch (e) {
             ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Failed to upload file: $e')));
@@ -101,9 +121,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
             clouture: null,
             actionId: actionId,
             noteLibre: int.tryParse(_noteController.text),
+            jointureFichier: jointureFichier != null ? await uploadFile(jointureFichier!) : null, // Corrected logic
           );
 
-          await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+          await MissionService()
+              .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
           ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Question updated successfully')));
           Navigator.pop(context, true); // Navigate back
@@ -112,7 +134,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         if (_imageFiles != null && _imageFiles!.isNotEmpty) {
           try {
             final firstFile = _imageFiles!.first;
-            final fileName = await MissionService().uploadFile(File(firstFile.path));
+            final fileName =
+                await MissionService().uploadFile(File(firstFile.path));
 
             final updatedQuestion = QuestionMission(
               id: widget.questionId,
@@ -122,13 +145,14 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
               clouture: null,
               fileName: fileName,
               noteLibre: int.tryParse(_noteController.text),
+              jointureFichier: jointureFichier != null ? await uploadFile(jointureFichier!) : null, // Corrected logic
             );
 
-            await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+            await MissionService()
+                .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
             ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Question updated successfully')));
             Navigator.pop(context, true); // Navigate back
-
           } catch (e) {
             ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Failed to upload file: $e')));
@@ -141,9 +165,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
             commentaire: _commentController.text,
             clouture: null,
             noteLibre: int.tryParse(_noteController.text),
+            jointureFichier: jointureFichier != null ? await uploadFile(jointureFichier!) : null, // Corrected logic
           );
 
-          await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+          await MissionService()
+              .updateMissionQuestion(updatedQuestion.id, updatedQuestion);
           ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Question updated successfully')));
           Navigator.pop(context, true); // Navigate back
@@ -157,9 +183,6 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       setState(() => _isLoading = false); // Stop loader
     }
   }
-
-
-
 
   void _onActionChanged(ActionM? newValue) {
     setState(() {
@@ -187,6 +210,26 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           print("Image viewer dismissed");
         },
       );
+    }
+  }
+
+  void selectFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      jointureFichier = File(result.files.single.path!);
+
+      infoFichier = result.files.first;
+
+      print(infoFichier?.name);
+      print(infoFichier?.bytes);
+      print(infoFichier?.size);
+      print(infoFichier?.extension);
+      print(infoFichier?.path);
+      setState(() {
+
+      });
+    } else {
+      // User canceled the picker
     }
   }
 
@@ -241,8 +284,6 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     });
   }
 
-
-
   void _handleRefresh() {
     _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
@@ -259,7 +300,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final TextStyle textStyle =
-    TextStyle(color: isDarkMode ? Colors.black : Colors.black);
+        TextStyle(color: isDarkMode ? Colors.black : Colors.black);
 
     return SafeArea(
       child: Scaffold(
@@ -342,7 +383,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                 final actions = snapshot.data!;
 
                                 // Add the "None" option at the start of the list
-                                final noneAction = ActionM(id: 0, description: 'Aucune action');
+                                final noneAction = ActionM(
+                                    id: 0, description: 'Aucune action');
                                 final allActions = [noneAction, ...actions];
 
                                 return CustomDropdown<ActionM>.search(
@@ -352,14 +394,15 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   onChanged: (value) {
                                     // Handle the "None" option when selected
                                     if (value?.id == -1) {
-                                      _selectedAction = null;  // Deselect logic
+                                      _selectedAction = null; // Deselect logic
                                     } else {
                                       _onActionChanged(value);
                                     }
                                   },
                                   decoration: CustomDropdownDecoration(
                                     expandedFillColor: Colors.grey,
-                                    expandedBorder: Border.all(color: Colors.white),
+                                    expandedBorder:
+                                        Border.all(color: Colors.white),
                                     expandedShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.5),
@@ -373,7 +416,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                     noResultFoundStyle: textStyle,
                                     errorStyle: textStyle,
                                     listItemStyle: textStyle,
-                                    searchFieldDecoration: SearchFieldDecoration(
+                                    searchFieldDecoration:
+                                        SearchFieldDecoration(
                                       textStyle: TextStyle(color: Colors.black),
                                       hintStyle: TextStyle(color: Colors.black),
                                     ),
@@ -390,16 +434,19 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                           SizedBox(height: 16),
                           _selectedAction != null
                               ? Row(
-                            children: [
-                              Flexible( // Use Flexible to allow the Text to wrap
-                                child: Text(
-                                  'Action: ${_selectedAction?.description ?? ''}',
-                                  softWrap: true, // Allows text to break into multiple lines
-                                  overflow: TextOverflow.visible, // Makes sure the overflow is handled
-                                ),
-                              ),
-                            ],
-                          )
+                                  children: [
+                                    Flexible(
+                                      // Use Flexible to allow the Text to wrap
+                                      child: Text(
+                                        'Action: ${_selectedAction?.description ?? ''}',
+                                        softWrap: true,
+                                        // Allows text to break into multiple lines
+                                        overflow: TextOverflow
+                                            .visible, // Makes sure the overflow is handled
+                                      ),
+                                    ),
+                                  ],
+                                )
                               : SizedBox.shrink(),
                           SizedBox(height: 16),
                           Text('Commentaire',
@@ -431,10 +478,15 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               border: OutlineInputBorder(),
                               labelText: 'Saisir une note libre.',
                             ),
-                            maxLines: 1, // For a single line input (adjust if needed)
-                            keyboardType: TextInputType.numberWithOptions(signed: true, decimal: false), // Allow signed numbers
+                            maxLines: 1,
+                            // For a single line input (adjust if needed)
+                            keyboardType: TextInputType.numberWithOptions(
+                                signed: true, decimal: false),
+                            // Allow signed numbers
                             inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'^-?\d*$')), // Allow only digits with an optional leading '-'
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'^-?\d*$')),
+                              // Allow only digits with an optional leading '-'
                             ],
                           ),
                           SizedBox(height: 16),
@@ -450,7 +502,16 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               minimumSize: Size(double.infinity, 48),
                             ),
                           ),
-                           SizedBox(height: 16),
+                          SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: selectFile,
+                            icon: Icon(Icons.add, size: 24),
+                            label: Text('Fichier'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: Size(double.infinity, 48),
+                            ),
+                          ),
+                          SizedBox(height: 16),
                           OutlinedButton.icon(
                             onPressed: _openCamera,
                             icon: Icon(Icons.camera_alt, size: 24),
@@ -459,8 +520,54 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               minimumSize: Size(double.infinity, 48),
                             ),
                           ),
-
                           SizedBox(height: 15),
+                          if (jointureFichier != null && infoFichier != null) ...[
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.start,
+                                      children: [
+                                        // Adding an icon for the file attachment
+                                        Icon(
+                                          Icons.attach_file,  // Attach file icon
+                                          color: Colors.blue,  // Color for the icon
+                                        ),
+                                        SizedBox(width: 8),
+                                        // Bold text for the "Fichier joint" label
+                                        Text(
+                                          "Fichier joint :",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,  // Bolder text
+                                            fontSize: 16,  // Optional: Adjust the font size for emphasis
+                                          ),
+                                        ),
+                                        Spacer(), // Pushes the "X" button to the right
+                                        IconButton(
+                                          icon: Icon(Icons.close, color: Colors.red),
+                                          onPressed: () {
+                                            setState(() {
+                                              jointureFichier = null;
+                                              infoFichier = null;
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text("Nom: ${infoFichier?.name}"),
+                                    Text("Taille: ${(infoFichier!.size / 1024).toStringAsFixed(2)} KB"),
+                                    Text("Type: ${infoFichier?.extension ?? 'Inconnu'}"),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+
+
                           if (_imageFiles != null &&
                               _imageFiles!.isNotEmpty) ...[
                             ImageSlideshow(
@@ -474,7 +581,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               },
                               isLoop: true,
                               children:
-                              _imageFiles!.asMap().entries.map((entry) {
+                                  _imageFiles!.asMap().entries.map((entry) {
                                 final index = entry.key;
                                 final imageFile = entry.value;
 
@@ -482,7 +589,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   children: [
                                     Container(
                                       margin:
-                                      EdgeInsets.symmetric(horizontal: 8.0),
+                                          EdgeInsets.symmetric(horizontal: 8.0),
                                       // Margin on the sides
                                       child: GestureDetector(
                                         onTap: () => _showImageViewer(index),
@@ -512,11 +619,12 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                           ],
                           SizedBox(height: 20),
                           ElevatedButton(
-                            onPressed: _isLoading ? null : _submitForm, // Disable button when loading
+                            onPressed: _isLoading ? null : _submitForm,
+                            // Disable button when loading
                             child: _isLoading
                                 ? CircularProgressIndicator(
-                              color: Colors.white,
-                            )
+                                    color: Colors.white,
+                                  )
                                 : Text('Valider'),
                             style: ElevatedButton.styleFrom(
                               minimumSize: Size(double.infinity, 48),

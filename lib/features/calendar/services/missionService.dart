@@ -245,6 +245,43 @@ class MissionService {
     }
   }
 
+  Future<String> uploadJointure(File file) async {
+    final Uri uri = Uri.parse('$baseURL/api/Files/upload'); // Your file upload API URL
+
+    // Determine the MIME type based on the file extension
+    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+    final mimeTypeParts = mimeType.split('/');
+
+    var request = http.MultipartRequest('POST', uri)
+      ..headers['accept'] = '*/*'
+      ..headers['Content-Type'] = 'multipart/form-data'
+      ..files.add(
+        http.MultipartFile(
+          'file', // API endpoint parameter name should be 'file'
+          file.readAsBytes().asStream(),
+          file.lengthSync(),
+          filename: file.path.split('/').last,
+          contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+        ),
+      );
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      // Parse the response data
+      final responseString = await response.stream.bytesToString();
+      final responseData = json.decode(responseString);
+
+      // Return the response as a map with file details
+      return
+        responseData['fileName'];
+
+    } else {
+      throw Exception('Failed to upload file');
+    }
+  }
+
+
   Future<File> getImage(String filename) async {
     final Uri uri = Uri.parse('$baseURL/api/Files/getImage/$filename');
 

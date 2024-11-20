@@ -50,27 +50,37 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    // Basic input validation
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Username and password cannot be empty')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final username = _usernameController.text;
-      final password = _passwordController.text;
       final result = await _loginService.login(username, password);
 
       if (result['success']) {
-        Get.to(() => NavigationMenu());
+        // Replace the login screen with the home screen
+        Get.offAll(() => NavigationMenu());
       } else {
         // Handle login failure
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed. Please try again.'))
+          SnackBar(content: Text(result['message'] ?? 'Login failed. Please try again.')),
         );
       }
     } catch (e) {
-      // Handle exceptions
+      // Provide a generic error message to the user
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred: $e'))
+        SnackBar(content: Text('An error occurred. Please try again later.')),
       );
     } finally {
       setState(() {
@@ -78,6 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -141,24 +152,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 16.0),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: true,
-                                onChanged: (value) {},
-                              ),
-                              const Text("Mémoriser")
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () {},
-                            child: const Text("Mot de passe oublié ?"),
-                          ),
-                        ],
-                      ),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
