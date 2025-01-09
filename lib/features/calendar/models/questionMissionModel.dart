@@ -16,6 +16,7 @@ class QuestionMission {
   int? selectedResponseValue;
   double? questionCoefficient;
   bool? incident;
+  String? jointureFichier;
 
 
   QuestionMission({
@@ -33,6 +34,7 @@ class QuestionMission {
     this.selectedResponseValue,
     this.questionCoefficient,
     this.incident,
+    this.jointureFichier
   });
 
   factory QuestionMission.fromJson(Map<String, dynamic> json) {
@@ -51,6 +53,7 @@ class QuestionMission {
       selectedResponseValue: json['selectedResponseValue'] as int?,
       questionCoefficient: (json['questionCoefficient'] as num?)?.toDouble(),
       incident: json['incident'] as bool?,
+        jointureFichier : json['jointureFichier'] as String ?
     );
   }
 
@@ -70,6 +73,7 @@ class QuestionMission {
       'selectedResponseValue': selectedResponseValue,
       'questionCoefficient': questionCoefficient,
       'incident': incident,
+      'jointureFichier':jointureFichier
     };
   }
 }

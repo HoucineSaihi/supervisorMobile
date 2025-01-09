@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
@@ -35,6 +36,108 @@ class MissionService {
     apiUrl = '${dotenv.env['BASE_URL']}/api/Missions/getMissionsForAreaManager';
     missionDetailsUrl = '${dotenv.env['BASE_URL']}/api/Missions/missionAllQuestion';
     actionsUrl = '${dotenv.env['BASE_URL']}/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
+  }
+  Future<void> deleteImage(String fileName) async {
+    final Uri uri = Uri.parse('$baseURL/api/Files/deleteImage/$fileName');
+
+    final response = await http.delete(
+      uri,
+      headers: {
+        'accept': '*/*',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      final responseBody = json.decode(response.body);
+      throw Exception('Failed to delete image: ${responseBody['message']}');
+    }
+  }
+
+  Future<String> downloadFile(String fileName) async {
+    final Uri uri = Uri.parse('$baseURL/api/Files/download/$fileName');
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'accept': 'application/octet-stream',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // Get the directory to save the file
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/$fileName';
+
+      // Write the file bytes to the file
+      final file = File(filePath);
+      await file.writeAsBytes(response.bodyBytes);
+
+      return filePath; // Return the file path for further use
+    } else {
+      final responseBody = json.decode(response.body);
+      throw Exception('Failed to download file: ${responseBody['message']}');
+    }
+  }
+
+
+  Future<void> deleteFile(String fileName) async {
+    final Uri uri = Uri.parse('$baseURL/api/Files/deleteFile/$fileName');
+
+    try {
+      final response = await http.delete(
+        uri,
+        headers: {
+          'accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = json.decode(response.body);
+        print('File deleted successfully: ${responseBody['message']}');
+      } else {
+        final responseBody = json.decode(response.body);
+        throw Exception('Failed to delete file: ${responseBody['message']}');
+      }
+    } catch (e) {
+      print('Error deleting file: $e');
+      throw Exception('Error deleting file: $e');
+    }
+  }
+
+  Future<String> uploadJointure(File file) async {
+    final Uri uri = Uri.parse('$baseURL/api/Files/upload'); // Your file upload API URL
+
+    // Determine the MIME type based on the file extension
+    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+    final mimeTypeParts = mimeType.split('/');
+
+    var request = http.MultipartRequest('POST', uri)
+      ..headers['accept'] = '*/*'
+      ..headers['Content-Type'] = 'multipart/form-data'
+      ..files.add(
+        http.MultipartFile(
+          'file', // API endpoint parameter name should be 'file'
+          file.readAsBytes().asStream(),
+          file.lengthSync(),
+          filename: file.path.split('/').last,
+          contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+        ),
+      );
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      // Parse the response data
+      final responseString = await response.stream.bytesToString();
+      final responseData = json.decode(responseString);
+
+      // Return the response as a map with file details
+      return
+        responseData['fileName'];
+
+    } else {
+      throw Exception('Failed to upload file');
+    }
   }
 
   Future<List<Mission>> getPlanifiedMissions(List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt) async {
@@ -141,9 +244,11 @@ class MissionService {
 
     if (response.statusCode == 204) {
       // Successfully updated
-    } else {
+    } else if (response.statusCode == 400 ) {
       // Handle failure
-      throw Exception('Failed to update mission');
+      throw Exception('Vous devez répondre a tous les questions.');
+    } else {
+      throw Exception('Une Erreur est survenue.');
     }
   }
 

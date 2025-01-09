@@ -28,7 +28,7 @@ class CalendarPlanning extends StatefulWidget {
 }
 
 class _CalendarPlanningState extends State<CalendarPlanning> {
-  late Future<List<Mission>> futureMissions;
+   Future<List<Mission>>? futureMissions;
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay = DateTime.now();
@@ -37,7 +37,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   @override
   void initState() {
     super.initState();
-    _handleRefresh();
+    loadMissions();
     _loadAuthToken();
 
   }
@@ -89,7 +89,21 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
       'status': colors['status']!
     };
   }
-
+  Future<void> loadMissions() async {
+    try {
+      // Correctly await the service method and assign it to futureMissions
+      String? userIdString = await _storage.read(key: 'currentUserId');
+      _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+      futureMissions = MissionService().getPlanifiedMissions(
+          [_currentUserID],
+          boutiqueIds,
+          _focusedDay
+      );
+      setState(() {}); // Trigger a rebuild if you're using StatefulWidget
+    } catch (e) {
+      print('Error loading missions: $e');
+    }
+  }
 
   void _showModal(BuildContext context, Mission mission) {
     final MissionService _missionService = MissionService(); // Initialize the MissionService
@@ -306,21 +320,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   }
 
   double calculateAnsweredPercentage(Mission mission) {
-    int totalQuestions = 0;
-    int answeredQuestions = 0;
-
-    for (var sousMission in mission.sousMissions ?? []) {
-      for (var question in sousMission.missionQuestions ?? []) {
-        totalQuestions++;
-        if (question.reponse != null && question.reponse!.isNotEmpty) {
-          answeredQuestions++;
-        }
-      }
-    }
-
-    if (totalQuestions == 0) {
-      return 0;
-    }
+    int totalQuestions =  mission.totalQuestion!;
+    int answeredQuestions =  mission.progression!.toInt();
 
     return (answeredQuestions / totalQuestions) * 100;
   }
@@ -389,6 +390,9 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         lastDay: DateTime.utc(2030, 12, 31),
                         focusedDay: _focusedDay,
                         calendarFormat: _calendarFormat,
+                        daysOfWeekHeight: 30,
+                        startingDayOfWeek : StartingDayOfWeek.monday,
+                        availableCalendarFormats : const {CalendarFormat. month : 'Mois', CalendarFormat. twoWeeks : '2 Semaine', CalendarFormat. week : 'Semaine'} ,
                         selectedDayPredicate: (day) {
                           return isSameDay(_selectedDay, day);
                         },
@@ -644,7 +648,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                MissionDetailsWidget(missionId: mission.id,mode: 1,)                                  ),
+                                                MissionDetailsWidget(missionId: mission.id,mode: 1,status : mission.status!)                                  ),
                                         );
                                         if(shouldRefresh == true){
                                           setState(() {

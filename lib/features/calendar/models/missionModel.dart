@@ -23,6 +23,8 @@ class Mission {
   double? scoreMax;
   int? totalQuestion;
   double? tauxConformite;
+  double? progression;
+
 
   Mission({
     required this.id,
@@ -44,6 +46,7 @@ class Mission {
     this.scoreMax,
     this.totalQuestion,
     this.tauxConformite,
+    this.progression
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) {
@@ -69,6 +72,7 @@ class Mission {
       scoreMax: (json['scoreMax'] as num?)?.toDouble(),
       totalQuestion: json['totalQuestion'] as int?,
       tauxConformite: (json['tauxConformite'] as num?)?.toDouble(),
+        progression : (json['progression'] as num?)?.toDouble()
     );
   }
 
@@ -93,6 +97,7 @@ class Mission {
       'scoreMax': scoreMax,
       'totalQuestion': totalQuestion,
       'tauxConformite': tauxConformite,
+      'progression':progression
     };
   }
 }

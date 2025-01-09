@@ -402,7 +402,9 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       ),
       contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0), // Adjusted padding for SafeArea
       positive: AwesomeSheetAction(
-        onPressed: () {
+          title: 'Consulter',
+        onPressed: ()=> {},
+        /*onPressed: () {
           Navigator.of(context).pop();
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -410,8 +412,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
             ),
           ); // Close the bottom sheet
         },
-        title: 'Consulter',
-        icon: Iconsax.eye,
+        ,
+        icon: Iconsax.eye,*/
       ),
       negative: AwesomeSheetAction(
         onPressed: () {

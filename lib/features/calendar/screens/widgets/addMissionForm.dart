@@ -25,7 +25,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
   int? _selectedMissionId;
   bool _isLoadingBoutiques = true;
   bool _isLoadingMissions = false;
-
+  bool _isLoading = false;
   @override
   void initState() {
     super.initState();
@@ -63,7 +63,8 @@ class _AddMissionFormState extends State<AddMissionForm> {
       MaterialPageRoute(
         builder: (context) => MissionDetailsWidget(
           missionId: missionId,
-          mode: 0, // Pass the mode as needed
+          mode: 0,
+          status: 0,// Pass the mode as needed
         ),
       ),
     );
@@ -99,7 +100,11 @@ class _AddMissionFormState extends State<AddMissionForm> {
     selectedMission.boutiqueId = _selectedBoutiqueId;
     selectedMission.userId = _currentUserID; // Set the user ID as needed
     selectedMission.status = 1;
-    selectedMission.planifiedAt = widget.Date; // Use the selectedDate here
+    selectedMission.planifiedAt = widget.Date != null
+        ? DateTime(widget.Date!.year, widget.Date!.month, widget.Date!.day)
+        .add(Duration(seconds: 10))
+        : null; // Add 10 seconds to the date
+ // Use the selectedDate here
 
     // Process each sousMission
     for (var sousMission in selectedMission.sousMissions ?? []) {
@@ -281,6 +286,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
 
                 ),
               ),
+
             ],
           ),
         ),

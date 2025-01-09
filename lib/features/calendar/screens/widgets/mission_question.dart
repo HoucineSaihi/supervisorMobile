@@ -1,7 +1,16 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:easy_image_viewer/easy_image_viewer.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
+import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
@@ -13,6 +22,7 @@ class QuestionsListWidget extends StatefulWidget {
   final int mode; // Add this line to accept mode
   final int sousMissionID;
   final int modelResponseID;
+  final int status;
 
   const QuestionsListWidget({
     Key? key,
@@ -20,7 +30,8 @@ class QuestionsListWidget extends StatefulWidget {
     required this.onResponseSelected,
     required this.mode,
     required this.sousMissionID,
-    required this.modelResponseID
+    required this.modelResponseID,
+    required this.status
   }) : super(key: key);
 
   @override
@@ -29,6 +40,10 @@ class QuestionsListWidget extends StatefulWidget {
 
 class _QuestionsListWidgetState extends State<QuestionsListWidget> {
   late List<QuestionMission> _questions;
+  final ImagePicker _picker = ImagePicker();
+  List<XFile>? _imageFiles;
+  File? jointureFichier;
+  PlatformFile? infoFichier;
 
   @override
   void initState() {
@@ -52,6 +67,77 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
     }else{
       return Icons.check;
     }
+  }
+
+  Future<void> _pickImages() async {
+    final List<XFile>? selectedImages = await _picker.pickMultiImage();
+    if (selectedImages != null) {
+      setState(() {
+        _imageFiles = selectedImages;
+      });
+    }
+  }
+  void _showImageViewer(int index) {
+    if (_imageFiles != null && _imageFiles!.isNotEmpty) {
+      final imageProvider = FileImage(File(_imageFiles![index].path));
+      showImageViewer(
+        context,
+        imageProvider,
+        immersive: false,
+        onViewerDismissed: () {
+          print("Image viewer dismissed");
+        },
+      );
+    }
+  }
+  void _openCamera() async {
+    // Navigate to CaptureImageScreen and await result
+    final Uint8List? imageBytes = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CaptureImageScreen(),
+      ),
+    );
+
+    if (imageBytes != null) {
+      try {
+        // Get the temporary directory
+        final directory = await getTemporaryDirectory();
+        final filePath =
+            '${directory.path}/temp_image_${DateTime.now().millisecondsSinceEpoch}.png';
+
+        // Write the Uint8List to the file
+        final file = File(filePath);
+        await file.writeAsBytes(imageBytes);
+
+        // Save the image to the gallery
+        final result = await ImageGallerySaver.saveImage(imageBytes);
+
+        if (result != null && result['isSuccess'] == true) {
+          print('Image saved to gallery successfully');
+        } else {
+          print('Failed to save image to gallery');
+        }
+
+        // Create an XFile from the file path
+        final XFile imageFile = XFile(filePath);
+
+        // Ensure the widget is still mounted before calling setState
+        if (mounted) {
+          setState(() {
+            // Add the newly picked image to the existing list
+            _imageFiles = [imageFile];
+          });
+        }
+      } catch (e) {
+        print('Error saving image to file: $e');
+      }
+    }
+  }
+  void _removeImage(int index) {
+    setState(() {
+      _imageFiles!.removeAt(index);
+    });
   }
 
   Future<void> _fetchQuestions() async {
@@ -129,19 +215,24 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () async {
-                              final shouldRefresh = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => QuestionResponseWidget(
-                                    questionId: question.id ?? 0,
-                                    modelResponseID: widget.modelResponseID,
+                              if(widget.status != 1 && widget.status != 2 ) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')));
+                              }else {
+                                final shouldRefresh = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => QuestionResponseWidget(
+                                      questionId: question.id ?? 0,
+                                      modelResponseID: widget.modelResponseID,
+                                    ),
                                   ),
-                                ),
-                              );
-                              if (shouldRefresh == true) {
-                                // Handle refresh logic if necessary
-                                _handleRefresh();
+                                );
+                                if (shouldRefresh == true) {
+                                  // Handle refresh logic if necessary
+                                  _handleRefresh();
+                                }
                               }
+
                             },
                             child: Text('Repondre'),
                             style: ElevatedButton.styleFrom(
@@ -197,19 +288,25 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                   ],
                                 ),
                               ),
-                              /*ElevatedButton.icon(
+                              ElevatedButton.icon(
                                 onPressed: () async {
-                                  final shouldRefresh = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => EditQuestionResponse(
-                                        questionId: question.id ?? 0,
-                                      ),
-                                    ),
-                                  );
-                                  if (shouldRefresh == true) {
-                                    _handleRefresh();
-                                  }
+                                      if(widget.status != 1 && widget.status != 2 ) {
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')));
+                                      }else {
+                                        final shouldRefresh = await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => EditQuestionResponse(
+                                              questionId: question.id ?? 0,
+                                              modeleReponseId: widget.modelResponseID,
+                                            ),
+                                          ),
+                                        );
+                                        if (shouldRefresh == true) {
+                                          _handleRefresh();
+                                        }
+                                      }
+
                                 },
                                 icon: Icon(
                                   Icons.edit,
@@ -220,7 +317,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                   backgroundColor: Colors.blueAccent,
                                   padding: EdgeInsets.symmetric(horizontal: 16.0),
                                 ),
-                              ),*/    //Bouton de modification
+                              ),    //Bouton de modification
                             ],
                           ),
                         ),
@@ -243,6 +340,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                 MaterialPageRoute(
                                   builder: (context) => EditQuestionResponse(
                                     questionId: question.id ?? 0,
+                                    modeleReponseId: widget.modelResponseID,
                                   ),
                                 ),
                               );

@@ -12,10 +12,11 @@ import 'package:supervisormobile/utils/constants/colors.dart';
 
 class MissionDetailsWidget extends StatefulWidget {
   final int missionId;
-  final int mode; // Add mode attribute
+  final int mode;
+  final int status;// Add mode attribute
 
   const MissionDetailsWidget(
-      {Key? key, required this.missionId, required this.mode})
+      {Key? key, required this.missionId, required this.mode,required this.status})
       : super(key: key);
 
   @override
@@ -24,28 +25,29 @@ class MissionDetailsWidget extends StatefulWidget {
 
 class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
   late Future<Mission> _missionFuture;
-
+  late double missionConformity;
   @override
   void initState() {
     super.initState();
     _missionFuture = MissionService().getMissionDetails(widget.missionId);
+
   }
 
   double _calculateAnsweredPercentage(List<QuestionMission>? questions) {
     if (questions == null || questions.isEmpty) return 0;
-    int answeredCount = questions.where((q) => q.reponse != null).length;
+    int answeredCount = questions.where((q) => q.reponseID != null).length;
     return (answeredCount / questions.length) * 100;
   }
 
-  double _calculateYesPercentage(List<QuestionMission>? questions) {
+  int _calculateYesPercentage(List<QuestionMission>? questions) {
     if (questions == null || questions.isEmpty) return 0;
-    int yesCount = questions.where((q) => q.reponse == 'Oui').length;
-    return (yesCount / questions.length) * 100;
+    int yesCount = questions.length;
+    return  questions.length;
   }
 
   double _calculateNoPercentage(List<QuestionMission>? questions) {
     if (questions == null || questions.isEmpty) return 0;
-    int noCount = questions.where((q) => q.reponse == 'Non').length;
+    int noCount = questions.where((q) => q.choixReponseQuestion?.incident == true).length;
     return (noCount / questions.length) * 100;
   }
 
@@ -83,7 +85,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
         SnackBar(
           content: AwesomeSnackbarContent(
             title: 'Error',
-            message: 'Failed to validate mission: $e',
+            message: e.toString(),
             contentType: ContentType.failure,
           ),
           backgroundColor: Colors.transparent,
@@ -130,6 +132,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
               }
 
               final mission = snapshot.data!;
+              final conformity = mission.tauxConformite;
               final allSousMissionsAnswered = _allSousMissionsAnswered(mission);
 
               return Padding(
@@ -149,15 +152,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                 ),
                               ),
                               if (widget.mode == 1) // Show icon based on mode
-                                Icon(
-                                  allSousMissionsAnswered
-                                      ? Iconsax.tick_circle
-                                      : Iconsax.close_circle,
-                                  color: allSousMissionsAnswered
-                                      ? Colors.green
-                                      : Colors.red,
-                                  size: 30,
-                                ),
+                                Text('${(conformity ?? 0).toStringAsFixed(2)} %'),
                             ],
                           ),
                           SizedBox(height: 16),
@@ -187,6 +182,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                         mode: widget.mode,
                                         sousMissionID: sousMission.id!,
                                         modelResponseID: mission.modelReponseQuestionId!,
+                                        status:widget.status
                                       ),
                                     ),
                                   );
@@ -240,13 +236,13 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                             Row(
                                               children: [
                                                 Icon(
-                                                  Iconsax.tick_square,
+                                                  Iconsax.archive,
                                                   color: Colors.green,
                                                   size: 20,
                                                 ),
                                                 SizedBox(width: 4),
                                                 Text(
-                                                    '${yesPercentage.toStringAsFixed(1)}%'),
+                                                    '${yesPercentage}'),
                                               ],
                                             ),
                                             Row(
