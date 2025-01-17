@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -212,22 +214,36 @@ class MissionService {
     }
   }
 
-  Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion) async {
+  Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion,BuildContext context) async {
     final String url = '${dotenv.env['BASE_URL']}/api/MissionQuestions/$questionId';
 
-    final response = await http.put(
-      Uri.parse(url),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(updatedQuestion.toJson()), // Convert updatedQuestion to JSON
-    );
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(updatedQuestion.toJson()),
+      );
 
-    if (response.statusCode == 204) {
-      // Successfully updated
-    } else {
-      // Handle failure
-      throw Exception('Failed to update mission question');
+      if (response.statusCode == 200) {
+        // Successfully updated
+
+      } else {
+        // Parse the response body to get the message
+        final responseBody = json.decode(response.body);
+        final errorMessage = responseBody['message'] ?? 'An error occurred';
+
+        // Optionally, you can throw an exception or return the message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+        throw Exception('Ecrire un commentaire.');
+      }
+    } catch (e) {
+      // Handle any exceptions that occur
+      print('Exception: $e');
+      throw Exception('Failed to update the mission question');
     }
   }
 
@@ -302,20 +318,55 @@ class MissionService {
     }
   }
 
-  Future<void> addMission(Mission mission) async {
-    final response = await http.post(
-      Uri.parse('${dotenv.env['BASE_URL']}/api/Missions'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(mission.toJson()),
-    );
+  Future<void> addMission(Mission mission, BuildContext context) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${dotenv.env['BASE_URL']}/api/Missions'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(mission.toJson()),
+      );
 
-    if (response.statusCode == 201) {
-      // Mission added successfully
-    } else {
-      // Handle failure
-      throw Exception('Failed to add mission');
+      if (response.statusCode == 200) {
+        // Success
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AwesomeSnackbarContent(
+              title: 'Success!',
+              message: 'Mission ajoutée avec succès.',
+              contentType: ContentType.success,
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+          ),
+        );
+      } else {
+        // Parse the error message from the backend
+        final responseBody = json.decode(response.body);
+        final errorMessage = responseBody['message'] ?? 'Failed to add mission';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AwesomeSnackbarContent(
+              title: 'Erreur!',
+              message: errorMessage,
+              contentType: ContentType.failure,
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+          ),
+        );
+
+        // Optionally, you can throw an exception with the message
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+
+
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 

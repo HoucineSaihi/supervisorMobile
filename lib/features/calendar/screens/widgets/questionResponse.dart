@@ -36,6 +36,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   ActionM? _selectedAction;
+  ChoixReponseQuestion? reponse;
   int? selectedResponseID;
   int? selectedResponseVallue;
   bool _showAdditionalWidgets = false;
@@ -57,6 +58,16 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
 
   void _submitForm() async {
     setState(() => _isLoading = true);
+ /*
+    if( reponse!.incident == true && _commentController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Commentaire obligatoire en cas d'incident.")),
+      );
+      setState(() => _isLoading = false);
+
+      return ;
+    } */
+
     if (selectedResponseID != null) {
       String? imageName;
       String? fileName;
@@ -106,7 +117,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       print(selectedResponseVallue);
 
       try {
-        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion);
+        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion,context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Question updated successfully')),
         );
@@ -321,6 +332,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   selectedResponseID = newValue?.id;
                                   selectedResponseVallue = newValue
                                       ?.valeur; // Assuming `id` is the identifier for the response
+                                  reponse = newValue ;
                                 });
                               },
                               validator: (value) {

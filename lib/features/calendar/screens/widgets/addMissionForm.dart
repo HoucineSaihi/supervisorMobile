@@ -116,38 +116,15 @@ class _AddMissionFormState extends State<AddMissionForm> {
       for (var question in sousMission.missionQuestions ?? []) {
         question.id = 0;
         question.sousMissionId = 0;
+
       }
     }
 
-    try {
-      await _missionService.addMission(selectedMission);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: AwesomeSnackbarContent(
-            title: 'Success!',
-            message: 'Mission added successfully.',
-            contentType: ContentType.success,
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-        ),
-      );
+
+      await _missionService.addMission(selectedMission,context);
+
       Navigator.pop(context, true); // Navigate back
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: AwesomeSnackbarContent(
-            title: 'Error!',
-            message: 'Failed to add mission: $e',
-            contentType: ContentType.failure,
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-        ),
-      );
-    }
+
   }
 
 
