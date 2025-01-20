@@ -45,25 +45,25 @@ class IncidentService {
 
 
 
-  Future<List<dynamic>> getFilteredProblems({
+  Future<List<dynamic>> getFilteredProblems(
     int? boutiqueId,
     int? coefId,
     int? cluster,
     int? origin,
     int? statut,
-  }) async {
+  ) async {
     // Retrieve current user ID from storage
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
     // Build query parameters for the API call
     final queryParameters = {
-      'user_id': _currentUserID,
-      if (boutiqueId != null) 'boutique_id': boutiqueId,
-      if (coefId != null) 'coef_id': coefId,
-      if (cluster != null) 'cluster': cluster,
-      if (origin != null) 'origin': origin,
-      if (statut != null) 'statut': statut,
+      'user_id': _currentUserID.toString(), // Convert to string
+      if (boutiqueId != null) 'boutique_id': boutiqueId.toString(),
+      if (coefId != null) 'coef_id': coefId.toString(),
+      if (cluster != null) 'cluster': cluster.toString(),
+      if (origin != null) 'origin': origin.toString(),
+      if (statut != null) 'statut': statut.toString(),
     };
 
     // Build the full API URI

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
@@ -22,7 +23,7 @@ class AllIncidentsWidget extends StatefulWidget {
 class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   late final IncidentService _incidentService;
 
-  List<Map<String, dynamic>> _incidents = [];
+  List<Problem> _incidents = [];
   bool _isLoading = true;
   bool _hasError = false;
   bool _showFilters = false; // State to control filter visibility
@@ -79,13 +80,13 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   }
   int _totalIncidents = 0;
 
-  Future<void> _fetchIncidents({
+  Future<void> _fetchIncidents(
     int? boutiqueId,
     int? coefId,
     int? cluster,
     int? origin,
     int? statut,
-  }) async {
+  ) async {
     // Show loading state before making the API call
     setState(() {
       _isLoading = true;
@@ -95,11 +96,11 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     try {
       // Fetch incidents from the service
       final incidents = await IncidentService().getFilteredProblems(
-        boutiqueId: boutiqueId,
-        coefId: coefId,
-        cluster: cluster,
-        origin: origin,
-        statut: statut,
+         boutiqueId,
+        coefId,
+         cluster,
+         origin,
+         statut,
       );
 
       // Update state with the fetched incidents
@@ -123,22 +124,22 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   Future<void> _applyFilters() async {
     // Trigger the API call with selected filters
     await _fetchIncidents(
-      boutiqueId: _selectedBoutiqueId,
-      coefId: _selectedPriority,
-      cluster: _selectedCluster,
-      origin: _selectedOrigin,
-      statut: _selectedStatus,
+       _selectedBoutiqueId,
+       _selectedPriority,
+       _selectedCluster,
+       _selectedOrigin,
+       _selectedStatus,
     );
   }
 
   Future<void> _handleRefresh() async {
     // Refresh the incidents list with current filters
     await _fetchIncidents(
-      boutiqueId: _selectedBoutiqueId,
-      coefId: _selectedPriority,
-      cluster: _selectedCluster,
-      origin: _selectedOrigin,
-      statut: _selectedStatus,
+       _selectedBoutiqueId,
+       _selectedPriority,
+       _selectedCluster,
+       _selectedOrigin,
+       _selectedStatus,
     );
   }
 
