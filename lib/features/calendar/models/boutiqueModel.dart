@@ -18,6 +18,7 @@ class BoutiqueModel {
   String? passwordCegid;
   int? groupId;
   Group? group;
+  int? cluster;
 
   BoutiqueModel({
     required this.id,
@@ -37,6 +38,7 @@ class BoutiqueModel {
     this.passwordCegid,
     this.groupId,
     this.group,
+    this.cluster
   });
 
   factory BoutiqueModel.fromJson(Map<String, dynamic> json) {
@@ -58,6 +60,7 @@ class BoutiqueModel {
       passwordCegid: json['passwordCegid'] as String?,
       groupId: json['groupId'] as int?,
       group: json['group'] != null ? Group.fromJson(json['group']) : null,
+      cluster: json['cluster'] as int
     );
   }
 
@@ -80,6 +83,7 @@ class BoutiqueModel {
       'passwordCegid': passwordCegid,
       'groupId': groupId,
       'group': group?.toJson(),
+      'cluster' : cluster
     };
   }
 }

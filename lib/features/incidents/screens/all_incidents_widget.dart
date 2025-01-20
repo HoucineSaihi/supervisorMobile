@@ -6,6 +6,7 @@ import 'package:intl/intl.dart'; // For date formatting
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
+import 'package:supervisormobile/features/incidents/screens/IncidentFormWidget.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
@@ -523,12 +524,12 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body:  LiquidPullToRefresh(
+      body: LiquidPullToRefresh(
         onRefresh: _handleRefresh,
         springAnimationDurationInMilliseconds: 300, // Speed up the animation
         height: 60.0, // Adjust the height as needed
         color: TColors.primary,
-        child:Padding(
+        child: Padding(
           padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0), // Add top spacing from the device's top bar
           child: Column(
             children: [
@@ -545,6 +546,32 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                   ),
                 ],
               ),
+              // Add the button here
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => IncidentFormWidget()),
+                    );
+                  },
+                  icon: const Icon(Iconsax.add_circle, color: Colors.white), // Modern icon from Iconsax
+                  label: const Text(
+                    "Ajouter un incident",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: TColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16.0), // Add spacing between the button and text
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
@@ -581,6 +608,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       ),
     );
   }
+
 
 
 
