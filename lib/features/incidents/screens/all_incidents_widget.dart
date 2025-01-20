@@ -74,7 +74,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         _priorities = coef ;
       });
     });
-    _applyFilters();
+
 
   }
   int _totalIncidents = 0;
@@ -84,56 +84,64 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     int? coefId,
     int? cluster,
     int? origin,
-    // DateTime? declarationDate,
-    // DateTime? closedDate,
     int? statut,
   }) async {
+    // Show loading state before making the API call
     setState(() {
       _isLoading = true;
       _hasError = false;
     });
 
     try {
+      // Fetch incidents from the service
       final incidents = await IncidentService().getFilteredProblems(
         boutiqueId: boutiqueId,
         coefId: coefId,
         cluster: cluster,
         origin: origin,
-        statut: statut
+        statut: statut,
       );
+
+      // Update state with the fetched incidents
       setState(() {
-        _incidents = List<Map<String , dynamic>>.from(incidents);
-        _totalIncidents = _incidents.length; // Update the total count
+        _incidents = List<Map<String, dynamic>>.from(incidents);
+        _totalIncidents = _incidents.length;
         _isLoading = false;
       });
     } catch (e) {
+      // Handle any errors during API call
       setState(() {
         _hasError = true;
         _isLoading = false;
       });
+      print("Error fetching incidents: $e");
     }
   }
 
 
-  void _applyFilters() {
-    _fetchIncidents(
-        boutiqueId: _selectedBoutiqueId,
-        coefId: _selectedPriority,
-        cluster: _selectedCluster,
-        origin: _selectedOrigin,
-        statut: _selectedStatus
-    );
-  }
-  Future<void> _handleRefresh() async {
-     await _fetchIncidents(
-        boutiqueId: _selectedBoutiqueId,
-        coefId: _selectedPriority,
-        cluster: _selectedCluster,
-        origin: _selectedOrigin,
-      statut: _selectedStatus
-    );
 
+  Future<void> _applyFilters() async {
+    // Trigger the API call with selected filters
+    await _fetchIncidents(
+      boutiqueId: _selectedBoutiqueId,
+      coefId: _selectedPriority,
+      cluster: _selectedCluster,
+      origin: _selectedOrigin,
+      statut: _selectedStatus,
+    );
   }
+
+  Future<void> _handleRefresh() async {
+    // Refresh the incidents list with current filters
+    await _fetchIncidents(
+      boutiqueId: _selectedBoutiqueId,
+      coefId: _selectedPriority,
+      cluster: _selectedCluster,
+      origin: _selectedOrigin,
+      statut: _selectedStatus,
+    );
+  }
+
   Future<void> _selectDate(BuildContext context, DateTime? initialDate, Function(DateTime?) onDateSelected) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,

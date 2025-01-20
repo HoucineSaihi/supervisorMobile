@@ -50,37 +50,41 @@ class IncidentService {
     int? coefId,
     int? cluster,
     int? origin,
-   // DateTime? declarationDate,
-    // DateTime? closedDate,
     int? statut,
   }) async {
+    // Retrieve current user ID from storage
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+
+    // Build query parameters for the API call
     final queryParameters = {
       'user_id': _currentUserID,
       if (boutiqueId != null) 'boutique_id': boutiqueId,
       if (coefId != null) 'coef_id': coefId,
       if (cluster != null) 'cluster': cluster,
       if (origin != null) 'origin': origin,
-     // if (declarationDate != null) 'declaration_date': declarationDate.toIso8601String(),
-      //if (closedDate != null) 'closed_date': closedDate.toIso8601String(),
       if (statut != null) 'statut': statut,
     };
 
+    // Build the full API URI
     final uri = Uri.parse("$_problemBaseUrl/filtered").replace(queryParameters: queryParameters);
     print("Calling API: $uri");
+
     try {
+      // Make the API call
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body); // Parse the response as a list of problems
+        return jsonDecode(response.body); // Parse and return response
       } else {
         throw Exception("Failed to load filtered problems: ${response.statusCode}");
       }
     } catch (e) {
+      print("Error occurred: $e");
       throw Exception("Error occurred: $e");
     }
   }
+
 
   Future<void> cloturerIncident(int questionId) async {
     // Constructing the URL for updating the clouture
