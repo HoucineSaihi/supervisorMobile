@@ -7,7 +7,6 @@ import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
 
 class IncidentService {
-  final String _baseUrl = '${dotenv.env['BASE_URL']}/api/MissionQuestions';
   final String _problemBaseUrl = '${dotenv.env['BASE_URL']}/api/Problem';
 
   final String _coefficientBaseUrl = '${dotenv.env['BASE_URL']}/api/Coefficient';
@@ -43,53 +42,49 @@ class IncidentService {
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
   }
-  Future<List<dynamic>> getAllRecommendationsByIdUserFiltered({
-    String? mLibelle,
-    String? smLibelle,
-    String? qLibelle,
-    int? actionId,
-    String? btqLibelle,
-    int? statusValidation,
-    required int userId,
-    DateTime? dateDb,
-    DateTime? dateF,
-    DateTime? dateClotDb,
-    DateTime? dateClotF,
+
+
+
+  Future<List<dynamic>> getFilteredProblems({
+    int? boutiqueId,
+    int? coefId,
+    int? cluster,
+    int? origin,
+   // DateTime? declarationDate,
+    // DateTime? closedDate,
+    int? statut,
   }) async {
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-    final Map<String, String> queryParams = {};
+    final queryParameters = {
+      'user_id': _currentUserID,
+      if (boutiqueId != null) 'boutique_id': boutiqueId,
+      if (coefId != null) 'coef_id': coefId,
+      if (cluster != null) 'cluster': cluster,
+      if (origin != null) 'origin': origin,
+     // if (declarationDate != null) 'declaration_date': declarationDate.toIso8601String(),
+      //if (closedDate != null) 'closed_date': closedDate.toIso8601String(),
+      if (statut != null) 'statut': statut,
+    };
 
-    if (mLibelle != null) queryParams['mLibelle'] = mLibelle;
-    if (smLibelle != null) queryParams['smLibelle'] = smLibelle;
-    if (qLibelle != null) queryParams['qLibelle'] = qLibelle;
-    if (actionId != null) queryParams['actionId'] = actionId.toString();
-    if (btqLibelle != null) queryParams['btqLibelle'] = btqLibelle;
-    if (statusValidation != null) queryParams['statusValidation'] = statusValidation.toString();
-    queryParams['userId'] = _currentUserID.toString();
-    if (dateDb != null) queryParams['dateDb'] = dateDb.toIso8601String();
-    if (dateF != null) queryParams['dateF'] = dateF.toIso8601String();
-    if (dateClotDb != null) queryParams['dateClotDb'] = dateClotDb.toIso8601String();
-    if (dateClotF != null) queryParams['dateClotF'] = dateClotF.toIso8601String();
+    final uri = Uri.parse("$_problemBaseUrl/filtered").replace(queryParameters: queryParameters);
+    print("Calling API: $uri");
+    try {
+      final response = await http.get(uri);
 
-    // Constructing the full URL with query parameters
-    final uri = Uri.parse('$_baseUrl/GetAllRecomndationsByIdUserFiltered')
-        .replace(queryParameters: queryParams);
-
-    // Making the GET request
-    final response = await http.get(uri);
-
-    if (response.statusCode == 200) {
-      List<dynamic> jsonResponse = json.decode(response.body);
-      return jsonResponse;
-    } else {
-      throw Exception('Failed to load recommendations');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body); // Parse the response as a list of problems
+      } else {
+        throw Exception("Failed to load filtered problems: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Error occurred: $e");
     }
   }
 
   Future<void> cloturerIncident(int questionId) async {
     // Constructing the URL for updating the clouture
-    final uri = Uri.parse('$_baseUrl/updateClouture/$questionId');
+    final uri = Uri.parse('$_problemBaseUrl/updateClouture/$questionId');
 
     // Making the PATCH request
     final response = await http.put(

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart'; // For date formatting
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
+import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
 import 'package:supervisormobile/features/incidents/screens/IncidentFormWidget.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
@@ -43,6 +44,18 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
 
+  var _selectedStatus;
+
+  var _selectedOrigin;
+
+  var _selectedCluster;
+
+  var _selectedPriority;
+
+  List<Coefficient> _priorities = [];
+
+  var _selectedBoutiqueId;
+
   @override
   void initState() {
     super.initState();
@@ -53,23 +66,27 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         _boutiques = boutiques;
       });
 
-      _fetchIncidents(userId: 2);
+
+
     });
+    IncidentService().getAllCoefficients().then((coef){
+      setState(() {
+        _priorities = coef ;
+      });
+    });
+    _applyFilters();
+
   }
   int _totalIncidents = 0;
 
   Future<void> _fetchIncidents({
-    String? mLibelle,
-    String? smLibelle,
-    String? qLibelle,
-    int? actionId,
-    String? btqLibelle,
-    int? statusValidation,
-    required int userId,
-    DateTime? dateDb,
-    DateTime? dateF,
-    DateTime? dateClotDb,
-    DateTime? dateClotF,
+    int? boutiqueId,
+    int? coefId,
+    int? cluster,
+    int? origin,
+    // DateTime? declarationDate,
+    // DateTime? closedDate,
+    int? statut,
   }) async {
     setState(() {
       _isLoading = true;
@@ -77,18 +94,12 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     });
 
     try {
-      final incidents = await _incidentService.getAllRecommendationsByIdUserFiltered(
-        mLibelle: mLibelle,
-        smLibelle: smLibelle,
-        qLibelle: qLibelle,
-        actionId: actionId,
-        btqLibelle: btqLibelle,
-        statusValidation: statusValidation,
-        userId: userId,
-        dateDb: dateDb,
-        dateF: dateF,
-        dateClotDb: dateClotDb,
-        dateClotF: dateClotF,
+      final incidents = await IncidentService().getFilteredProblems(
+        boutiqueId: boutiqueId,
+        coefId: coefId,
+        cluster: cluster,
+        origin: origin,
+        statut: statut
       );
       setState(() {
         _incidents = List<Map<String , dynamic>>.from(incidents);
@@ -106,34 +117,22 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
   void _applyFilters() {
     _fetchIncidents(
-      mLibelle: _missionLibelleController.text,
-      smLibelle: _sousMissionLibelleController.text,
-      qLibelle: _questionLibelleController.text,
-      actionId: int.tryParse(_actionIdController.text),
-      btqLibelle: _boutiqueLibelleController.text,
-      statusValidation: int.tryParse(_statusValidationController.text),
-      userId: 2, // Assuming userId is 2 for this example
-      dateDb: _dateDb,
-      dateF: _dateF,
-      dateClotDb: _dateClotDb,
-      dateClotF: _dateClotF,
+        boutiqueId: _selectedBoutiqueId,
+        coefId: _selectedPriority,
+        cluster: _selectedCluster,
+        origin: _selectedOrigin,
+        statut: _selectedStatus
     );
   }
   Future<void> _handleRefresh() async {
-    setState(() async { await _fetchIncidents(
-      mLibelle: _missionLibelleController.text,
-      smLibelle: _sousMissionLibelleController.text,
-      qLibelle: _questionLibelleController.text,
-      actionId: int.tryParse(_actionIdController.text),
-      btqLibelle: _boutiqueLibelleController.text,
-      statusValidation: int.tryParse(_statusValidationController.text),
-      userId: 2, // Assuming userId is 2 for this example
-      dateDb: _dateDb,
-      dateF: _dateF,
-      dateClotDb: _dateClotDb,
-      dateClotF: _dateClotF,
+     await _fetchIncidents(
+        boutiqueId: _selectedBoutiqueId,
+        coefId: _selectedPriority,
+        cluster: _selectedCluster,
+        origin: _selectedOrigin,
+      statut: _selectedStatus
     );
-    });
+
   }
   Future<void> _selectDate(BuildContext context, DateTime? initialDate, Function(DateTime?) onDateSelected) async {
     final DateTime? pickedDate = await showDatePicker(
@@ -150,143 +149,134 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
       children: [
-        TextField(
-          controller: _missionLibelleController,
-          decoration: InputDecoration(labelText: 'Mission Libelle'),
-        ),
-        SizedBox(height: 10), // Add spacing between input fields
-        TextField(
-          controller: _sousMissionLibelleController,
-          decoration: InputDecoration(labelText: 'Sous Mission Libelle'),
-        ),
-        SizedBox(height: 10), // Add spacing between input fields
-        TextField(
-          controller: _questionLibelleController,
-          decoration: InputDecoration(labelText: 'Question Libelle'),
-        ),
-        SizedBox(height: 10), // Add spacing between input fields
-        DropdownButtonFormField<String>(
+        // Boutique Dropdown
+        DropdownButtonFormField<int>(
           decoration: InputDecoration(
             labelText: 'Choisir une boutique',
             border: OutlineInputBorder(),
           ),
           items: [
-            DropdownMenuItem<String>(
+            DropdownMenuItem<int>(
               value: null,
               child: Text('Tous'),
             ),
             ..._boutiques.map((boutique) {
-              return DropdownMenuItem<String>(
-                value: boutique.libelle,
-                child: Text(boutique.libelle ?? 'No Name'),
+              return DropdownMenuItem<int>(
+                value: boutique.id, // Store the boutique ID
+                child: Text(boutique.libelle ?? 'No Name'), // Display boutique name
               );
             }).toList(),
           ],
-          onChanged: (String? newValue) {
+          onChanged: (int? newValue) {
             setState(() {
-              _boutiqueLibelleController.text = newValue ?? '';
+              _selectedBoutiqueId = newValue;
             });
           },
-          value: _boutiqueLibelleController.text.isNotEmpty
-              ? _boutiqueLibelleController.text
-              : null, // Prevents null error if text is empty
+          value: _selectedBoutiqueId,
         ),
-        SizedBox(height: 10), // Add spacing between input fields
+        SizedBox(height: 10), // Spacing
+
+        // Priorities Dropdown
         DropdownButtonFormField<int>(
-          value: _statusValidation,
           decoration: InputDecoration(
-            labelText: 'Status Validation',
+            labelText: 'Priorité',
             border: OutlineInputBorder(),
           ),
           items: [
-            DropdownMenuItem(value: null, child: Text('Tous')),
-            DropdownMenuItem(value: 1, child: Text('Non Cloturée')),
-            DropdownMenuItem(value: 2, child: Text('Cloturée')),
+            DropdownMenuItem<int>(value: null, child: Text('Tous')),
+            ..._priorities.map((priority) {
+              return DropdownMenuItem<int>(
+                value: priority.coefId, // Store priority ID
+                child: Text(priority.libelle!), // Display priority name
+              );
+            }).toList(),
           ],
-          onChanged: (value) {
+          onChanged: (int? newValue) {
             setState(() {
-              _statusValidation = value;
-              _statusValidationController.text =
-                  value?.toString() ?? ''; // Sync with TextEditingController
+              _selectedPriority = newValue;
             });
           },
+          value: _selectedPriority,
         ),
-        SizedBox(height: 10), // Add spacing between input fields
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: TextButton(
-                onPressed: () => _selectDate(context, _dateDb, (date) {
-                  setState(() {
-                    _dateDb = date;
-                  });
-                }),
-                child: Text(_dateDb != null
-                    ? _dateFormat.format(_dateDb!)
-                    : 'Select Date DB'),
-              ),
-            ),
-            SizedBox(width: 10), // Add spacing between date pickers
-            Expanded(
-              child: TextButton(
-                onPressed: () => _selectDate(context, _dateF, (date) {
-                  setState(() {
-                    _dateF = date;
-                  });
-                }),
-                child: Text(_dateF != null
-                    ? _dateFormat.format(_dateF!)
-                    : 'Select Date F'),
-              ),
-            ),
+        SizedBox(height: 10), // Spacing
+
+        // Cluster Dropdown
+        DropdownButtonFormField<int>(
+          decoration: InputDecoration(
+            labelText: 'Cluster',
+            border: OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem<int>(value: null, child: Text('Tous')),
+            DropdownMenuItem<int>(value: 1, child: Text('Hôtel')),
+            DropdownMenuItem<int>(value: 0, child: Text('Retail')),
           ],
+          onChanged: (int? newValue) {
+            setState(() {
+              _selectedCluster = newValue;
+            });
+          },
+          value: _selectedCluster,
         ),
-        SizedBox(height: 10), // Add spacing between date pickers
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: TextButton(
-                onPressed: () => _selectDate(context, _dateClotDb, (date) {
-                  setState(() {
-                    _dateClotDb = date;
-                  });
-                }),
-                child: Text(_dateClotDb != null
-                    ? _dateFormat.format(_dateClotDb!)
-                    : 'Select Date Clot DB'),
-              ),
-            ),
-            SizedBox(width: 10), // Add spacing between date pickers
-            Expanded(
-              child: TextButton(
-                onPressed: () => _selectDate(context, _dateClotF, (date) {
-                  setState(() {
-                    _dateClotF = date;
-                  });
-                }),
-                child: Text(_dateClotF != null
-                    ? _dateFormat.format(_dateClotF!)
-                    : 'Select Date Clot F'),
-              ),
-            ),
+        SizedBox(height: 10), // Spacing
+
+        // Origin Dropdown
+        DropdownButtonFormField<int>(
+          decoration: InputDecoration(
+            labelText: 'Origine',
+            border: OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem<int>(value: null, child: Text('Tous')),
+            DropdownMenuItem<int>(value: 0, child: Text('Manuelle')),
+            DropdownMenuItem<int>(value: 1, child: Text('Checklist')),
           ],
+          onChanged: (int? newValue) {
+            setState(() {
+              _selectedOrigin = newValue;
+            });
+          },
+          value: _selectedOrigin,
         ),
+        SizedBox(height: 10), // Spacing
+
+        // Status Dropdown
+        DropdownButtonFormField<int>(
+          decoration: InputDecoration(
+            labelText: 'Statut',
+            border: OutlineInputBorder(),
+          ),
+          items: [
+            DropdownMenuItem<int>(value: null, child: Text('Tous')),
+            DropdownMenuItem<int>(value: 0, child: Text('Non Résolu')),
+            DropdownMenuItem<int>(value: 1, child: Text('Clôturé')),
+          ],
+          onChanged: (int? newValue) {
+            setState(() {
+              _selectedStatus = newValue;
+            });
+          },
+          value: _selectedStatus,
+        ),
+        SizedBox(height: 10), // Spacing
+
+        // Apply Filters Button
         SizedBox(
-          width: double.infinity, // Makes the button take the full width
+          width: double.infinity, // Full width button
           child: ElevatedButton.icon(
             onPressed: _applyFilters,
-            icon: Icon(Iconsax.filter, size: 20), // Replace with the icon you want
+            icon: Icon(Iconsax.filter, size: 20), // Replace with desired icon
             label: Text('Appliquer Filtre'),
             style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 16), // Adjust padding if needed
+              padding: EdgeInsets.symmetric(vertical: 16), // Adjust padding
             ),
           ),
         ),
       ],
     );
   }
+
+
 
 
 
