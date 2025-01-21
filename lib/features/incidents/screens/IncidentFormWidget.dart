@@ -214,7 +214,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
           problemImageBefore: imageName,jointFileBefore: fileName,
           commentaire:_commentController.text,description: _descriptionController.text ,
           declarationDate: DateTime.now(), closedDate: DateTime.now(),
-          statut: 0, closingComment: 5, cost: 0);
+          statut: 0, closingComment: "", cost: 0);
 
       try {
      await IncidentService().addProblem(declaredProblem);
@@ -242,8 +242,6 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Ajouter un incident",),
-        backgroundColor: TColors.primary,
-        foregroundColor: TColors.white,
 
       ),
       body: Padding(

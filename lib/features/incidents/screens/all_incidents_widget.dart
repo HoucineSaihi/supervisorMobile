@@ -1,3 +1,4 @@
+import 'package:animations/animations.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
@@ -8,6 +9,7 @@ import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
+import 'package:supervisormobile/features/incidents/screens/ConsultProblem.dart';
 import 'package:supervisormobile/features/incidents/screens/IncidentFormWidget.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
@@ -76,17 +78,17 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       });
     });
 
-
+    _fetchIncidents(null,null,null,null,null);
   }
   int _totalIncidents = 0;
 
   Future<void> _fetchIncidents(
-    int? boutiqueId,
-    int? coefId,
-    int? cluster,
-    int? origin,
-    int? statut,
-  ) async {
+      int? boutiqueId,
+      int? coefId,
+      int? cluster,
+      int? origin,
+      int? statut,
+      ) async {
     // Show loading state before making the API call
     setState(() {
       _isLoading = true;
@@ -95,29 +97,63 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
     try {
       // Fetch incidents from the service
-      final incidents = await IncidentService().getFilteredProblems(
-         boutiqueId,
+      final rawIncidents = await IncidentService().getFilteredProblems(
+        boutiqueId,
         coefId,
-         cluster,
-         origin,
-         statut,
+        cluster,
+        origin,
+        statut,
       );
 
-      // Update state with the fetched incidents
+      // Process and map the raw incidents to Problem objects
+      List<Problem> processedIncidents = rawIncidents.map<Problem>((incident) {
+        return Problem(
+          id: incident['id'] ?? 0,
+          userId: incident['userId'] ?? 0,
+          boutiqueId: incident['boutiqueId'] ?? 0,
+          boutique: incident['boutique'] != null
+              ? BoutiqueModel.fromJson(incident['boutique'])
+              : null, // Handle null boutique
+          description: incident['description'] ?? 'N/A',
+          commentaire: incident['commentaire'] ?? 'N/A',
+          problemImageBefore: incident['problemImageBefore'],
+          problemImageAfter: incident['problemImageAfter'],
+          jointFileBefore: incident['jointFileBefore'],
+          jointFileAfter: incident['jointFileAfter'],
+          coefId: incident['coefId'] ?? 0,
+          coefficient: incident['coefficient'] != null
+              ? Coefficient.fromJson(incident['coefficient'])
+              : null,
+          cluster: incident['cluster'] ?? 0,
+          origin: incident['origin'] ?? 0,
+          declarationDate: incident['declarationDate'] != null
+              ? DateTime.parse(incident['declarationDate'])
+              : DateTime.now(),
+          closedDate: incident['closedDate'] != null
+              ? DateTime.parse(incident['closedDate'])
+              : null, // Handle null closedDate
+          statut: incident['statut'] ?? 0,
+          closingComment: incident['closingComment'] ?? 'No comment',
+          cost: (incident['cost'] ?? 0).toDouble(),
+        );
+      }).toList();
+
+      // Update state with the processed incidents
       setState(() {
-        _incidents = List<Map<String, dynamic>>.from(incidents);
+        _incidents = processedIncidents;
         _totalIncidents = _incidents.length;
         _isLoading = false;
       });
     } catch (e) {
-      // Handle any errors during API call
+      // Handle errors gracefully
       setState(() {
-        _hasError = true;
         _isLoading = false;
+        _hasError = true;
       });
-      print("Error fetching incidents: $e");
+      debugPrint('Error fetching incidents: $e');
     }
   }
+
 
 
 
@@ -237,8 +273,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           ),
           items: [
             DropdownMenuItem<int>(value: null, child: Text('Tous')),
-            DropdownMenuItem<int>(value: 0, child: Text('Manuelle')),
-            DropdownMenuItem<int>(value: 1, child: Text('Checklist')),
+            DropdownMenuItem<int>(value: 1, child: Text('Manuelle')),
+            DropdownMenuItem<int>(value: 0, child: Text('Checklist')),
           ],
           onChanged: (int? newValue) {
             setState(() {
@@ -290,104 +326,132 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
 
 
-  Widget _listItem(Map<String, dynamic> item) {
-    // Determine the border color based on clouture
-    Color borderColor = item["clouture"] != null ? Colors.green : Colors.red;
 
-    // Format the clouture date if it exists
-    String cloutureDate = item["clouture"] != null
-        ? DateFormat('yyyy-MM-dd').format(DateTime.parse(item["clouture"]))
-        : '';
+  Widget _listItem(Problem problem) {
+    // Define a dictionary for statut colors
+    final Map<int, Color> statutColors = {
+      0: Colors.blue,
+      1: Colors.green,  // Statut 1: Green
+      2: Colors.orange, // Statut 2: Orange
+      3: Colors.red,    // Statut 3: Red
+    };
 
-    return GestureDetector(
-      onLongPress: () {
-        // Show the Awesome Bottom Sheet when a long press is detected
-        _showModal(context, item);
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border(
-            top: BorderSide(
-              color: borderColor,
-              width: 4,
-            ),
+    // Get the color based on the statut, or use a default color
+    final Color borderColor = statutColors[problem.statut] ?? Colors.grey;
+
+    // Format the date (display only the date part)
+    final String formattedDate = problem.declarationDate != null
+        ? DateFormat('yyyy-MM-dd').format(problem.declarationDate!)
+        : 'No date';
+
+    return Stack(
+      children: [
+        // Card Content
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8.0),
+            border: Border.all(color: Colors.black, width: 1.0), // Black border
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4.0,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Description and coefficient on the same line
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Mission :'+item["missionLibelle"] ?? 'No mission',
-                      style: const TextStyle(
+                      'Decr:',
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Btq :'+item["boutiqueLibelle"] ?? 'No sous-mission',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
                         fontSize: 14,
                       ),
                     ),
-                    SizedBox(height: 4),
                     Text(
-                      'Catégorie :'+item["sousMissionLibelle"] ?? 'No sous-mission',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
+                      problem.coefficient?.libelle ?? 'No priority',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
                         fontSize: 14,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Quest :'+item["questionLibelle"] ?? 'No question',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Action: '+item["actionLibelle"] ?? 'No action',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Resp: '+item["responsable"] ?? 'No responsable',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w400,
-                        fontSize: 14,
+                        color: Colors.black,
                       ),
                     ),
                   ],
                 ),
-              ),
-              if (item["clouture"] != null)
+                SizedBox(height: 4.0),
                 Text(
-                  cloutureDate,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w400,
-                    fontSize: 14,
-                    color: Colors.green, // Style for the clouture date
+                  problem.description ?? 'No description',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+
                   ),
                 ),
-            ],
+                SizedBox(height: 8.0),
+
+                // Commentaire
+                Text(
+                  'Commentaire:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  problem.commentaire ?? 'No comment',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 8.0),
+
+                // Date déclaration
+                Text(
+                  'Date déclaration:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  formattedDate,
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
+        // Left Colored Border
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          child: Container(
+            width: 8.0, // Border width
+            decoration: BoxDecoration(
+              color: borderColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8.0),
+                bottomLeft: Radius.circular(8.0),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
+
+
+
+
+
+
+
 
 
   void _showModal(BuildContext context, Map<String, dynamic> item) {
@@ -523,17 +587,27 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => IncidentFormWidget()),
+          );
+        },
+        backgroundColor: TColors.primary,
+        child: const Icon(Iconsax.add_circle, color: Colors.white),
+      ),
       body: LiquidPullToRefresh(
         onRefresh: _handleRefresh,
         springAnimationDurationInMilliseconds: 300, // Speed up the animation
         height: 60.0, // Adjust the height as needed
         color: TColors.primary,
         child: Padding(
-          padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0), // Add top spacing from the device's top bar
+          padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0),
           child: Column(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.end, // Align the icon to the end of the row
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   IconButton(
                     icon: Icon(_showFilters ? Icons.arrow_upward : Icons.arrow_downward),
@@ -545,37 +619,11 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                   ),
                 ],
               ),
-              // Add the button here
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => IncidentFormWidget()),
-                    );
-                  },
-                  icon: const Icon(Iconsax.add_circle, color: Colors.white), // Modern icon from Iconsax
-                  label: const Text(
-                    "Ajouter un incident",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: TColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16.0), // Add spacing between the button and text
+              const SizedBox(height: 16.0),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Display the total number of incidents
                     Text(
                       'Total Incidents: $_totalIncidents',
                       style: TextStyle(
@@ -583,17 +631,35 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                         fontSize: 18,
                       ),
                     ),
-                    SizedBox(height: 10),
+                    const SizedBox(height: 10),
                     if (_showFilters) _buildFilterForm(),
-                    if (_isLoading) const CircularProgressIndicator(),
-                    if (_hasError) const Text('Error loading incidents.'),
+                    if (_isLoading) const Center(child: CircularProgressIndicator()),
+                    if (_hasError)
+                      const Center(child: Text('Error loading incidents.')),
                     Expanded(
                       child: ListView.builder(
                         itemCount: _incidents.length,
                         itemBuilder: (context, index) {
                           return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0), // Add vertical spacing
-                            child: _listItem(_incidents[index]),
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: OpenContainer(
+                              transitionType: ContainerTransitionType.fadeThrough, // Smooth fade transition
+                              openBuilder: (context, _) {
+                                return ConsultProblem(problemId: _incidents[index].id); // Pass the problemId instead of the entire problem
+                              },
+                              closedElevation: 0.0,
+                              closedShape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              closedColor: Colors.transparent,
+                              closedBuilder: (context, openContainer) {
+                                return GestureDetector(
+                                  onTap: openContainer, // Trigger animation
+                                  child: _listItem(_incidents[index]), // Pass the incident to list item display
+                                );
+                              },
+                            )
+                            ,
                           );
                         },
                       ),
@@ -607,6 +673,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       ),
     );
   }
+
+
 
 
 

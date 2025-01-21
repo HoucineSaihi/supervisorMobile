@@ -1,4 +1,5 @@
-import '../../Profile/models/boutique_model.dart';
+import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
+
 import '../../incidents/models/Coefficient.dart';
 
 class Problem {
@@ -18,9 +19,9 @@ class Problem {
   int cluster; // 0 = Retail, 1 = Hospitality
   int origin; // 0 = Checklist, 1 = Libre
   DateTime declarationDate;
-  DateTime closedDate;
+  DateTime? closedDate;
   int statut;
-  int closingComment;
+  String? closingComment;
   double cost;
 
   Problem({
@@ -91,7 +92,7 @@ class Problem {
       'cluster': cluster,
       'origin': origin,
       'declaration_date': declarationDate.toIso8601String(),
-      'closed_date': closedDate.toIso8601String(),
+      'closed_date': closedDate?.toIso8601String(),
       'statut': statut,
       'closing_comment': closingComment,
       'cost': cost,

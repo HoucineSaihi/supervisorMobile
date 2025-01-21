@@ -103,6 +103,31 @@ class IncidentService {
     }
   }
 
+
+
+  // Fetch problem by ID
+  Future<Problem?> getProblemById(int id) async {
+    final url = Uri.parse('$_problemBaseUrl/$id');
+
+    try {
+      print('Making API call to: $url');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        print('Response: ${response.body}');
+        return Problem.fromJson(json.decode(response.body));
+      } else {
+        print('Error: ${response.statusCode}');
+        throw Exception('Failed to load problem');
+      }
+    } catch (e) {
+      print('Error: $e');
+      throw Exception('Failed to load problem: $e');
+    }
+  }
+
+
+
   Future<List<BoutiqueModel>> getBoutiques() async {
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
