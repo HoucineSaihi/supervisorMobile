@@ -173,13 +173,16 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
 
   void _submitForm() async {
-    setState(() => _isLoading = true);
 
 
-    if(_selectedBoutique != null && _selectedPriority != null ){
+
+
+    if(_selectedBoutique != null && _selectedPriority != null && _commentController.text.isNotEmpty && _descriptionController.text.isNotEmpty ){
+      setState(() => _isLoading = true);
+
       String? imageName;
       String? fileName;
-
+      try {
       if (_imageFiles != null && _imageFiles!.isNotEmpty) {
         try {
           final firstFile = _imageFiles!.first;
@@ -216,7 +219,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
           declarationDate: DateTime.now(), closedDate: DateTime.now(),
           statut: 0, closingComment: "", cost: 0);
 
-      try {
+
      await IncidentService().addProblem(declaredProblem);
      ScaffoldMessenger.of(context).showSnackBar(
        SnackBar(content: Text('Incident ajoutée avec succés.')),
@@ -231,6 +234,10 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       finally {
         setState(() => _isLoading = false); // Stop loader
       }
+    }
+    else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Tous les champs sont obligatoires.'))) ;
     }
 
   }
