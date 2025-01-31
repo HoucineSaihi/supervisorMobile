@@ -1,75 +1,101 @@
+import 'package:supervisormobile/features/Profile/models/user_model.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 
+import '../../Profile/models/group_model.dart';
+import '../../incidents/models/Coefficient.dart';
+
+import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import '../../incidents/models/Coefficient.dart';
 
 class Problem {
   int id;
-  int userId;
-  //Caisse? user;
+  int? userId;
+  UserModel? user;
+  int? assignedTo;
+  UserModel? assignedUser;
   int boutiqueId;
   BoutiqueModel? boutique;
-  String? description;
+  String description;
   String? commentaire;
   String? problemImageBefore;
   String? problemImageAfter;
   String? jointFileBefore;
   String? jointFileAfter;
-  int coefId;
+  int? coefId;
   Coefficient? coefficient;
-  int cluster; // 0 = Retail, 1 = Hospitality
-  int origin; // 0 = Checklist, 1 = Libre
-  DateTime declarationDate;
+  int? cluster; // 0 = Retail, 1 = Hospitality
+  int? origin; // 0 = Checklist, 1 = Libre
+  DateTime? declarationDate;
+  DateTime? planifiedTo;
+  DateTime? planifiedAt;
   DateTime? closedDate;
-  int statut;
   String? closingComment;
-  double cost;
+  double? cost;
+  int? departementId;
+  Group? departement;
+  int? statusType;
+  int? status;
 
   Problem({
     required this.id,
-    required this.userId,
-    //this.user,
+    this.userId,
+    this.user,
+    this.assignedTo,
+    this.assignedUser,
     required this.boutiqueId,
     this.boutique,
-    this.description,
+    required this.description,
     this.commentaire,
     this.problemImageBefore,
     this.problemImageAfter,
     this.jointFileBefore,
     this.jointFileAfter,
-    required this.coefId,
+    this.coefId,
     this.coefficient,
-    required this.cluster,
-    required this.origin,
-    required this.declarationDate,
-    required this.closedDate,
-    required this.statut,
-    required this.closingComment,
-    required this.cost,
+    this.cluster,
+    this.origin,
+    this.declarationDate,
+    this.planifiedTo,
+    this.planifiedAt,
+    this.closedDate,
+    this.closingComment,
+    this.cost,
+    this.departementId,
+    this.departement,
+    this.statusType,
+    this.status,
   });
 
-  /// Factory constructor for creating an instance from JSON
+  /// Factory constructor to create an instance from JSON
   factory Problem.fromJson(Map<String, dynamic> json) {
     return Problem(
-      id: json['id'],
-      userId: json['user_id'],
-    //  user: json['user'] != null ? Caisse.fromJson(json['user']) : null,
-      boutiqueId: json['boutique_id'],
+      id: json['id'] ?? 0,
+      userId: json['user_id'] as int?,
+      user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
+      assignedTo: json['assigned_to'] as int?,
+      assignedUser: json['assignedUser'] != null ? UserModel.fromJson(json['assignedUser']) : null,
+      boutiqueId: json['boutique_id'] ?? 0,
       boutique: json['boutique'] != null ? BoutiqueModel.fromJson(json['boutique']) : null,
-      description: json['description'],
-      commentaire: json['commentaire'],
-      problemImageBefore: json['problem_image_before'],
-      problemImageAfter: json['problem_image_after'],
-      jointFileBefore: json['joint_file_before'],
-      jointFileAfter: json['joint_file_after'],
-      coefId: json['coef_id'],
+      description: json['description'] ?? '',
+      commentaire: json['commentaire'] as String?,
+      problemImageBefore: json['problem_image_before'] as String?,
+      problemImageAfter: json['problem_image_after'] as String?,
+      jointFileBefore: json['joint_file_before'] as String?,
+      jointFileAfter: json['joint_file_after'] as String?,
+      coefId: json['coef_id'] as int?,
       coefficient: json['coefficient'] != null ? Coefficient.fromJson(json['coefficient']) : null,
-      cluster: json['cluster'],
-      origin: json['origin'],
-      declarationDate: DateTime.parse(json['declaration_date']),
-      closedDate: DateTime.parse(json['closed_date']),
-      statut: json['statut'],
-      closingComment: json['closing_comment'],
-      cost: json['cost'].toDouble(),
+      cluster: json['cluster'] as int?,
+      origin: json['origin'] as int?,
+      declarationDate: json['declaration_date'] != null ? DateTime.tryParse(json['declaration_date']) : null,
+      planifiedTo: json['planified_to'] != null ? DateTime.tryParse(json['planified_to']) : null,
+      planifiedAt: json['planified_at'] != null ? DateTime.tryParse(json['planified_at']) : null,
+      closedDate: json['closed_date'] != null ? DateTime.tryParse(json['closed_date']) : null,
+      closingComment: json['closing_comment'] as String?,
+      cost: json['cost'] != null ? (json['cost'] as num).toDouble() : null,
+      departementId: json['departement_id'] as int?,
+      departement: json['departement'] != null ? Group.fromJson(json['departement']) : null,
+      statusType: json['StatusType']  as int?,
+      status: json['Status'] as int?,
     );
   }
 
@@ -78,7 +104,9 @@ class Problem {
     return {
       'id': id,
       'user_id': userId,
-     // 'user': user?.toJson(),
+      'user': user?.toJson(),
+      'assigned_to': assignedTo,
+      'assignedUser': assignedUser?.toJson(),
       'boutique_id': boutiqueId,
       'boutique': boutique?.toJson(),
       'description': description,
@@ -91,11 +119,16 @@ class Problem {
       'coefficient': coefficient?.toJson(),
       'cluster': cluster,
       'origin': origin,
-      'declaration_date': declarationDate.toIso8601String(),
+      'declaration_date': declarationDate?.toIso8601String(),
+      'planified_to': planifiedTo?.toIso8601String(),
+      'planified_at': planifiedAt?.toIso8601String(),
       'closed_date': closedDate?.toIso8601String(),
-      'statut': statut,
       'closing_comment': closingComment,
       'cost': cost,
+      'departement_id': departementId,
+      'departement': departement?.toJson(),
+      'StatusType': statusType,
+      'Status': status,
     };
   }
 }

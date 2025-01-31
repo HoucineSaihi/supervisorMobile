@@ -142,7 +142,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                 : 'N/A';
 
             // Get the status color based on the statut
-            Color statusColor = statutColors[problem.statut] ?? Colors.grey;
+            Color statusColor = statutColors[problem.status] ?? Colors.grey;
 
             return ListView(
               children: [

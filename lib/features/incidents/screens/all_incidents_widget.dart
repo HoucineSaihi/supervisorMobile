@@ -132,7 +132,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           closedDate: incident['closedDate'] != null
               ? DateTime.parse(incident['closedDate'])
               : null, // Handle null closedDate
-          statut: incident['statut'] ?? 0,
+          status: incident['status'] ?? 0,
           closingComment: incident['closingComment'] ?? 'No comment',
           cost: (incident['cost'] ?? 0).toDouble(),
         );
@@ -330,14 +330,15 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   Widget _listItem(Problem problem) {
     // Define a dictionary for statut colors
     final Map<int, Color> statutColors = {
-      0: Colors.blue,
-      1: Colors.green,  // Statut 1: Green
-      2: Colors.orange, // Statut 2: Orange
-      3: Colors.red,    // Statut 3: Red
+      1: Colors.yellow,
+      2: Colors.greenAccent,  // Statut 1: Green
+      3: Colors.orange, // Statut 2: Orange
+      4: Colors.blueAccent,    // Statut 3: Red
+      5: Colors.green,
     };
 
     // Get the color based on the statut, or use a default color
-    final Color borderColor = statutColors[problem.statut] ?? Colors.grey;
+    final Color borderColor = statutColors[problem.status] ?? Colors.grey;
 
     // Format the date (display only the date part)
     final String formattedDate = problem.declarationDate != null

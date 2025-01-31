@@ -56,23 +56,16 @@ class IncidentService {
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
-    // Build query parameters for the API call
-    final queryParameters = {
-      'user_id': _currentUserID.toString(), // Convert to string
-      if (boutiqueId != null) 'boutique_id': boutiqueId.toString(),
-      if (coefId != null) 'coef_id': coefId.toString(),
-      if (cluster != null) 'cluster': cluster.toString(),
-      if (origin != null) 'origin': origin.toString(),
-      if (statut != null) 'statut': statut.toString(),
-    };
+
 
     // Build the full API URI
-    final uri = Uri.parse("$_problemBaseUrl/filtered").replace(queryParameters: queryParameters);
+    final uri = Uri.parse("$_problemBaseUrl");
     print("Calling API: $uri");
 
     try {
       // Make the API call
       final response = await http.get(uri);
+
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body); // Parse and return response
@@ -172,6 +165,7 @@ class IncidentService {
       // Check for a successful response
       if (response.statusCode == 201) {
         // Parse the response to create a Problem object
+        print("gooooooooooood");
         return Problem.fromJson(json.decode(response.body));
       } else {
         throw Exception(

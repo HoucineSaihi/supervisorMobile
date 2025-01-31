@@ -212,12 +212,18 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       String? userIdString = await _storage.read(key: 'currentUserId');
       _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
       final declaredProblem = Problem(id: 0,
-          userId: _currentUserID, boutiqueId: _selectedBoutique!.id,
-          coefId: _selectedPriority!.coefId, cluster: _selectedBoutique!.cluster!, origin: 1,
-          problemImageBefore: imageName,jointFileBefore: fileName,
-          commentaire:_commentController.text,description: _descriptionController.text ,
-          declarationDate: DateTime.now(), closedDate: DateTime.now(),
-          statut: 0, closingComment: "", cost: 0);
+          userId: _currentUserID,
+          boutiqueId: _selectedBoutique!.id,
+          coefId: _selectedPriority!.coefId,
+          problemImageBefore: imageName,
+          jointFileBefore: fileName,
+          commentaire:_commentController.text,
+          description: _descriptionController.text ,
+        cluster: _selectedBoutique!.cluster
+
+);
+
+      print(declaredProblem.toJson());
 
 
      await IncidentService().addProblem(declaredProblem);
@@ -226,6 +232,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
      );
      Navigator.pop(context, true); // Navigate back
       }catch (e) {
+        print(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to update question')),
         );
