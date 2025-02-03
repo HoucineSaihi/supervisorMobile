@@ -212,11 +212,11 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       String? userIdString = await _storage.read(key: 'currentUserId');
       _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
       final declaredProblem = Problem(id: 0,
-          userId: _currentUserID,
-          boutiqueId: _selectedBoutique!.id,
-          coefId: _selectedPriority!.coefId,
-          problemImageBefore: imageName,
-          jointFileBefore: fileName,
+          user_id: _currentUserID,
+          boutique_id: _selectedBoutique!.id,
+          coef_id: _selectedPriority!.coefId,
+          problem_image_before: imageName,
+          joint_file_before: fileName,
           commentaire:_commentController.text,
           description: _descriptionController.text ,
         cluster: _selectedBoutique!.cluster

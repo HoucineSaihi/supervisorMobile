@@ -4,12 +4,16 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:supervisormobile/features/Profile/models/boutique_model.dart';
 import 'package:supervisormobile/features/calendar/models/Problem.dart';
+import 'package:supervisormobile/features/incidents/models/AllProblemsLazy.dart';
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
 
 class IncidentService {
   final String _problemBaseUrl = '${dotenv.env['BASE_URL']}/api/Problem';
 
   final String _coefficientBaseUrl = '${dotenv.env['BASE_URL']}/api/Coefficient';
+
+  final String _paramsBaseUrl = '${dotenv.env['BASE_URL']}/api/Parameters';
+
 
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
@@ -43,32 +47,81 @@ class IncidentService {
 
   }
 
-
-
-  Future<List<dynamic>> getFilteredProblems(
-    int? boutiqueId,
-    int? coefId,
-    int? cluster,
-    int? origin,
-    int? statut,
-  ) async {
-    // Retrieve current user ID from storage
-    String? userIdString = await _storage.read(key: 'currentUserId');
-    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-
-
-
-    // Build the full API URI
-    final uri = Uri.parse("$_problemBaseUrl");
-    print("Calling API: $uri");
+  Future<List<dynamic>> getAllowedStatus() async {
+    final Uri url = Uri.parse(_paramsBaseUrl+"/GetAllowedStatus"); // Replace with your actual API URL
 
     try {
-      // Make the API call
-      final response = await http.get(uri);
+      final response = await http.get(url);
 
+      // Check if the request was successful
+      if (response.statusCode == 200) {
+        // Decode the JSON response
+        final List<dynamic> statuses = json.decode(response.body);
+        return statuses;
+      } else {
+        // Handle the error
+        throw Exception('Failed to load allowed statuses');
+      }
+    } catch (e) {
+      print('Error: $e');
+      rethrow; // You can also handle the error gracefully here
+    }
+  }
+
+
+
+
+  Future<AllProblemsLazy> getFilteredProblems(
+      int? boutiqueId,
+      int? coefId,
+      int? origin,
+      int? statut,
+      int? first) async {
+
+    String? userIdString = await _storage.read(key: 'currentUserId');
+    int? currentUserID = userIdString != null ? int.tryParse(userIdString) : null;
+
+    final Map<String, dynamic> requestBody = {
+      "requester_id" : currentUserID,
+      "boutique_id": boutiqueId,
+      "coef_id": coefId,
+      "origin": origin,
+      "statut": statut,
+      "first": first,
+      "rows":10
+    }..removeWhere((key, value) => value == null);
+
+    print(requestBody);
+
+    try {
+      final response = await http.post(
+        Uri.parse("$_problemBaseUrl/filtered"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(requestBody),
+      );
+
+      print("API Response: ${response.body}"); // Debugging line
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body); // Parse and return response
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+
+        // Debugging: Check first problem item
+        if (responseData["problems"] is List && responseData["problems"].isNotEmpty) {
+          print("First problem item: ${responseData["problems"].first}");
+        } else {
+          print("Problems list is empty or invalid.");
+        }
+
+        if (responseData["problems"] is List) {
+          return AllProblemsLazy(
+            problems: (responseData["problems"] as List<dynamic>)
+                .map((incident) => Problem.fromJson(incident as Map<String, dynamic>)) // Ensure conversion
+                .toList(),
+            totalRecords: responseData["totalRecords"] ?? 0,
+          );
+        } else {
+          throw Exception("Invalid API response: 'problems' is not a list.");
+        }
       } else {
         throw Exception("Failed to load filtered problems: ${response.statusCode}");
       }
@@ -77,6 +130,8 @@ class IncidentService {
       throw Exception("Error occurred: $e");
     }
   }
+
+
 
 
   Future<void> cloturerIncident(int questionId) async {

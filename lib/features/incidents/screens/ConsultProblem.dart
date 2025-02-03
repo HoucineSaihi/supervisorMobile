@@ -136,13 +136,13 @@ class _ConsultProblemState extends State<ConsultProblem> {
             }
 
             final problem = snapshot.data!;
-            String formattedDeclarationDate = DateFormat('dd/MM/yyyy').format(problem.declarationDate ?? DateTime.now());
-            String? formattedClosedDate = problem.closedDate != null
-                ? DateFormat('dd/MM/yyyy').format(problem.closedDate!)
+            String formattedDeclarationDate = DateFormat('dd/MM/yyyy').format(problem.declaration_date ?? DateTime.now());
+            String? formattedClosedDate = problem.closed_date != null
+                ? DateFormat('dd/MM/yyyy').format(problem.closed_date!)
                 : 'N/A';
 
             // Get the status color based on the statut
-            Color statusColor = statutColors[problem.status] ?? Colors.grey;
+            Color statusColor = statutColors[problem.Status] ?? Colors.grey;
 
             return ListView(
               children: [
@@ -204,7 +204,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                 const SizedBox(height: 16),
 
                 // Problem Images Before and After
-                if (problem.problemImageBefore != null) ...[
+                if (problem.problem_image_before != null) ...[
                   Row(
                     children: [
                       const Icon(Icons.camera_alt, size: 24),
@@ -218,11 +218,11 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       IconButton(
                         icon: const Icon(Icons.visibility, size: 18),
                         onPressed: () {
-                          String imageUrl = fullImageUrl(problem.problemImageBefore!);
+                          String imageUrl = fullImageUrl(problem.problem_image_before!);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ShowImageViewer(imageUrl: '$_baseUrl/Files/getImage/${problem.problemImageBefore!}'),
+                              builder: (context) => ShowImageViewer(imageUrl: '$_baseUrl/Files/getImage/${problem.problem_image_before!}'),
                             ),
                           );
                         },
@@ -231,7 +231,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                ] else if (problem.problemImageBefore == null) ...[
+                ] else if (problem.problem_image_before == null) ...[
                   Row(
                     children: [
                       const Icon(Icons.camera_alt, size: 24),
@@ -247,7 +247,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                   const SizedBox(height: 16),
                 ],
 
-                if (problem.problemImageAfter != null) ...[
+                if (problem.problem_image_after != null) ...[
                   Row(
                     children: [
                       const Icon(Icons.camera_alt, size: 24),
@@ -261,11 +261,11 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       IconButton(
                         icon: const Icon(Icons.visibility, size: 18),
                         onPressed: () {
-                          String imageUrl = fullImageUrl(problem.problemImageBefore!);
+                          String imageUrl = fullImageUrl(problem.problem_image_after!);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ShowImageViewer(imageUrl: '$_baseUrl/Files/getImage/${problem.problemImageAfter!}'),
+                              builder: (context) => ShowImageViewer(imageUrl: '$_baseUrl/Files/getImage/${problem.problem_image_after!}'),
                             ),
                           );
                         },
@@ -273,7 +273,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                ] else if (problem.problemImageAfter == null) ...[
+                ] else if (problem.problem_image_after == null) ...[
                   Row(
                     children: [
                       const Icon(Icons.camera_alt, size: 24),
@@ -290,7 +290,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                 ],
 
                 // Files Before and After
-                if (problem.jointFileBefore != null) ...[
+                if (problem.joint_file_before != null) ...[
                   Row(
                     children: [
                       const Icon(Icons.attach_file, size: 24),
@@ -304,13 +304,13 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       IconButton(
                         icon: const Icon(Icons.download, size: 18),
                         onPressed: () {
-                          _downloadFile(problem.jointFileBefore!,context);
+                          _downloadFile(problem.joint_file_before!,context);
                         },
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                ] else if (problem.jointFileBefore == null) ...[
+                ] else if (problem.joint_file_before == null) ...[
                   Row(
                     children: [
                       const Icon(Icons.attach_file, size: 24),
@@ -326,7 +326,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                   const SizedBox(height: 16),
                 ],
 
-                if (problem.jointFileAfter != null) ...[
+                if (problem.joint_file_after != null) ...[
                   Row(
                     children: [
                       const Icon(Icons.attach_file, size: 24),
@@ -340,14 +340,14 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       IconButton(
                         icon: const Icon(Icons.download, size: 18),
                         onPressed: () {
-                          _downloadFile(problem.jointFileAfter!,context);
+                          _downloadFile(problem.joint_file_after!,context);
 
                         },
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                ] else if (problem.jointFileAfter == null) ...[
+                ] else if (problem.joint_file_after == null) ...[
                   Row(
                     children: [
                       const Icon(Icons.attach_file, size: 24),

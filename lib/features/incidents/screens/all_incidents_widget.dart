@@ -32,12 +32,17 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   final MissionService _missionService = MissionService();
 
   // Filter fields
-  final TextEditingController _missionLibelleController = TextEditingController();
-  final TextEditingController _sousMissionLibelleController = TextEditingController();
-  final TextEditingController _questionLibelleController = TextEditingController();
+  final TextEditingController _missionLibelleController =
+      TextEditingController();
+  final TextEditingController _sousMissionLibelleController =
+      TextEditingController();
+  final TextEditingController _questionLibelleController =
+      TextEditingController();
   final TextEditingController _actionIdController = TextEditingController();
-  final TextEditingController _boutiqueLibelleController = TextEditingController();
-  final TextEditingController _statusValidationController = TextEditingController();
+  final TextEditingController _boutiqueLibelleController =
+      TextEditingController();
+  final TextEditingController _statusValidationController =
+      TextEditingController();
   List<BoutiqueModel> _boutiques = [];
 
   DateTime? _dateDb;
@@ -55,9 +60,20 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
   var _selectedPriority;
 
+  var _selectedBoutiqueId;
+
+  bool _hasMoreData = true;
+
+  int _totalRecords = 0;
+
   List<Coefficient> _priorities = [];
 
-  var _selectedBoutiqueId;
+  ScrollController _scrollController = ScrollController();
+  int _first = 0; // Offset for API request
+  final int _rows = 10; // Number of items per page
+  bool _isFetchingMore = false; // Flag to prevent multiple calls
+
+  var _alowedStatus;
 
   @override
   void initState() {
@@ -68,118 +84,140 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       setState(() {
         _boutiques = boutiques;
       });
-
-
-
     });
-    IncidentService().getAllCoefficients().then((coef){
+    IncidentService().getAllCoefficients().then((coef) {
       setState(() {
-        _priorities = coef ;
+        _priorities = coef;
+      });
+    });
+    IncidentService().getAllowedStatus().then((status) {
+      setState(() {
+        _alowedStatus = status;
+        print(_alowedStatus);
       });
     });
 
-    _fetchIncidents(null,null,null,null,null);
+    _fetchIncidents();
+    _scrollController.addListener(_scrollListener);
   }
-  int _totalIncidents = 0;
 
-  Future<void> _fetchIncidents(
-      int? boutiqueId,
-      int? coefId,
-      int? cluster,
-      int? origin,
-      int? statut,
-      ) async {
-    // Show loading state before making the API call
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-    });
-
-    try {
-      // Fetch incidents from the service
-      final rawIncidents = await IncidentService().getFilteredProblems(
-        boutiqueId,
-        coefId,
-        cluster,
-        origin,
-        statut,
-      );
-
-      // Process and map the raw incidents to Problem objects
-      List<Problem> processedIncidents = rawIncidents.map<Problem>((incident) {
-        return Problem(
-          id: incident['id'] ?? 0,
-          userId: incident['userId'] ?? 0,
-          boutiqueId: incident['boutiqueId'] ?? 0,
-          boutique: incident['boutique'] != null
-              ? BoutiqueModel.fromJson(incident['boutique'])
-              : null, // Handle null boutique
-          description: incident['description'] ?? 'N/A',
-          commentaire: incident['commentaire'] ?? 'N/A',
-          problemImageBefore: incident['problemImageBefore'],
-          problemImageAfter: incident['problemImageAfter'],
-          jointFileBefore: incident['jointFileBefore'],
-          jointFileAfter: incident['jointFileAfter'],
-          coefId: incident['coefId'] ?? 0,
-          coefficient: incident['coefficient'] != null
-              ? Coefficient.fromJson(incident['coefficient'])
-              : null,
-          cluster: incident['cluster'] ?? 0,
-          origin: incident['origin'] ?? 0,
-          declarationDate: incident['declarationDate'] != null
-              ? DateTime.parse(incident['declarationDate'])
-              : DateTime.now(),
-          closedDate: incident['closedDate'] != null
-              ? DateTime.parse(incident['closedDate'])
-              : null, // Handle null closedDate
-          status: incident['status'] ?? 0,
-          closingComment: incident['closingComment'] ?? 'No comment',
-          cost: (incident['cost'] ?? 0).toDouble(),
-        );
-      }).toList();
-
-      // Update state with the processed incidents
-      setState(() {
-        _incidents = processedIncidents;
-        _totalIncidents = _incidents.length;
-        _isLoading = false;
-      });
-    } catch (e) {
-      // Handle errors gracefully
-      setState(() {
-        _isLoading = false;
-        _hasError = true;
-      });
-      debugPrint('Error fetching incidents: $e');
+  void _scrollListener() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent) {
+      if (_hasMoreData && !_isFetchingMore) {
+        _fetchIncidents(isLoadMore: true);
+      }
     }
   }
 
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    _missionLibelleController.dispose();
+    _sousMissionLibelleController.dispose();
+    _questionLibelleController.dispose();
+    _actionIdController.dispose();
+    _boutiqueLibelleController.dispose();
+    _statusValidationController.dispose();
+    super.dispose();
+  }
 
+  int _totalIncidents = 0;
 
+  Future<void> _fetchIncidents({bool isLoadMore = false}) async {
+    if (isLoadMore == true && (_isFetchingMore || !_hasMoreData)) {
+      print(
+          "triggered this condition !! "); // Stop if already fetching or no more data
+      return;
+    }
+
+    setState(() => _isFetchingMore = true);
+    if (isLoadMore == true) {
+      _first += _rows;
+    } else {
+      _first = 0;
+    }
+
+    try {
+      final response = await IncidentService().getFilteredProblems(
+        _selectedBoutiqueId,
+        _selectedPriority,
+        _selectedOrigin,
+        _selectedStatus,
+        _first,
+      );
+
+      // Ensure response matches expected structure
+      List<Problem> problemsData = response.problems;
+      int totalRecords = response.totalRecords;
+
+      print(problemsData);
+
+      List<Problem> newIncidents = problemsData.map<Problem>((incident) {
+        return Problem(
+          id: incident.id ?? 0,
+          user_id: incident.user_id ?? 0,
+          boutique_id: incident.boutique_id ?? 0,
+          /* boutique: incident.boutique != null
+              ? BoutiqueModel.fromJson(incident.boutique as Map<String, dynamic>)
+              : null,*/
+          description: incident.description ?? 'N/A',
+          commentaire: incident.commentaire ?? 'N/A',
+          problem_image_before: incident.problem_image_before,
+          problem_image_after: incident.problem_image_after,
+          joint_file_before: incident.joint_file_before,
+          joint_file_after: incident.joint_file_after,
+          coef_id: incident.coef_id ?? 0,
+          /* coefficient: incident.coefficient != null
+              ? Coefficient.fromJson(incident.coefficient as Map<String, dynamic>)
+              : null,*/
+          cluster: incident.cluster ?? 0,
+          origin: incident.origin ?? 0,
+          declaration_date: incident.declaration_date != null
+              ? incident.declaration_date
+              : DateTime.now(),
+          closed_date:
+              incident.closed_date != null ? incident.closed_date : null,
+          Status: incident.Status ?? 0,
+          closing_comment: incident.closing_comment ?? 'No comment',
+          cost: incident.cost ?? 0.0,
+        );
+      }).toList();
+
+      setState(() {
+        if (isLoadMore == true) {
+          _incidents.addAll(newIncidents);
+        } else {
+          _incidents = newIncidents; // First 10 items
+        }
+
+        _totalRecords = totalRecords; // Set total record count
+        // Update pagination offset
+        _hasMoreData =
+            _incidents.length < _totalRecords; // Stop loading if reached total
+      });
+    } catch (e) {
+      debugPrint('Error fetching incidents: $e');
+    } finally {
+      setState(() {
+        _isFetchingMore = false;
+      });
+    }
+  }
 
   Future<void> _applyFilters() async {
     // Trigger the API call with selected filters
-    await _fetchIncidents(
-       _selectedBoutiqueId,
-       _selectedPriority,
-       _selectedCluster,
-       _selectedOrigin,
-       _selectedStatus,
-    );
+    await _fetchIncidents();
   }
 
   Future<void> _handleRefresh() async {
     // Refresh the incidents list with current filters
-    await _fetchIncidents(
-       _selectedBoutiqueId,
-       _selectedPriority,
-       _selectedCluster,
-       _selectedOrigin,
-       _selectedStatus,
-    );
+    await _fetchIncidents();
   }
 
-  Future<void> _selectDate(BuildContext context, DateTime? initialDate, Function(DateTime?) onDateSelected) async {
+  Future<void> _selectDate(BuildContext context, DateTime? initialDate,
+      Function(DateTime?) onDateSelected) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDate ?? DateTime.now(),
@@ -188,7 +226,43 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     );
     onDateSelected(pickedDate);
   }
+
   var _statusValidation = null;
+
+  final Map<int, Map<int, String>> statusTypeMap = {
+    1: {
+      1: 'Declared',
+      2: 'Solved',
+    },
+    2: {
+      1: 'Declared',
+      2: 'Pending',
+      3: 'Solved',
+    },
+    3: {
+      1: 'Pending',
+      2: 'Planned',
+      3: 'InProgress',
+      4: 'Finished',
+      5: 'Solved',
+    },
+  };
+
+  // statusColors in Dart
+  final Map<String, Map<String, String>> statusColors = {
+    'Declared': {'background': '#f8d7da', 'color': '#721c24'},
+    // Light red background, dark red text
+    'Solved': {'background': '#d4edda', 'color': '#155724'},
+    // Light green background, dark green text
+    'Pending': {'background': '#fff3cd', 'color': '#856404'},
+    // Light yellow background, dark yellow text
+    'Planned': {'background': '#e2e3e5', 'color': '#383d41'},
+    // Light gray background, dark gray text
+    'InProgress': {'background': '#f5c6cb', 'color': '#721c24'},
+    // Light red background, dark red text
+    'Finished': {'background': '#f8d7da', 'color': '#721c24'},
+    // Light red background, dark red text
+  };
 
   Widget _buildFilterForm() {
     return Column(
@@ -208,7 +282,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
             ..._boutiques.map((boutique) {
               return DropdownMenuItem<int>(
                 value: boutique.id, // Store the boutique ID
-                child: Text(boutique.libelle ?? 'No Name'), // Display boutique name
+                child: Text(
+                    boutique.libelle ?? 'No Name'), // Display boutique name
               );
             }).toList(),
           ],
@@ -243,7 +318,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           },
           value: _selectedPriority,
         ),
-        SizedBox(height: 10), // Spacing
+        /* SizedBox(height: 10), // Spacing
 
         // Cluster Dropdown
         DropdownButtonFormField<int>(
@@ -262,7 +337,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
             });
           },
           value: _selectedCluster,
-        ),
+        ),*/
         SizedBox(height: 10), // Spacing
 
         // Origin Dropdown
@@ -286,15 +361,41 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         SizedBox(height: 10), // Spacing
 
         // Status Dropdown
+        SizedBox(height: 10), // Spacing
+
+        // Status Dropdown
         DropdownButtonFormField<int>(
           decoration: InputDecoration(
             labelText: 'Statut',
             border: OutlineInputBorder(),
           ),
           items: [
-            DropdownMenuItem<int>(value: null, child: Text('Tous')),
-            DropdownMenuItem<int>(value: 0, child: Text('Non Résolu')),
-            DropdownMenuItem<int>(value: 1, child: Text('Clôturé')),
+            DropdownMenuItem<int>(
+              value: null,
+              child: Text('Tous'),
+            ),
+            ..._alowedStatus.map((status) {
+              int statusId = status['identifier'];
+              return DropdownMenuItem<int>(
+                value: statusId,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      margin: EdgeInsets.only(right: 8),
+                      // Space between dot and text
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: statutColors[statusId] ??
+                            Colors.grey, // Default to grey if not found
+                      ),
+                    ),
+                    Text(status['name'] ?? 'Unknown'),
+                  ],
+                ),
+              );
+            }).toList(),
           ],
           onChanged: (int? newValue) {
             setState(() {
@@ -303,6 +404,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           },
           value: _selectedStatus,
         ),
+
         SizedBox(height: 10), // Spacing
 
         // Apply Filters Button
@@ -321,28 +423,30 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     );
   }
 
-
-
-
-
-
+  final Map<int, Color> statutColors = {
+    1: Colors.yellow,
+    2: Colors.greenAccent, // Statut 1: Green
+    3: Colors.orange, // Statut 2: Orange
+    4: Colors.blueAccent, // Statut 3: Red
+    5: Colors.green,
+  };
 
   Widget _listItem(Problem problem) {
     // Define a dictionary for statut colors
     final Map<int, Color> statutColors = {
       1: Colors.yellow,
-      2: Colors.greenAccent,  // Statut 1: Green
+      2: Colors.greenAccent, // Statut 1: Green
       3: Colors.orange, // Statut 2: Orange
-      4: Colors.blueAccent,    // Statut 3: Red
+      4: Colors.blueAccent, // Statut 3: Red
       5: Colors.green,
     };
 
     // Get the color based on the statut, or use a default color
-    final Color borderColor = statutColors[problem.status] ?? Colors.grey;
+    final Color borderColor = statutColors[problem.Status] ?? Colors.grey;
 
     // Format the date (display only the date part)
-    final String formattedDate = problem.declarationDate != null
-        ? DateFormat('yyyy-MM-dd').format(problem.declarationDate!)
+    final String formattedDate = problem.declaration_date != null
+        ? DateFormat('yyyy-MM-dd').format(problem.declaration_date!)
         : 'No date';
 
     return Stack(
@@ -393,7 +497,6 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey[600],
-
                   ),
                 ),
                 SizedBox(height: 8.0),
@@ -447,14 +550,6 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     );
   }
 
-
-
-
-
-
-
-
-
   void _showModal(BuildContext context, Map<String, dynamic> item) {
     AwesomeBottomSheet().show(
       context: context,
@@ -465,10 +560,11 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         accentColor: TColors.secondary,
         iconColor: Colors.white,
       ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0), // Adjusted padding for SafeArea
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+      // Adjusted padding for SafeArea
       positive: AwesomeSheetAction(
-          title: 'Consulter',
-        onPressed: ()=> {},
+        title: 'Consulter',
+        onPressed: () => {},
         /*onPressed: () {
           Navigator.of(context).pop();
           Navigator.of(context).push(
@@ -486,30 +582,33 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           _showConfirmationDialog(item);
         },
         title: item["clouture"] != null ? 'UnCloturer' : "Cloturer",
-        icon: item["clouture"] != null ? Iconsax.close_circle :Iconsax.tick_circle,
+        icon: item["clouture"] != null
+            ? Iconsax.close_circle
+            : Iconsax.tick_circle,
       ),
     );
   }
-
-
 
   void _showConfirmationDialog(Map<String, dynamic> item) {
     AwesomeBottomSheet().show(
       context: context,
       title: Text('Confirmer Clôture'),
-      description: Text('Êtes-vous sûr de vouloir changer l état de cloture "${item['questionLibelle'] ?? 'No question'}"?'),
+      description: Text(
+          'Êtes-vous sûr de vouloir changer l état de cloture "${item['questionLibelle'] ?? 'No question'}"?'),
       color: CustomSheetColor(
         mainColor: const Color(0xAD0BB819),
         accentColor: const Color(0xFF0BB819),
         iconColor: Colors.white,
       ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0), // Adjusted padding for SafeArea
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+      // Adjusted padding for SafeArea
       positive: AwesomeSheetAction(
         onPressed: () async {
           Navigator.of(context).pop(); // Close the bottom sheet
 
           // Extract the questionId from the item
-          final questionId = item['id'] as int?; // Ensure that 'questionId' exists and is of type int
+          final questionId = item['id']
+              as int?; // Ensure that 'questionId' exists and is of type int
 
           if (questionId != null) {
             try {
@@ -572,19 +671,6 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     );
   }
 
-
-
-  @override
-  void dispose() {
-    _missionLibelleController.dispose();
-    _sousMissionLibelleController.dispose();
-    _questionLibelleController.dispose();
-    _actionIdController.dispose();
-    _boutiqueLibelleController.dispose();
-    _statusValidationController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -600,8 +686,10 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       ),
       body: LiquidPullToRefresh(
         onRefresh: _handleRefresh,
-        springAnimationDurationInMilliseconds: 300, // Speed up the animation
-        height: 60.0, // Adjust the height as needed
+        springAnimationDurationInMilliseconds: 300,
+        // Speed up the animation
+        height: 60.0,
+        // Adjust the height as needed
         color: TColors.primary,
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0),
@@ -611,7 +699,9 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   IconButton(
-                    icon: Icon(_showFilters ? Icons.arrow_upward : Icons.arrow_downward),
+                    icon: Icon(
+                      _showFilters ? Icons.arrow_upward : Icons.arrow_downward,
+                    ),
                     onPressed: () {
                       setState(() {
                         _showFilters = !_showFilters;
@@ -621,51 +711,44 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                 ],
               ),
               const SizedBox(height: 16.0),
+
+              // Show the filter form when _showFilters is true
+              if (_showFilters) _buildFilterForm(), // Conditional rendering
+
+              const SizedBox(height: 16.0),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total Incidents: $_totalIncidents',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    if (_showFilters) _buildFilterForm(),
-                    if (_isLoading) const Center(child: CircularProgressIndicator()),
-                    if (_hasError)
-                      const Center(child: Text('Error loading incidents.')),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: _incidents.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: OpenContainer(
-                              transitionType: ContainerTransitionType.fadeThrough, // Smooth fade transition
-                              openBuilder: (context, _) {
-                                return ConsultProblem(problemId: _incidents[index].id); // Pass the problemId instead of the entire problem
-                              },
-                              closedElevation: 0.0,
-                              closedShape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              closedColor: Colors.transparent,
-                              closedBuilder: (context, openContainer) {
-                                return GestureDetector(
-                                  onTap: openContainer, // Trigger animation
-                                  child: _listItem(_incidents[index]), // Pass the incident to list item display
-                                );
-                              },
-                            )
-                            ,
+                child: ListView.builder(
+                  controller: _scrollController,
+                  // Attach scroll listener
+                  itemCount: _incidents.length + (_isFetchingMore ? 1 : 0),
+                  // Add extra item for loader
+                  itemBuilder: (context, index) {
+                    if (index == _incidents.length) {
+                      return _hasMoreData
+                          ? const Center(
+                              child:
+                                  CircularProgressIndicator()) // Show loading if more data
+                          : const SizedBox(); // No more data, show nothing
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: OpenContainer(
+                        transitionType: ContainerTransitionType.fadeThrough,
+                        openBuilder: (context, _) =>
+                            ConsultProblem(problemId: _incidents[index].id),
+                        closedElevation: 0.0,
+                        closedShape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0)),
+                        closedColor: Colors.transparent,
+                        closedBuilder: (context, openContainer) {
+                          return GestureDetector(
+                            onTap: openContainer,
+                            child: _listItem(_incidents[index]),
                           );
                         },
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ],
@@ -674,10 +757,4 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       ),
     );
   }
-
-
-
-
-
-
 }
