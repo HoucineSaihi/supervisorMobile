@@ -120,7 +120,6 @@ class _AddMissionFormState extends State<AddMissionForm> {
       }
     }
 
-
       await _missionService.addMission(selectedMission,context);
 
       Navigator.pop(context, true); // Navigate back

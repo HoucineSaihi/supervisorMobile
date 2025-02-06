@@ -329,29 +329,44 @@ class MissionService {
       );
 
       if (response.statusCode == 200) {
-        // Success
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: AwesomeSnackbarContent(
-              title: 'Success!',
-              message: 'Mission ajoutée avec succès.',
-              contentType: ContentType.success,
-            ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-          ),
-        );
-      } else {
-        // Parse the error message from the backend
         final responseBody = json.decode(response.body);
-        final errorMessage = responseBody['message'] ?? 'Failed to add mission';
 
+        if (responseBody['success'] == true) {
+          // Success
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: AwesomeSnackbarContent(
+                title: 'Succès!',
+                message: responseBody['message'] ?? 'Mission ajoutée avec succès.',
+                contentType: ContentType.success,
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+            ),
+          );
+        } else {
+          // Failure response from API
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: AwesomeSnackbarContent(
+                title: 'Erreur!',
+                message: responseBody['message'] ?? 'Échec de l\'ajout de la mission.',
+                contentType: ContentType.failure,
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+            ),
+          );
+        }
+      } else {
+        // Server error (non-200 status)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: AwesomeSnackbarContent(
               title: 'Erreur!',
-              message: errorMessage,
+              message: 'Erreur serveur: ${response.statusCode}',
               contentType: ContentType.failure,
             ),
             behavior: SnackBarBehavior.floating,
@@ -359,16 +374,24 @@ class MissionService {
             elevation: 0,
           ),
         );
-
-        // Optionally, you can throw an exception with the message
-        throw Exception(errorMessage);
       }
     } catch (e) {
-
-
-      throw Exception('An unexpected error occurred: $e');
+      // Catch unexpected errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: 'Erreur!',
+            message: 'Une erreur inattendue s\'est produite: $e',
+            contentType: ContentType.failure,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+      );
     }
   }
+
 
   Future<String> uploadFile(File file) async {
     final Uri uri = Uri.parse('$baseURL/api/Files'); // Construct the URI for your file upload endpoint
