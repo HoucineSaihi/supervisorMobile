@@ -169,9 +169,9 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           joint_file_before: incident.joint_file_before,
           joint_file_after: incident.joint_file_after,
           coef_id: incident.coef_id ?? 0,
-          /* coefficient: incident.coefficient != null
+          coefficient: (incident.coefficient is Map<String, dynamic>)
               ? Coefficient.fromJson(incident.coefficient as Map<String, dynamic>)
-              : null,*/
+              : incident.coefficient as Coefficient?,
           cluster: incident.cluster ?? 0,
           origin: incident.origin ?? 0,
           declaration_date: incident.declaration_date != null

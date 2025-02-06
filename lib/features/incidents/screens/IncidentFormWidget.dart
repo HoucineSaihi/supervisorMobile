@@ -234,7 +234,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       }catch (e) {
         print(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update question')),
+          SnackBar(content: Text('Impossible de soumettre l’incident. Veuillez réessayer.')),
         );
         setState(() => _isLoading = false);
       }

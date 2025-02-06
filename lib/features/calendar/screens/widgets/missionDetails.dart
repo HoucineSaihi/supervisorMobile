@@ -152,7 +152,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                 ),
                               ),
                               if (widget.mode == 1) // Show icon based on mode
-                                Text('${(conformity ?? 0).toStringAsFixed(2)} %'),
+                                Text('TC : ${(conformity ?? 0).toStringAsFixed(2)} %'),
                             ],
                           ),
                           SizedBox(height: 16),
