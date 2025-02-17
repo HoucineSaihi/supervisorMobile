@@ -7,6 +7,8 @@ import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../models/UserChecklistAssignment.dart';
+
 class AddMissionForm extends StatefulWidget {
   final DateTime? Date; // Add this parameter
 
@@ -26,6 +28,10 @@ class _AddMissionFormState extends State<AddMissionForm> {
   bool _isLoadingBoutiques = true;
   bool _isLoadingMissions = false;
   bool _isLoading = false;
+
+
+  List<UserChecklistAssignment> assignments = [];
+  late AssignementService assignementService;
   @override
   void initState() {
     super.initState();
