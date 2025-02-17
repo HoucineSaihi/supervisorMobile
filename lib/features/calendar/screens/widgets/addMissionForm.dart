@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supervisormobile/features/calendar/DTOs/PlanifyMissionDTO.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/missionDetails.dart';
@@ -8,6 +9,7 @@ import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../models/UserChecklistAssignment.dart';
+import '../../services/AssignementService.dart';
 
 class AddMissionForm extends StatefulWidget {
   final DateTime? Date; // Add this parameter
@@ -23,34 +25,39 @@ class _AddMissionFormState extends State<AddMissionForm> {
   final MissionService _missionService = MissionService();
   List<BoutiqueModel> _boutiques = [];
   List<Mission> _notPlanifiedMissions = [];
-  int? _selectedBoutiqueId;
-  int? _selectedMissionId;
+  int? _selectedBoutiqueId = null;
+  int? _selectedMissionId = null;
   bool _isLoadingBoutiques = true;
   bool _isLoadingMissions = false;
   bool _isLoading = false;
 
 
   List<UserChecklistAssignment> assignments = [];
-  late AssignementService assignementService;
+  late Assignementservice assignementService;
   @override
   void initState() {
     super.initState();
+    assignementService = Assignementservice();
     _initializeData();
+    get_assignement();
   }
 
+  Future<void> get_assignement()async {
+    try {
+      List<UserChecklistAssignment> fetchedAssignments = await assignementService.getAssignmentsByUserId();
+      setState(() {
+        assignments = fetchedAssignments;  // Store fetched data in assignments array
+      });
+    } catch (e) {
+      print('Error fetching assignments: $e');
+    }
+  }
   Future<void> _initializeData() async {
     try {
-      final boutiquesFuture = _missionService.getBoutiques();
-      final missionsFuture = _missionService.getAllNotPlanifiedMissions();
-
-      final results = await Future.wait([boutiquesFuture, missionsFuture]);
-
-      final boutiques = results[0] as List<BoutiqueModel>;
-      final missions = results[1] as List<Mission>;
+      var btqs = await _missionService.getBoutiques();
 
       setState(() {
-        _boutiques = boutiques;
-        _notPlanifiedMissions = missions;
+        _boutiques = btqs;
         _isLoadingBoutiques = false;
         _isLoadingMissions = false;
       });
@@ -95,38 +102,10 @@ class _AddMissionFormState extends State<AddMissionForm> {
     String? userIdString = await _storage.read(key: 'currentUserId');
     var _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
-    List<int> userIdArray = [];
-    userIdArray.add(_currentUserID);
+    PlanifyMissionDTO payload = PlanifyMissionDTO(planifiedAt: DateTime(widget.Date!.year, widget.Date!.month, widget.Date!.day)
+        .add(Duration(seconds: 10)), posId: _selectedBoutiqueId!, assignementId: _selectedMissionId!);
 
-    final selectedMission = _notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId);
-
-    // Reset mission properties
-    selectedMission.id = 0;
-    selectedMission.boutique = null;
-    selectedMission.boutiqueId = _selectedBoutiqueId;
-    selectedMission.userId = _currentUserID; // Set the user ID as needed
-    selectedMission.status = 1;
-    selectedMission.planifiedAt = widget.Date != null
-        ? DateTime(widget.Date!.year, widget.Date!.month, widget.Date!.day)
-        .add(Duration(seconds: 10))
-        : null; // Add 10 seconds to the date
- // Use the selectedDate here
-
-    // Process each sousMission
-    for (var sousMission in selectedMission.sousMissions ?? []) {
-      sousMission.code = sousMission.code?.toUpperCase();
-      sousMission.id = 0;
-      sousMission.missionId = 0;
-
-      // Process each missionQuestion in sousMission
-      for (var question in sousMission.missionQuestions ?? []) {
-        question.id = 0;
-        question.sousMissionId = 0;
-
-      }
-    }
-
-      await _missionService.addMission(selectedMission,context);
+      await _missionService.addMission(payload,context);
 
       Navigator.pop(context, true); // Navigate back
 
@@ -134,24 +113,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
 
 
 
-  Future<void> _fetchNotPlanifiedMissions() async {
-    if (_selectedBoutiqueId == null) return;
 
-    setState(() {
-      _isLoadingMissions = true;
-    });
-    try {
-      final missions = await _missionService.getAllNotPlanifiedMissions();
-      setState(() {
-        _notPlanifiedMissions = missions;
-        _isLoadingMissions = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoadingMissions = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -177,9 +139,9 @@ class _AddMissionFormState extends State<AddMissionForm> {
                   );
                 }).toList(),
                 onChanged: (int? newValue) {
+                  _selectedBoutiqueId = newValue;
+
                   setState(() {
-                    _selectedBoutiqueId = newValue;
-                    _fetchNotPlanifiedMissions();
                   });
                 },
                 value: _selectedBoutiqueId,
@@ -212,20 +174,27 @@ class _AddMissionFormState extends State<AddMissionForm> {
                   labelText: 'Choisir une mission',
                   border: OutlineInputBorder(),
                 ),
-                items: _notPlanifiedMissions.map((mission) {
+                items: assignments.isNotEmpty
+                    ? assignments.map((assignment) {
                   return DropdownMenuItem<int>(
-                    value: mission.id,
+                    value: assignment.id,
                     child: Text(
-                        '${mission.libelle ?? 'No Name'} -- ${mission.missionCode ?? 'No Code'}'),
+                        '${assignment.checklist?.libelle ?? 'No Name'} -- ${assignment.checklist?.missionCode ?? 'No Code'}'),
                   );
-                }).toList(),
+                }).toList()
+                    : [],  // Empty list if no assignments
                 onChanged: (int? newValue) {
+                  print("this is he new value ");
+                  print(newValue);
                   setState(() {
                     _selectedMissionId = newValue;
                   });
                 },
-                value: _selectedMissionId,
+                value: _selectedMissionId != null && _selectedMissionId != 0
+                    ? _selectedMissionId
+                    : null,  // Safely handle the default value
               ),
+
               SizedBox(height: 16.0),
 
               // Display selected Mission Info
@@ -239,12 +208,12 @@ class _AddMissionFormState extends State<AddMissionForm> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                              'Code: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).missionCode ?? 'N/A'}'),
+                              'Code: ${assignments.firstWhere((m) => m.id == _selectedMissionId).checklist!.libelle ?? 'N/A'}'),
                           Text(
-                              'Libelle: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).libelle ?? 'N/A'}'),
+                              'Libelle: ${assignments.firstWhere((m) => m.id == _selectedMissionId).checklist!.libelle  ?? 'N/A'}'),
 
                           Text(
-                              'Description: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).description ?? 'N/A'}'),
+                              'Description: ${assignments.firstWhere((m) => m.id == _selectedMissionId).checklist!.description  ?? 'N/A'}'),
                         ],
                       ),
                     ),

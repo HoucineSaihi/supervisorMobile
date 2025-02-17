@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:supervisormobile/features/calendar/DTOs/PlanifyMissionDTO.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
@@ -318,14 +319,14 @@ class MissionService {
     }
   }
 
-  Future<void> addMission(Mission mission, BuildContext context) async {
+  Future<void> addMission(PlanifyMissionDTO payload, BuildContext context) async {
     try {
       final response = await http.post(
         Uri.parse('${dotenv.env['BASE_URL']}/api/Missions'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
-        body: jsonEncode(mission.toJson()),
+        body: jsonEncode(payload.toJson()),
       );
 
       if (response.statusCode == 200) {

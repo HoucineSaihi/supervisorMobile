@@ -9,15 +9,6 @@ class BoutiqueModel {
   String? country;
   String? adress;
   DateTime? datecreation;
-  String? adresseIp;
-  String? storeId;
-  String? warehouseId;
-  String? dbId;
-  String? env;
-  String? usernameCegid;
-  String? passwordCegid;
-  int? groupId;
-  Group? group;
   int? cluster;
 
   BoutiqueModel({
@@ -29,15 +20,6 @@ class BoutiqueModel {
     this.country,
     this.adress,
     this.datecreation,
-    this.adresseIp,
-    this.storeId,
-    this.warehouseId,
-    this.dbId,
-    this.env,
-    this.usernameCegid,
-    this.passwordCegid,
-    this.groupId,
-    this.group,
     this.cluster
   });
 
@@ -51,15 +33,6 @@ class BoutiqueModel {
       country: json['country'] as String?,
       adress: json['adress'] as String?,
       datecreation: json['datecreation'] != null ? DateTime.parse(json['datecreation']) : null,
-      adresseIp: json['adresseIp'] as String?,
-      storeId: json['storeId'] as String?,
-      warehouseId: json['warehouseId'] as String?,
-      dbId: json['dbId'] as String?,
-      env: json['env'] as String?,
-      usernameCegid: json['usernameCegid'] as String?,
-      passwordCegid: json['passwordCegid'] as String?,
-      groupId: json['groupId'] as int?,
-      group: json['group'] != null ? Group.fromJson(json['group']) : null,
       cluster: json['cluster'] as int
     );
   }
@@ -74,15 +47,6 @@ class BoutiqueModel {
       'country': country,
       'adress': adress,
       'datecreation': datecreation?.toIso8601String(),
-      'adresseIp': adresseIp,
-      'storeId': storeId,
-      'warehouseId': warehouseId,
-      'dbId': dbId,
-      'env': env,
-      'usernameCegid': usernameCegid,
-      'passwordCegid': passwordCegid,
-      'groupId': groupId,
-      'group': group?.toJson(),
       'cluster' : cluster
     };
   }
