@@ -37,7 +37,7 @@ class MissionService {
 
   MissionService() {
     apiUrl = '${dotenv.env['BASE_URL']}/api/Missions/getMissionsForAreaManager';
-    missionDetailsUrl = '${dotenv.env['BASE_URL']}/api/Missions/missionAllQuestion';
+    missionDetailsUrl = '${dotenv.env['BASE_URL']}/api/Missions';
     actionsUrl = '${dotenv.env['BASE_URL']}/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
   }
   Future<void> deleteImage(String fileName) async {
