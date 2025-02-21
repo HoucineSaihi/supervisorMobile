@@ -1,4 +1,5 @@
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
+import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/modelReponseQuestion.dart';
 
 import 'Checklist.dart';
@@ -8,7 +9,7 @@ class Mission {
   int id;
   List<MissionAnswers>? missionAnswers;
   int checklistId;
-  Checklist checklist;
+  Checklist? checklist;
   DateTime? createdAt;
   DateTime? startedAt;
   DateTime? planifiedAt;
@@ -18,6 +19,7 @@ class Mission {
   int status;
   UserModel? user;
   int? boutiqueId;
+  BoutiqueModel? boutique;
   double scoreMax;
   int? totalQuestion;
   double? tauxConformite;
@@ -30,7 +32,7 @@ class Mission {
     required this.id,
     this.missionAnswers,
     required this.checklistId,
-    required this.checklist,
+     this.checklist,
     this.createdAt,
     this.startedAt,
     this.planifiedAt,
@@ -40,7 +42,7 @@ class Mission {
     required this.status,
     this.user,
     this.boutiqueId,
-
+     this.boutique,
     required this.scoreMax,
     this.totalQuestion,
     this.tauxConformite,
@@ -59,7 +61,7 @@ class Mission {
           ?.map((e) => MissionAnswers.fromJson(e))
           .toList(),
       checklistId: json['checklist_id'] as int,
-      checklist: Checklist.fromJson(json['checklist']),
+      checklist:  json['checklist'] != null ? Checklist.fromJson(json['checklist']) : null,
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       startedAt: json['startedAT'] != null ? DateTime.parse(json['startedAT']) : null,
       planifiedAt: json['planifiedAt'] != null ? DateTime.parse(json['planifiedAt']) : null,
@@ -69,7 +71,7 @@ class Mission {
       status: json['status'] as int,
       user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
       boutiqueId: json['BoutiqueId'] as int?,
-
+      boutique: json['boutique'] != null ? BoutiqueModel.fromJson(json['boutique']) : null,
       scoreMax: (json['scoreMax'] as num).toDouble(),
       totalQuestion: json['totalQuestion'] as int?,
       tauxConformite: (json['tauxConformite'] as num?)?.toDouble(),
@@ -89,7 +91,7 @@ class Mission {
       'id': id,
       'MissionAnswers': missionAnswers?.map((e) => e.toJson()).toList(),
       'checklist_id': checklistId,
-      'checklist': checklist.toJson(),
+      'checklist': checklist?.toJson(),
       'createdAt': createdAt?.toIso8601String(),
       'startedAT': startedAt?.toIso8601String(),
       'planifiedAt': planifiedAt?.toIso8601String(),
@@ -99,6 +101,7 @@ class Mission {
       'status': status,
       'user': user?.toJson(),
       'BoutiqueId': boutiqueId,
+      'boutique':boutique?.toJson(),
       'scoreMax': scoreMax,
       'totalQuestion': totalQuestion,
       'tauxConformite': tauxConformite,

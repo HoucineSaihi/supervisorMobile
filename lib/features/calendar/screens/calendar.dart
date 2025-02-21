@@ -7,7 +7,6 @@ import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
 import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
-import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/RapporterMissionWidget.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/addMissionForm.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/calendar_appbar.dart';
@@ -19,6 +18,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:sticky_float_button/sticky_float_button.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
+
+import '../models/Mission.dart';
 
 class CalendarPlanning extends StatefulWidget {
   const CalendarPlanning({super.key});
@@ -648,7 +649,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                MissionDetailsWidget(missionId: mission.id,mode: 1,status : mission.status!)                                  ),
+                                                MissionDetailsWidget(missionId: mission.id,mode: 1,status : mission.status!)),
                                         );
                                         if(shouldRefresh == true){
                                           setState(() {
@@ -703,7 +704,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                           children: [
                                                             Expanded(
                                                               child: Text(
-                                                                'Code: ${mission.missionCode ?? 'No Code'}',
+                                                                'Code: ${mission.checklist?.missionCode ?? 'No Code'}',
                                                                 style: TextStyle(
                                                                   color: Color(int.parse(
                                                                       colors['secondary']!
@@ -732,7 +733,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                         ),
                                                         SizedBox(height: 8),
                                                         Text(
-                                                          'Libelle: ${mission.libelle ?? 'No Libelle'}',
+                                                          'Libelle: ${mission.checklist?.libelle ?? 'No Libelle'}',
                                                           style: TextStyle(
                                                             color: Color(int.parse(
                                                                 colors['secondary']!
@@ -743,7 +744,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                         ),
                                                         SizedBox(height: 8),
                                                         Text(
-                                                          'Description: ${mission.description ?? 'No Description'}',
+                                                          'Description: ${mission.checklist?.description ?? 'No Description'}',
                                                           style: TextStyle(
                                                             color: Color(int.parse(
                                                                 colors['secondary']!

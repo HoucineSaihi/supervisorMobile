@@ -7,13 +7,16 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/DTOs/PlanifyMissionDTO.dart';
+import 'package:supervisormobile/features/calendar/DTOs/add_answer_dto.dart';
+import 'package:supervisormobile/features/calendar/models/CategoryQuestions.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
-import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+
+import '../models/Mission.dart';
 
 class MissionService {
 
@@ -215,8 +218,8 @@ class MissionService {
     }
   }
 
-  Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion,BuildContext context) async {
-    final String url = '${dotenv.env['BASE_URL']}/api/MissionQuestions/$questionId';
+  Future<void> updateMissionQuestion(int questionId, AddAnswerDto updatedQuestion,BuildContext context) async {
+    final String url = '${dotenv.env['BASE_URL']}/api/MissionAnswers/AnswerQuestion/$questionId';
 
     try {
       final response = await http.put(
@@ -446,8 +449,8 @@ class MissionService {
     }
   }
 
-  Future<List<QuestionMission>> getQuestionsForSousMission(int sousMissionId) async {
-    final String url = '${dotenv.env['BASE_URL']}/api/MissionQuestions?idSousMission=$sousMissionId';
+  Future<List<CategoryQuestions>> getQuestionsForSousMission(int sousMissionId, int mission_id) async {
+    final String url = '${dotenv.env['BASE_URL']}/api/GetMissionCategoryQuestions/${mission_id}/${sousMissionId}';
 
     final response = await http.get(
       Uri.parse(url),
@@ -458,7 +461,7 @@ class MissionService {
 
     if (response.statusCode == 200) {
       List<dynamic> body = json.decode(response.body);
-      List<QuestionMission> questions = body.map((dynamic item) => QuestionMission.fromJson(item)).toList();
+      List<CategoryQuestions> questions = body.map((dynamic item) => CategoryQuestions.fromJson(item)).toList();
       return questions;
     } else {
       throw Exception('Failed to load questions for sousMission');

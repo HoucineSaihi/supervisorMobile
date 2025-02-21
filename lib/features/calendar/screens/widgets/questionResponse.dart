@@ -9,6 +9,7 @@ import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supervisormobile/features/calendar/DTOs/add_answer_dto.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
@@ -18,10 +19,12 @@ import 'package:path_provider/path_provider.dart'; // For accessing the temp dir
 
 class QuestionResponseWidget extends StatefulWidget {
   final int questionId;
+  final int missionId;
   final int modelResponseID;
+  final String question_description;
 
   const QuestionResponseWidget(
-      {Key? key, required this.questionId, required this.modelResponseID})
+      {Key? key, required this.questionId, required this.modelResponseID, required this.missionId,required this.question_description})
       : super(key: key);
 
   @override
@@ -49,7 +52,6 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   @override
   void initState() {
     super.initState();
-    _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
     _listChoixReponse =
         MissionService().getAllChoixReponse(widget.modelResponseID);
@@ -58,15 +60,6 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
 
   void _submitForm() async {
     setState(() => _isLoading = true);
- /*
-    if( reponse!.incident == true && _commentController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Commentaire obligatoire en cas d'incident.")),
-      );
-      setState(() => _isLoading = false);
-
-      return ;
-    } */
 
     if (selectedResponseID != null) {
       String? imageName;
@@ -99,25 +92,19 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       }
 
       // Create the updated question object
-      final updatedQuestion = QuestionMission(
-        id: widget.questionId,
+      final mission_answer =  AddAnswerDto(
+        missionId: widget.missionId,
+        questionId: widget.questionId,
         commentaire: _commentController.text,
         actionId: _selectedAction?.id,
-        fileName: imageName, // Add the uploaded file path
-        reponseID: selectedResponseID,
-        selectedResponseValue: selectedResponseVallue,
+        reponseId: selectedResponseID,
         jointureFichier: fileName,
+        fileName: imageName, // Add the uploaded file path
+      ) ;
 
-      );
-
-      print("-----------------------------------Valeur JSON \n");
-      print(updatedQuestion.actionId);
-      print(updatedQuestion.reponseID);
-      print(updatedQuestion.fileName);
-      print(selectedResponseVallue);
 
       try {
-        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion,context);
+        await MissionService().updateMissionQuestion(mission_answer.missionId, mission_answer,context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Question updated successfully')),
         );
@@ -277,24 +264,12 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                FutureBuilder<QuestionMission>(
-                  future: _questionFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
-                    } else if (!snapshot.hasData) {
-                      return Center(child: Text('No data found'));
-                    }
 
-                    final question = snapshot.data!;
-
-                    return Column(
+                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Question: ${question.description ?? 'No Description'}",
+                          "Question: ${widget.question_description }",
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
@@ -596,9 +571,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                           ),
                         ),
                       ],
-                    );
-                  },
-                ),
+                    )
+
               ],
             ),
           ),

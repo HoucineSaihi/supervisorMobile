@@ -1,8 +1,9 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
+
+import '../../models/Mission.dart';
 
 class RapporterMissionWidget extends StatefulWidget {
   final Mission mission;
@@ -94,13 +95,14 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
   @override
   Widget build(BuildContext context) {
     // Get boutique information
+    /*
     final boutique = widget.mission.boutique;
     final boutiqueLibelle = boutique?.libelle ?? 'No Boutique Name';
     final boutiqueCode = boutique?.code ?? 'No Boutique Code';
     final planifiedAt = widget.mission.planifiedAt != null
         ? _dateFormat.format(widget.mission.planifiedAt!)
         : 'No Date';
-
+*/
     return Scaffold(
       appBar: AppBar(
         title: Text('Rapporter Mission'),
@@ -115,22 +117,22 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            Text('Code: ${widget.mission.missionCode ?? 'No Code'}'),
-            Text('Libelle: ${widget.mission.libelle ?? 'No Title'}'),
-            Text('Description: ${widget.mission.description ?? 'No Description'}'),
+            Text('Code: ${widget.mission.checklist?.missionCode ?? 'No Code'}'),
+            Text('Libelle: ${widget.mission.checklist?.libelle ?? 'No Title'}'),
+            Text('Description: ${widget.mission.checklist?.description ?? 'No Description'}'),
             SizedBox(height: 16),
             Text(
               'Date de planification:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            Text(planifiedAt),
+           // Text(planifiedAt),
             SizedBox(height: 16),
             Text(
               'Information Boutique:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            Text('Boutique Code: $boutiqueCode'),
-            Text('Boutique Libelle: $boutiqueLibelle'),
+           // Text('Boutique Code: $boutiqueCode'),
+           // Text('Boutique Libelle: $boutiqueLibelle'),
             SizedBox(height: 25),
             Text(
               'Choisir la date pour rapporter la mission',

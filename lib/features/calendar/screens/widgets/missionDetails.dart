@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart'; // Import Iconsax for the icons
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 
-import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/mission_question.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
+
+import '../../models/CategoryQuestions.dart';
+import '../../models/Mission.dart';
 
 class MissionDetailsWidget extends StatefulWidget {
   final int missionId;
@@ -33,31 +35,35 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
 
   }
 
-  double _calculateAnsweredPercentage(List<QuestionMission>? questions) {
-    if (questions == null || questions.isEmpty) return 0;
+  double _calculateAnsweredPercentage(List<CategoryQuestions>? questions) {
+   /* if (questions == null || questions.isEmpty) return 0;
     int answeredCount = questions.where((q) => q.reponseID != null).length;
-    return (answeredCount / questions.length) * 100;
+    return (answeredCount / questions.length) * 100;*/
+    return 0;
   }
 
   int _calculateYesPercentage(List<QuestionMission>? questions) {
-    if (questions == null || questions.isEmpty) return 0;
+    /*if (questions == null || questions.isEmpty) return 0;
     int yesCount = questions.length;
-    return  questions.length;
+    return  questions.length;*/
+    return 0;
   }
 
   double _calculateNoPercentage(List<QuestionMission>? questions) {
-    if (questions == null || questions.isEmpty) return 0;
+   /* if (questions == null || questions.isEmpty) return 0;
     int noCount = questions.where((q) => q.choixReponseQuestion?.incident == true).length;
-    return (noCount / questions.length) * 100;
+    return (noCount / questions.length) * 100;*/
+    return 0 ;
   }
 
   bool _allSousMissionsAnswered(Mission mission) {
-    final sousMissions = mission.sousMissions ?? [];
+   /* final sousMissions = mission.checklist.sousMissions ?? [];
     return sousMissions.every((sousMission) {
       final allQuestions = sousMission.missionQuestions ?? [];
       final answeredPercentage = _calculateAnsweredPercentage(allQuestions);
       return answeredPercentage == 100;
-    });
+    });*/
+    return false;
   }
 
   Future<void> _handleValidation(Mission mission) async {
@@ -146,7 +152,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Mission: ${mission.libelle ?? 'No Title'}',
+                                  'Mission: ${mission.checklist?.libelle ?? 'No Title'}',
                                   style: TextStyle(
                                       fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
@@ -156,15 +162,15 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                             ],
                           ),
                           SizedBox(height: 16),
-                          ...?mission.sousMissions?.map((sousMission) {
+                          ...?mission.checklist?.sousMissions?.map((sousMission) {
                             final allQuestions =
                                 sousMission.missionQuestions ?? [];
                             final answeredPercentage =
                             _calculateAnsweredPercentage(allQuestions);
-                            final yesPercentage =
-                            _calculateYesPercentage(allQuestions);
-                            final noPercentage =
-                            _calculateNoPercentage(allQuestions);
+                            final yesPercentage = 3 ;
+                           // _calculateYesPercentage(allQuestions);
+                            final noPercentage = 4;
+                            //_calculateNoPercentage(allQuestions);
 
                             return Card(
                               elevation: 4.0,
@@ -182,7 +188,8 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                         mode: widget.mode,
                                         sousMissionID: sousMission.id!,
                                         modelResponseID: mission.modelReponseQuestionId!,
-                                        status:widget.status
+                                        status:widget.status,
+                                        missionID: widget.missionId,
                                       ),
                                     ),
                                   );
