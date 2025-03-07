@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/DTOs/PlanifyMissionDTO.dart';
 import 'package:supervisormobile/features/calendar/DTOs/add_answer_dto.dart';
 import 'package:supervisormobile/features/calendar/models/CategoryQuestions.dart';
+import 'package:supervisormobile/features/calendar/models/MissionAnswers.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
@@ -185,9 +186,9 @@ class MissionService {
     }
   }
 
-  Future<QuestionMission> getQuestionDetails(int questionId) async {
+  Future<MissionAnswers> getQuestionAnswer(int questionId,int mission_id) async {
     final response = await http.get(
-      Uri.parse('${dotenv.env['BASE_URL']}/api/MissionQuestions/$questionId'),
+      Uri.parse('${dotenv.env['BASE_URL']}/api/MissionAnswers/GetAnswerById/$questionId/$mission_id'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -195,7 +196,8 @@ class MissionService {
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> json = jsonDecode(response.body);
-      return QuestionMission.fromJson(json);
+      print(MissionAnswers.fromJson(json));
+      return MissionAnswers.fromJson(json);
     } else {
       throw Exception('Failed to load question details');
     }
@@ -251,6 +253,39 @@ class MissionService {
     }
   }
 
+  Future<void> updateAnswer(int questionId,int mission_id,AddAnswerDto answer,BuildContext context) async {
+    final String url = '${dotenv.env['BASE_URL']}/api/MissionAnswers/UpdateAnswer/$questionId/$mission_id';
+
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(answer.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        // Successfully updated
+
+      } else {
+        // Parse the response body to get the message
+        final responseBody = json.decode(response.body);
+        final errorMessage = responseBody['message'] ?? 'An error occurred';
+
+        // Optionally, you can throw an exception or return the message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+        print(responseBody);
+      }
+    } catch (e) {
+      // Handle any exceptions that occur
+      print('Exception: $e');
+      throw Exception('Failed to update the mission question');
+    }
+  }
+
   Future<void> updateMission(int missionId, Mission updatedMission,int status) async {
     final String url = '${dotenv.env['BASE_URL']}/api/Missions/$missionId';
     updatedMission.status = status;
@@ -263,6 +298,25 @@ class MissionService {
     );
 
     if (response.statusCode == 204) {
+      // Successfully updated
+    } else if (response.statusCode == 400 ) {
+      // Handle failure
+      throw Exception('Vous devez répondre a tous les questions.');
+    } else {
+      throw Exception('Une Erreur est survenue.');
+    }
+  }
+
+  Future<void> validateMission(int missionId) async {
+    final String url = '${dotenv.env['BASE_URL']}/api/Missions/ValidateMission/$missionId';
+    final response = await http.put(
+      Uri.parse(url),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      }
+    );
+
+    if (response.statusCode == 200) {
       // Successfully updated
     } else if (response.statusCode == 400 ) {
       // Handle failure

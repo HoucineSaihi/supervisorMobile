@@ -303,6 +303,8 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                             builder: (context) => EditQuestionResponse(
                                               questionId: question.id ?? 0,
                                               modeleReponseId: widget.modelResponseID,
+                                              mission_id: widget.missionID,
+                                              questionDescr: question.description!,
                                             ),
                                           ),
                                         );

@@ -70,7 +70,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
     final MissionService _missionService = MissionService(); // Initialize the MissionService
 
     try {
-      await _missionService.updateMission(mission.id, mission, 6); // 6 is the status for validation
+      await _missionService.validateMission(widget.missionId); // 6 is the status for validation
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

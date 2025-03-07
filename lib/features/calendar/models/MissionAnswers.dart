@@ -40,10 +40,10 @@ class MissionAnswers {
     return MissionAnswers(
       missionId: json['mission_id'] as int,
       questionId: json['question_id'] as int,
-      commentaire: json['Commentaire'] as String?,
+      commentaire: json['commentaire'] as String?,
       fileName: json['fileName'] as String?,
       clouture: json['Clouture'] != null ? DateTime.parse(json['Clouture']) : null,
-      actionId: json['ActionId'] as int?,
+      actionId: json['actionId'] as int?,
       actions: json['actions'] != null ? ActionM.fromJson(json['actions']) : null,
       selectedResponseValue: json['selectedResponseValue'] as int?,
       questionCoefficient: (json['questionCoefficient'] as num?)?.toDouble(),

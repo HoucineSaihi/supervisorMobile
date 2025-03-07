@@ -10,6 +10,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:supervisormobile/features/calendar/models/MissionAnswers.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
@@ -20,11 +21,15 @@ import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import '../../DTOs/FileInfo.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../DTOs/add_answer_dto.dart';
+import '../../models/CategoryQuestions.dart';
+
 class EditQuestionResponse extends StatefulWidget {
   final int questionId;
   final int modeleReponseId;
-
-  const EditQuestionResponse({Key? key, required this.questionId,required this.modeleReponseId})
+  final int mission_id;
+  final String questionDescr;
+  const EditQuestionResponse({Key? key, required this.questionId,required this.modeleReponseId,required this.mission_id,required this.questionDescr})
       : super(key: key);
 
   @override
@@ -32,7 +37,7 @@ class EditQuestionResponse extends StatefulWidget {
 }
 
 class _EditQuestionResponseState extends State<EditQuestionResponse> {
-  late Future<QuestionMission> _questionFuture;
+  late Future<MissionAnswers> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
   final TextEditingController _commentController = TextEditingController();
   ActionM? _selectedAction;
@@ -59,11 +64,12 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
       final question = await _questionFuture;
 
-      final updatedComment = _isEditingComment ? _commentController.text : question.commentaire;
-      final updatedActionId = _isActionDropdownVisible && _selectedAction != null ? _selectedAction!.id : question.actionId;
 
-      question.commentaire = updatedComment;
-      question.actionId = updatedActionId;
+     // final updatedComment = _isEditingComment ? _commentController.text : question.commentaire;
+     // final updatedActionId = _isActionDropdownVisible && _selectedAction != null ? _selectedAction!.id : question.actionId;
+
+      question.commentaire = _commentController.text;
+      question.actionId =  _selectedAction?.id ?? null;
       if(_images.isEmpty && _imageFiles!.isNotEmpty) {
         final firstFile = _imageFiles!.first;
         imageName = await MissionService().uploadFile(File(firstFile.path));
@@ -78,9 +84,14 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       }
 
 
+      var new_answer = AddAnswerDto(missionId: widget.mission_id,
+      questionId: widget.questionId,commentaire:question.commentaire,
+        fileName: question.fileName,actionId: _selectedAction?.id ?? null,
+        reponseId: question.reponseID,jointureFichier: question.jointureFichier
+      );
 
 
-     // await MissionService().updateMissionQuestion(widget.questionId, question,context);
+      await MissionService().updateAnswer(widget.questionId, widget.mission_id,new_answer,context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -96,7 +107,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       );
 
       setState(() {
-        _questionFuture = MissionService().getQuestionDetails(widget.questionId);
+        _questionFuture = MissionService().getQuestionAnswer(widget.questionId,widget.mission_id);
       });
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -124,7 +135,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   @override
   void initState() {
     super.initState();
-    _questionFuture = MissionService().getQuestionDetails(widget.questionId);
+    _questionFuture = MissionService().getQuestionAnswer(widget.questionId,widget.mission_id);
     _actionsFuture = MissionService().getActions();
     _questionFuture.then((questionDetails) {
       _commentController.text = questionDetails.commentaire ?? ''; // Initialize the controller
@@ -278,7 +289,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
         body: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(8.0),
-            child: FutureBuilder<QuestionMission>(
+            child: FutureBuilder<MissionAnswers>(
               future: _questionFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -304,7 +315,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
                         ),
                         SizedBox(height: 4),
-                        Text('${question.description ?? 'No Description'}', style: TextStyle(fontSize: 16.0)),
+                        Text('${widget.questionDescr ?? 'No Description'}', style: TextStyle(fontSize: 16.0)),
                       ],
                     ),
                     SizedBox(height: 20),
@@ -345,7 +356,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                       IconButton(
                                         icon: Icon(Iconsax.edit),
                                         onPressed: () async {
-                                          var selectedChoice = await _showResponseEditDialog(widget.modeleReponseId, question.id);
+                                          var selectedChoice = await _showResponseEditDialog(widget.modeleReponseId, widget.questionId);
                                           if (selectedChoice != null) {
                                             setState(() {
                                               question.reponseID = selectedChoice['id'];
