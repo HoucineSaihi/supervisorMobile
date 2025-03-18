@@ -95,11 +95,12 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
       // Correctly await the service method and assign it to futureMissions
       String? userIdString = await _storage.read(key: 'currentUserId');
       _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-      futureMissions = MissionService().getPlanifiedMissions(
+      futureMissions =  MissionService().getPlanifiedMissions(
           [_currentUserID],
           boutiqueIds,
           _focusedDay
       );
+      print(futureMissions);
       setState(() {}); // Trigger a rebuild if you're using StatefulWidget
     } catch (e) {
       print('Error loading missions: $e');

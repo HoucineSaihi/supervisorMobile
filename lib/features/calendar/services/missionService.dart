@@ -163,7 +163,9 @@ class MissionService {
 
     if (response.statusCode == 200) {
       List<dynamic> body = json.decode(response.body);
+      print(body);
       List<Mission> missions = body.map((dynamic item) => Mission.fromJson(item)).toList();
+      print(missions);
       return missions;
     } else {
       throw Exception('Failed to load missions');
