@@ -155,12 +155,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
     }
   }
 
-  Future<void> _handleRefresh() async {
-    setState(() async {
-      await _fetchQuestions();
 
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +175,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
           ),
         ),
         body: LiquidPullToRefresh(
-          onRefresh: _handleRefresh,
+          onRefresh: _fetchQuestions,
           springAnimationDurationInMilliseconds: 300, // Speed up the animation
           height: 60.0, // Adjust the height as needed
           color: TColors.primary, // Customize the color as needed
@@ -233,7 +228,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                 );
                                 if (shouldRefresh == true) {
                                   // Handle refresh logic if necessary
-                                  _handleRefresh();
+                                  _fetchQuestions();
                                 }
                               }
 
@@ -309,7 +304,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                           ),
                                         );
                                         if (shouldRefresh == true) {
-                                          _handleRefresh();
+                                          _fetchQuestions();
                                         }
                                       }
 

@@ -506,7 +506,7 @@ class MissionService {
   }
 
   Future<List<CategoryQuestions>> getQuestionsForSousMission(int sousMissionId, int mission_id) async {
-    final String url = '${dotenv.env['BASE_URL']}/api/GetMissionCategoryQuestions/${mission_id}/${sousMissionId}';
+    final String url = '${dotenv.env['BASE_URL']}/api/Missions/GetMissionCategoryQuestions/${mission_id}/${sousMissionId}';
 
     final response = await http.get(
       Uri.parse(url),
