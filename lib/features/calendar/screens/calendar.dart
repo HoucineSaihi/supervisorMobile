@@ -6,6 +6,7 @@ import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
 import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
+import 'package:supervisormobile/features/authentification/services/login_service.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/RapporterMissionWidget.dart';
@@ -35,11 +36,11 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   List<int> boutiqueIds = []; // example boutiqueIds
 
   @override
-  void initState() {
+   initState()  {
     super.initState();
     loadMissions();
     _loadAuthToken();
-
+    _sendFCM();
   }
 
   Map<String, String> getStatusColors(int? status) {
@@ -99,6 +100,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
           boutiqueIds,
           _focusedDay
       );
+      await _sendFCM();
       setState(() {}); // Trigger a rebuild if you're using StatefulWidget
     } catch (e) {
       print('Error loading missions: $e');
@@ -341,11 +343,27 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   Future<void> _loadAuthToken() async {
     // Retrieve the user ID from secure storage
     String? userIdString = await _storage.read(key: 'currentUserId');
+    await _sendFCM();
+
     setState(() {
       // Convert the string to an integer, default to 0 if null or invalid
       _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
     });
   }
+   Future<void> _sendFCM() async {
+     String? fcmToken = await _storage.read(key: 'FCM');
+
+     if (fcmToken == null || fcmToken.isEmpty) {
+       print("⚠️ FCM token is null or empty");
+       return;
+     }
+
+     print("before registering FCM");
+     await LoginService().registerFCM(_currentUserID, fcmToken);
+     print("after registering FCM");
+
+     setState(() {});  // Only needed if UI changes
+   }
 
   @override
   Widget build(BuildContext context) {

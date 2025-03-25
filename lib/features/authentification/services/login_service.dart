@@ -36,12 +36,12 @@ class SecureStorageService {
 }
 
 class LoginService {
-  final String _baseURL = '${dotenv.env['BASE_URL']}/api/Caisses/login';
+  final String _baseURL = '${dotenv.env['BASE_URL']}/api/Caisses';
   final SecureStorageService _storageService = SecureStorageService();
 
   Future<Map<String, dynamic>> login(String username, String password) async {
     final response = await http.post(
-      Uri.parse(_baseURL),
+      Uri.parse('${_baseURL}/login'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'username': username, 'passwd': password}),
     );
@@ -57,6 +57,20 @@ class LoginService {
       }
     } else {
       throw Exception('Failed to connect to the server');
+    }
+  }
+
+  Future<void> registerFCM(int userId, String fcmToken) async {
+    final response = await http.post(
+      Uri.parse('${_baseURL}/saveToken/$userId?token=${fcmToken}'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      print("FCM token registered successfully.");
+    } else {
+      print("Failed to register FCM token. Status: ${response.statusCode}");
+      print("Response: ${response.body}");
     }
   }
 }
