@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:html' as html;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -33,9 +35,9 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
 
   final ImagePicker _picker = ImagePicker();
-  File? jointureFichier;
-  PlatformFile? infoFichier;
   List<XFile>? _imageFiles;
+  dynamic jointureFichier;
+  PlatformFile? infoFichier;
 
   BoutiqueModel? _selectedBoutique;
 
@@ -63,20 +65,31 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
   }
 
   void selectFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result != null) {
-      jointureFichier = File(result.files.single.path!);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      withData: true, // this is crucial for Web
+    );
 
+    if (result != null) {
       infoFichier = result.files.first;
 
-      print(infoFichier?.name);
-      print(infoFichier?.bytes);
-      print(infoFichier?.size);
-      print(infoFichier?.extension);
-      print(infoFichier?.path);
+      if (kIsWeb) {
+        // Store as html.File for later upload
+        jointureFichier = html.File(
+          infoFichier!.bytes!,
+          infoFichier!.name,
+        );
+        print("📄 Web file selected: ${infoFichier!.name}");
+        print("Size: ${infoFichier!.bytes?.length} bytes");
+      } else {
+        // Mobile/Desktop
+        jointureFichier = File(result.files.single.path!);
+        print("📄 Mobile file selected: ${infoFichier!.name}");
+        print("Path: ${infoFichier!.path}");
+      }
+
       setState(() {});
     } else {
-      // User canceled the picker
+      print("❌ File picking cancelled");
     }
   }
 
@@ -95,13 +108,45 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
     }
   }
 
+  List<html.File>? _webImageFiles;
 
   Future<void> _pickImages() async {
-    final List<XFile>? selectedImages = await _picker.pickMultiImage();
-    if (selectedImages != null) {
-      setState(() {
-        _imageFiles = selectedImages;
-      });
+    if (kIsWeb) {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (result != null) {
+        setState(() {
+          _imageFiles = result.files.map((file) {
+            return XFile.fromData(
+              file.bytes!,
+              name: file.name,
+              mimeType: file.extension,
+            );
+          }).toList();
+
+          // Store raw web files for upload
+          _webImageFiles = result.files.map((file) {
+            return html.File([file.bytes!], file.name); // ✅ CORRECT
+          }).toList();
+
+        });
+
+        print("🖼️ ${_imageFiles!.length} images selected (web)");
+      }
+    } else {
+      final List<XFile>? selectedImages = await _picker.pickMultiImage();
+
+      if (selectedImages != null && selectedImages.isNotEmpty) {
+        setState(() {
+          _imageFiles = selectedImages;
+        });
+
+        print("🖼️ ${_imageFiles!.length} images selected (mobile)");
+      }
     }
   }
 
@@ -123,7 +168,6 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
   }
 
 
-
   void _submitForm() async {
 
 
@@ -134,30 +178,63 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
       String? imageName;
       String? fileName;
-      try {
+
+      // 🔧 Upload the first image if available
       if (_imageFiles != null && _imageFiles!.isNotEmpty) {
         try {
-          final firstFile = _imageFiles!.first;
-          imageName = await MissionService().uploadFile(File(firstFile.path));
-          print("\n File Name ----------------------------------------------- \n" + imageName);
-        } catch (e) {
+          if (kIsWeb) {
+            // Use _webImageFiles instead of XFile
+            final webFile = _webImageFiles!.first;
+            imageName = await MissionService().uploadFileWeb(webFile);
+            print("Uploaded Image (Web): $imageName");
+          } else {
+            final firstFile = _imageFiles!.first;
+            imageName = await MissionService().uploadFile(File(firstFile.path));
+            print("Uploaded Image (Mobile): $imageName");
+          }
+        } catch (e, stackTrace) {
+          print('❌ Upload image failed: $e');
+          print('📛 Stack trace: $stackTrace');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to upload image file')),
           );
-          return; // Stop execution if image upload fails
+          setState(() => _isLoading = false);
         }
+
       }
 
-      // Check if a file is selected and upload it if present
+
+      // 🔧 Upload jointure file
       if (jointureFichier != null) {
         try {
-          fileName = await MissionService().uploadJointure(jointureFichier!);
-          print("\n Jointure Fichier ----------------------------------------- \n" + fileName);
-        } catch (e) {
+          print("📄 Uploading jointure file: ${kIsWeb ? (jointureFichier as html.File).name : (jointureFichier as File).path}");
+
+          if (kIsWeb) {
+            // Ensure jointureFichier is an html.File
+            if (jointureFichier is html.File) {
+              fileName = await MissionService().uploadJointureWeb(jointureFichier);
+              print("✅ Jointure uploaded (web): $fileName");
+            } else {
+              throw Exception("Invalid jointure file type for web");
+            }
+          } else {
+            // Ensure jointureFichier is a dart.io File
+            if (jointureFichier is File) {
+              fileName = await MissionService().uploadJointure(jointureFichier);
+              print("✅ Jointure uploaded (mobile): $fileName");
+            } else {
+              throw Exception("Invalid jointure file type for mobile");
+            }
+          }
+        } catch (e, stackTrace) {
+          print('❌ Jointure upload failed: $e');
+          print('📛 Stack trace: $stackTrace');
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to upload jointure fichier')),
           );
-          return; // Stop execution if jointure fichier upload fails
+          setState(() => _isLoading = false);
+          return;
         }
       }
       final SecureStorageService _secureStorage = SecureStorageService();
