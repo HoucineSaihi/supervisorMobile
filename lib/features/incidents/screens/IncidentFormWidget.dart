@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
@@ -10,6 +9,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:supervisormobile/features/authentification/services/login_service.dart';
 import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
@@ -108,60 +108,12 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
   void _showImageViewer(int index) {
     if (_imageFiles != null && _imageFiles!.isNotEmpty) {
       final imageProvider = FileImage(File(_imageFiles![index].path));
-      showImageViewer(
-        context,
-        imageProvider,
-        immersive: false,
-        onViewerDismissed: () {
-          print("Image viewer dismissed");
-        },
-      );
+
     }
   }
 
   void _openCamera() async {
-    // Navigate to CaptureImageScreen and await result
-    final Uint8List? imageBytes = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CaptureImageScreen(),
-      ),
-    );
 
-    if (imageBytes != null) {
-      try {
-        // Get the temporary directory
-        final directory = await getTemporaryDirectory();
-        final filePath =
-            '${directory.path}/temp_image_${DateTime.now().millisecondsSinceEpoch}.png';
-
-        // Write the Uint8List to the file
-        final file = File(filePath);
-        await file.writeAsBytes(imageBytes);
-
-        // Save the image to the gallery
-        final result = await ImageGallerySaver.saveImage(imageBytes);
-
-        if (result != null && result['isSuccess'] == true) {
-          print('Image saved to gallery successfully');
-        } else {
-          print('Failed to save image to gallery');
-        }
-
-        // Create an XFile from the file path
-        final XFile imageFile = XFile(filePath);
-
-        // Ensure the widget is still mounted before calling setState
-        if (mounted) {
-          setState(() {
-            // Add the newly picked image to the existing list
-            _imageFiles = [imageFile];
-          });
-        }
-      } catch (e) {
-        print('Error saving image to file: $e');
-      }
-    }
   }
 
   void _removeImage(int index) {
@@ -208,20 +160,29 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
           return; // Stop execution if jointure fichier upload fails
         }
       }
+      final SecureStorageService _secureStorage = SecureStorageService();
+
       int _currentUserID = 0;
-      String? userIdString = await _storage.read(key: 'currentUserId');
-      _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-      final declaredProblem = Problem(id: 0,
+
+      // Use secure storage service to get currentUserId
+        String? userIdString = await _secureStorage.getLoginData().then((data) => data['currentUserId']);
+        _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+
+    // Declare the problem
+        final declaredProblem = Problem(
+          id: 0,
           user_id: _currentUserID,
           boutique_id: _selectedBoutique!.id,
           coef_id: _selectedPriority!.coefId,
           problem_image_before: imageName,
           joint_file_before: fileName,
-          commentaire:_commentController.text,
-          description: _descriptionController.text ,
-        cluster: _selectedBoutique!.cluster
+          commentaire: _commentController.text,
+          description: _descriptionController.text,
+          cluster: _selectedBoutique!.cluster,
+        );
 
-);
+
+
 
       print(declaredProblem.toJson());
 

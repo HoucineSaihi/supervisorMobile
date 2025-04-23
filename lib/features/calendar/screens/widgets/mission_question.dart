@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
@@ -77,63 +76,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
       });
     }
   }
-  void _showImageViewer(int index) {
-    if (_imageFiles != null && _imageFiles!.isNotEmpty) {
-      final imageProvider = FileImage(File(_imageFiles![index].path));
-      showImageViewer(
-        context,
-        imageProvider,
-        immersive: false,
-        onViewerDismissed: () {
-          print("Image viewer dismissed");
-        },
-      );
-    }
-  }
-  void _openCamera() async {
-    // Navigate to CaptureImageScreen and await result
-    final Uint8List? imageBytes = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CaptureImageScreen(),
-      ),
-    );
 
-    if (imageBytes != null) {
-      try {
-        // Get the temporary directory
-        final directory = await getTemporaryDirectory();
-        final filePath =
-            '${directory.path}/temp_image_${DateTime.now().millisecondsSinceEpoch}.png';
-
-        // Write the Uint8List to the file
-        final file = File(filePath);
-        await file.writeAsBytes(imageBytes);
-
-        // Save the image to the gallery
-        final result = await ImageGallerySaver.saveImage(imageBytes);
-
-        if (result != null && result['isSuccess'] == true) {
-          print('Image saved to gallery successfully');
-        } else {
-          print('Failed to save image to gallery');
-        }
-
-        // Create an XFile from the file path
-        final XFile imageFile = XFile(filePath);
-
-        // Ensure the widget is still mounted before calling setState
-        if (mounted) {
-          setState(() {
-            // Add the newly picked image to the existing list
-            _imageFiles = [imageFile];
-          });
-        }
-      } catch (e) {
-        print('Error saving image to file: $e');
-      }
-    }
-  }
   void _removeImage(int index) {
     setState(() {
       _imageFiles!.removeAt(index);

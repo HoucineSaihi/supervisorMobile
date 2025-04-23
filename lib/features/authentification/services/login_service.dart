@@ -3,37 +3,77 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'dart:convert';
+import 'package:flutter/foundation.dart'; // For kIsWeb
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // For Web fallback
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class SecureStorageService {
-  final _storage = FlutterSecureStorage();
+  final _secureStorage = const FlutterSecureStorage();
 
   Future<void> saveLoginData(Map<String, dynamic> data) async {
-    await _storage.write(key: 'token', value: data['token']);
-    await _storage.write(key: 'expires', value: data['expires']);
-    await _storage.write(key: 'currentUserId', value: data['currentUserId'].toString());
-    await _storage.write(key: 'currentName', value: data['currentName']);
-    await _storage.write(key: 'role', value: data['role'].toString());
-    await _storage.write(key: 'idBoutique', value: data['idBoutique']?.toString() ?? '');
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', data['token']);
+      await prefs.setString('expires', data['expires']);
+      await prefs.setString('currentUserId', data['currentUserId'].toString());
+      await prefs.setString('currentName', data['currentName']);
+      await prefs.setString('role', data['role'].toString());
+      await prefs.setString('idBoutique', data['idBoutique']?.toString() ?? '');
+    } else {
+      await _secureStorage.write(key: 'token', value: data['token']);
+      await _secureStorage.write(key: 'expires', value: data['expires']);
+      await _secureStorage.write(key: 'currentUserId', value: data['currentUserId'].toString());
+      await _secureStorage.write(key: 'currentName', value: data['currentName']);
+      await _secureStorage.write(key: 'role', value: data['role'].toString());
+      await _secureStorage.write(key: 'idBoutique', value: data['idBoutique']?.toString() ?? '');
+    }
   }
 
   Future<String?> getToken() async {
-    return await _storage.read(key: 'token');
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('token');
+    } else {
+      return await _secureStorage.read(key: 'token');
+    }
   }
 
   Future<Map<String, String?>> getLoginData() async {
-    return {
-      'token': await _storage.read(key: 'token'),
-      'expires': await _storage.read(key: 'expires'),
-      'currentUserId': await _storage.read(key: 'currentUserId'),
-      'currentName': await _storage.read(key: 'currentName'),
-      'role': await _storage.read(key: 'role'),
-      'idBoutique': await _storage.read(key: 'idBoutique'),
-    };
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return {
+        'token': prefs.getString('token'),
+        'expires': prefs.getString('expires'),
+        'currentUserId': prefs.getString('currentUserId'),
+        'currentName': prefs.getString('currentName'),
+        'role': prefs.getString('role'),
+        'idBoutique': prefs.getString('idBoutique'),
+      };
+    } else {
+      return {
+        'token': await _secureStorage.read(key: 'token'),
+        'expires': await _secureStorage.read(key: 'expires'),
+        'currentUserId': await _secureStorage.read(key: 'currentUserId'),
+        'currentName': await _secureStorage.read(key: 'currentName'),
+        'role': await _secureStorage.read(key: 'role'),
+        'idBoutique': await _secureStorage.read(key: 'idBoutique'),
+      };
+    }
   }
 
   Future<void> clear() async {
-    await _storage.deleteAll();
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    } else {
+      await _secureStorage.deleteAll();
+    }
   }
 }
+
 
 class LoginService {
   final String _baseURL = '${dotenv.env['BASE_URL']}/api/Caisses/login';

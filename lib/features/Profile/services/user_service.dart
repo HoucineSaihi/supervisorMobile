@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
 
 class UserService {
@@ -19,8 +21,20 @@ class UserService {
 
   }
   Future<UserModel?> getUserById() async {
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    String? userIdString;
+    int? userId;
+
+    if (kIsWeb) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      userIdString = prefs.getString('currentUserId');
+    } else {
+      final _storage = FlutterSecureStorage();
+      userIdString = await _storage.read(key: 'currentUserId');
+    }
+
+
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+
     final url = Uri.parse('$_baseUrl/api/Caisses/$_currentUserID');
     final response = await http.get(url);
 

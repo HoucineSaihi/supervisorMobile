@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
 import 'package:supervisormobile/features/Profile/screens/image_picker.dart';
@@ -53,9 +55,16 @@ class _ProfileInfoState extends State<ProfileInfo> {
   }
 
   Future<void> _handleLogout() async {
-    await _storage.deleteAll();
+    await _storage.deleteAll(); // Clear secure storage (used in both)
 
-    // Navigate to the login screen and remove all previous routes
+    if (!kIsWeb) {
+      // ✅ Mobile: Clear SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      print('🧹 SharedPreferences cleared (mobile)');
+    }
+
+    // ✅ Navigate to login screen and remove all previous routes
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (context) => LoginScreen()),
           (Route<dynamic> route) => false,
@@ -127,7 +136,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                               bottom: 0,
                               right: 0,
                               child: GestureDetector(
-                                onTap: () => _openImagePicker(user),
+                                onTap: () => {},
                                 child: Container(
                                   width: 35,
                                   height: 35,

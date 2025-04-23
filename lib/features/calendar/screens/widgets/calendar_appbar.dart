@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_icons/cart_notif_icon.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
@@ -23,7 +25,18 @@ class _THomeAppBarState extends State<THomeAppBar> {
 
   Future<void> _loadAuthToken() async {
     // Retrieve the token from secure storage
-    String? token = await _storage.read(key: 'currentName');
+    String? token;
+
+    if (kIsWeb) {
+      // Use shared_preferences for web
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      token = prefs.getString('currentName');
+    } else {
+      // Use flutter_secure_storage for mobile
+      final _storage = FlutterSecureStorage();
+      token = await _storage.read(key: 'currentName');
+    }
+
     setState(() {
       _currentUserName = token ?? 'No token found';
     });

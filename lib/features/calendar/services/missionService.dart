@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:html' as html;
+
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
@@ -13,6 +17,8 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+
+import 'dart:typed_data';
 
 class MissionService {
 
@@ -81,7 +87,20 @@ class MissionService {
     }
   }
 
+  Future<Uint8List> getFileBytes(String fileName) async {
+    final uri = Uri.parse('$baseURL/api/Files/download/$fileName');
 
+    final response = await http.get(
+      uri,
+      headers: {'accept': 'application/octet-stream'},
+    );
+
+    if (response.statusCode == 200) {
+      return response.bodyBytes;
+    } else {
+      throw Exception('❌ Failed to fetch file bytes for $fileName');
+    }
+  }
   Future<void> deleteFile(String fileName) async {
     final Uri uri = Uri.parse('$baseURL/api/Files/deleteFile/$fileName');
 
@@ -105,7 +124,53 @@ class MissionService {
       throw Exception('Error deleting file: $e');
     }
   }
+  //File upload for web
+  Future<String> uploadJointureWeb(html.File file) async {
+    final Uri uri = Uri.parse('$baseURL/api/Files/upload'); // Your file upload API URL
 
+    // Determine the MIME type based on the file extension
+    final mimeType = lookupMimeType(file.name) ?? 'application/octet-stream';
+    final mimeTypeParts = mimeType.split('/');
+
+    // Create a multipart request for the file upload
+    var request = http.MultipartRequest('POST', uri)
+      ..headers['accept'] = '*/*'
+      ..headers['Content-Type'] = 'multipart/form-data';
+
+    // Using FileReader to convert the file to a Blob for upload
+    final reader = html.FileReader();
+
+    // Wait until the file is read as a data URL (base64 encoded)
+    reader.readAsArrayBuffer(file);
+
+    // When the file is loaded successfully
+    await reader.onLoadEnd.first;
+
+    final fileBytes = reader.result as List<int>;
+
+    // Add the file to the multipart request
+    request.files.add(
+      http.MultipartFile(
+        'file', // API endpoint parameter name should be 'file'
+        Stream.fromIterable([fileBytes]),
+        fileBytes.length,
+        filename: file.name,
+        contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+      ),
+    );
+
+    // Send the request and wait for the response
+    final response = await request.send();
+
+    // Check if the response is successful
+    if (response.statusCode == 200) {
+      final responseString = await response.stream.bytesToString();
+      final responseData = json.decode(responseString);
+      return responseData['fileName']; // Return the uploaded file's name
+    } else {
+      throw Exception('Failed to upload file');
+    }
+  }
   Future<String> uploadJointure(File file) async {
     final Uri uri = Uri.parse('$baseURL/api/Files/upload'); // Your file upload API URL
 
@@ -269,11 +334,32 @@ class MissionService {
   }
 
   Future<List<BoutiqueModel>> getBoutiques() async {
-    String? userIdString = await _storage.read(key: 'currentUserId');
-    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+    String? userIdString;
+    int? userId;
+
+    if (kIsWeb) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      userIdString = prefs.getString('currentUserId');
+    } else {
+      final _storage = FlutterSecureStorage();
+      userIdString = await _storage.read(key: 'currentUserId');
+    }
+
+// Convert the string to int
+    if (userIdString != null) {
+      userId = int.tryParse(userIdString);
+      if (userId == null) {
+        print('Failed to parse userIdString to int');
+        // Handle the error appropriately
+      }
+    } else {
+      print('userIdString is null');
+      // Handle the case where the user ID was not found
+    }
+
 
     List<int> userIdArray = [];
-    userIdArray.add(_currentUserID);
+    userIdArray.add(userId!);
 
     final String boutiquesUrl = '${dotenv.env['BASE_URL']}/api/Boutiques/getBoutiquesByUserIDs';
 
@@ -297,10 +383,30 @@ class MissionService {
   }
 
   Future<List<Mission>> getAllNotPlanifiedMissions() async {
-    String? userIdString = await _storage.read(key: 'currentUserId');
-    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+    String? userIdString;
+    int? userId;
 
-    final String url = '${dotenv.env['BASE_URL']}/api/Missions/GetAllNotPlanifiedMissions/$_currentUserID'; // Static userID is 2
+    if (kIsWeb) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      userIdString = prefs.getString('currentUserId');
+    } else {
+      final _storage = FlutterSecureStorage();
+      userIdString = await _storage.read(key: 'currentUserId');
+    }
+
+// Convert the string to int
+    if (userIdString != null) {
+      userId = int.tryParse(userIdString);
+      if (userId == null) {
+        print('Failed to parse userIdString to int');
+        // Handle the error appropriately
+      }
+    } else {
+      print('userIdString is null');
+      // Handle the case where the user ID was not found
+    }
+
+    final String url = '${dotenv.env['BASE_URL']}/api/Missions/GetAllNotPlanifiedMissions/$userId'; // Static userID is 2
 
     final response = await http.get(
       Uri.parse(url),
@@ -393,6 +499,48 @@ class MissionService {
   }
 
 
+  //image upload on web
+  Future<String> uploadFileWeb(html.File file) async {
+    final Uri uri = Uri.parse('$baseURL/api/Files/webImageUpload');
+
+    final mimeType = lookupMimeType(file.name) ?? 'application/octet-stream';
+    final mimeTypeParts = mimeType.split('/');
+
+    final reader = html.FileReader();
+    reader.readAsArrayBuffer(file);
+    await reader.onLoad.first;
+
+    // ✅ Safely extract Uint8List regardless of browser implementation
+    Uint8List fileBytes;
+    if (reader.result is ByteBuffer) {
+      fileBytes = Uint8List.view(reader.result as ByteBuffer);
+    } else if (reader.result is Uint8List) {
+      fileBytes = reader.result as Uint8List;
+    } else {
+      throw Exception("Unsupported file format: ${reader.result.runtimeType}");
+    }
+
+    final request = http.MultipartRequest('POST', uri);
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'file', // Doesn't matter, API uses Request.Form.Files[0]
+        fileBytes,
+        filename: file.name,
+        contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+      ),
+    );
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      final responseString = await response.stream.bytesToString();
+      final responseData = json.decode(responseString);
+      return responseData['file']; // Adjust this to match your API response
+    } else {
+      final error = await response.stream.bytesToString();
+      throw Exception('❌ Upload failed: ${response.statusCode} — $error');
+    }
+  }
   Future<String> uploadFile(File file) async {
     final Uri uri = Uri.parse('$baseURL/api/Files'); // Construct the URI for your file upload endpoint
 
@@ -427,21 +575,48 @@ class MissionService {
   Future<File> getImage(String filename) async {
     final Uri uri = Uri.parse('$baseURL/api/Files/getImage/$filename');
 
-    final response = await http.get(uri, headers: {'accept': 'image/jpeg'});
+    final response = await http.get(uri, headers: {
+      'accept': '*/*', // ✅ Accept any image MIME type (not just jpeg)
+    });
 
     if (response.statusCode == 200) {
       final bytes = response.bodyBytes;
 
-      // Create a temporary file to save the image
-      final tempDir = await Directory.systemTemp.createTemp();
-      final file = File('${tempDir.path}/$filename');
+      // ✅ Create temp directory
+      final tempDir = await Directory.systemTemp.createTemp('img_');
+      final filePath = '${tempDir.path}/$filename';
 
-      // Write the image bytes to the file
-      await file.writeAsBytes(bytes);
+      final file = File(filePath);
 
+      // ✅ Write file safely
+      await file.writeAsBytes(bytes, flush: true);
+
+      print('✅ Image file saved to $filePath');
       return file;
     } else {
-      throw Exception('Failed to retrieve image: ${response.reasonPhrase}');
+      final msg = '❌ Failed to retrieve image: ${response.statusCode} — ${response.reasonPhrase}';
+      print(msg);
+      throw Exception(msg);
+    }
+  }
+
+  Future<Uint8List?> getImageBytes(String filename) async {
+    final uri = Uri.parse('$baseURL/api/Files/getImage/$filename');
+
+    try {
+      final response = await http.get(uri, headers: {
+        'accept': '*/*', // Accept any image format
+      });
+
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      } else {
+        print('❌ Failed to fetch image bytes: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error fetching image bytes: $e');
+      return null;
     }
   }
 

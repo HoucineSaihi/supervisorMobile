@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:grouped_list/grouped_list.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
 import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
@@ -19,6 +21,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:sticky_float_button/sticky_float_button.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
+import 'dart:html' as html;  // For localStorage on web
+
+import '../../../utils/Helpers/secure_storage_data.dart';
 
 class CalendarPlanning extends StatefulWidget {
   const CalendarPlanning({super.key});
@@ -89,21 +94,37 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
       'status': colors['status']!
     };
   }
-  Future<void> loadMissions() async {
-    try {
-      // Correctly await the service method and assign it to futureMissions
-      String? userIdString = await _storage.read(key: 'currentUserId');
-      _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-      futureMissions = MissionService().getPlanifiedMissions(
-          [_currentUserID],
-          boutiqueIds,
-          _focusedDay
-      );
-      setState(() {}); // Trigger a rebuild if you're using StatefulWidget
-    } catch (e) {
-      print('Error loading missions: $e');
-    }
-  }
+   Future<void> loadMissions() async {
+     try {
+       // Retrieve the user ID from storage (localStorage for web)
+       String? userIdString;
+       int? userId;
+
+       if (kIsWeb) {
+         SharedPreferences prefs = await SharedPreferences.getInstance();
+         userIdString = prefs.getString('currentUserId');
+       } else {
+         final _storage = FlutterSecureStorage();
+         userIdString = await _storage.read(key: 'currentUserId');
+       }
+
+
+       _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+
+       // Fetch missions based on the currentUserID and other parameters
+       futureMissions = MissionService().getPlanifiedMissions(
+         [_currentUserID],
+         boutiqueIds,
+         _focusedDay,
+       );
+
+       setState(() {}); // Trigger a rebuild if you're using StatefulWidget
+
+     } catch (e) {
+       print('Error loading missions: $e');
+     }
+   }
+
 
   void _showModal(BuildContext context, Mission mission) {
     final MissionService _missionService = MissionService(); // Initialize the MissionService
@@ -338,14 +359,30 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
 
-  Future<void> _loadAuthToken() async {
-    // Retrieve the user ID from secure storage
-    String? userIdString = await _storage.read(key: 'currentUserId');
-    setState(() {
-      // Convert the string to an integer, default to 0 if null or invalid
-      _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-    });
-  }
+   Future<void> _loadAuthToken() async {
+     String? userIdString;
+     if (kIsWeb) {
+       SharedPreferences prefs = await SharedPreferences.getInstance();
+       userIdString = prefs.getString('currentUserId');
+     } else {
+       final _storage = FlutterSecureStorage();
+       userIdString = await _storage.read(key: 'currentUserId');
+     }
+
+
+     try {
+
+       setState(() {
+         _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+       });
+     } catch (e) {
+       print("Error loading auth token: $e");
+       setState(() {
+         _currentUserID = 0;
+       });
+     }
+   }
+
 
   @override
   Widget build(BuildContext context) {

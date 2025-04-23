@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:supervisormobile/features/Profile/models/boutique_model.dart';
+import 'package:supervisormobile/features/authentification/services/login_service.dart';
 import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/incidents/models/AllProblemsLazy.dart';
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
@@ -78,20 +79,22 @@ class IncidentService {
       int? statut,
       int? first) async {
 
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    final SecureStorageService secureStorage = SecureStorageService();
+
+    String? userIdString = await secureStorage.getLoginData().then((data) => data['currentUserId']);
     int? currentUserID = userIdString != null ? int.tryParse(userIdString) : null;
 
     final Map<String, dynamic> requestBody = {
-      "requester_id" : currentUserID,
+      "requester_id": currentUserID,
       "boutique_id": boutiqueId,
       "coef_id": coefId,
       "origin": origin,
       "statut": statut,
       "first": first,
-      "rows":10
+      "rows": 10,
     }..removeWhere((key, value) => value == null);
 
-    print(requestBody);
+    print("Request Body: $requestBody");
 
     try {
       final response = await http.post(
@@ -100,12 +103,11 @@ class IncidentService {
         body: jsonEncode(requestBody),
       );
 
-      print("API Response: ${response.body}"); // Debugging line
+      print("API Response: ${response.body}");
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
 
-        // Debugging: Check first problem item
         if (responseData["problems"] is List && responseData["problems"].isNotEmpty) {
           print("First problem item: ${responseData["problems"].first}");
         } else {
@@ -115,7 +117,7 @@ class IncidentService {
         if (responseData["problems"] is List) {
           return AllProblemsLazy(
             problems: (responseData["problems"] as List<dynamic>)
-                .map((incident) => Problem.fromJson(incident as Map<String, dynamic>)) // Ensure conversion
+                .map((incident) => Problem.fromJson(incident as Map<String, dynamic>))
                 .toList(),
             totalRecords: responseData["totalRecords"] ?? 0,
           );
@@ -130,6 +132,7 @@ class IncidentService {
       throw Exception("Error occurred: $e");
     }
   }
+
 
 
 
@@ -177,11 +180,13 @@ class IncidentService {
 
 
   Future<List<BoutiqueModel>> getBoutiques() async {
-    String? userIdString = await _storage.read(key: 'currentUserId');
-    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+    final SecureStorageService secureStorage = SecureStorageService();
 
-    List<int> userIdArray = [];
-    userIdArray.add(_currentUserID);
+    // Use the secure storage service to fetch the user ID
+    String? userIdString = await secureStorage.getLoginData().then((data) => data['currentUserId']);
+    int currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+
+    List<int> userIdArray = [currentUserID];
 
     final String boutiquesUrl = '${dotenv.env['BASE_URL']}/api/Boutiques/getBoutiquesByUserIDs';
 
@@ -190,19 +195,17 @@ class IncidentService {
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
-      body: jsonEncode(
-        userIdArray, // Add the array to the body
-      ),
+      body: jsonEncode(userIdArray),
     );
 
     if (response.statusCode == 200) {
       List<dynamic> body = json.decode(response.body);
-      List<BoutiqueModel> boutiques = body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
-      return boutiques;
+      return body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
     } else {
       throw Exception('Failed to load boutiques');
     }
   }
+
 
   Future<Problem> addProblem(Problem problem) async {
     final uri = Uri.parse(_problemBaseUrl);

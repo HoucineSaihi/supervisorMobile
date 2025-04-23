@@ -1,11 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/missionDetails.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AddMissionForm extends StatefulWidget {
   final DateTime? Date; // Add this parameter
@@ -55,7 +57,6 @@ class _AddMissionFormState extends State<AddMissionForm> {
       });
     }
   }
-  final _storage = FlutterSecureStorage();
 
   void _navigateToMissionDetails(int missionId) {
     Navigator.push(
@@ -86,7 +87,23 @@ class _AddMissionFormState extends State<AddMissionForm> {
       );
       return;
     }
-    String? userIdString = await _storage.read(key: 'currentUserId');
+    String? userIdString;
+
+    if (kIsWeb) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      userIdString = prefs.getString('currentUserId');
+    } else {
+      String? userIdString;
+
+      if (kIsWeb) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        userIdString = prefs.getString('currentUserId');
+      } else {
+        final _storage = FlutterSecureStorage();
+        userIdString = await _storage.read(key: 'currentUserId');
+      }
+
+    }
     var _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
     List<int> userIdArray = [];

@@ -1,14 +1,15 @@
 import 'dart:io';
 import 'dart:typed_data';
-
+import 'dart:io' as io;
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
-import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
@@ -16,6 +17,7 @@ import 'package:supervisormobile/features/calendar/screens/widgets/captureImageS
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
+import 'dart:html' as html;
 
 import '../../DTOs/FileInfo.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -24,7 +26,8 @@ class EditQuestionResponse extends StatefulWidget {
   final int questionId;
   final int modeleReponseId;
 
-  const EditQuestionResponse({Key? key, required this.questionId,required this.modeleReponseId})
+  const EditQuestionResponse(
+      {Key? key, required this.questionId, required this.modeleReponseId})
       : super(key: key);
 
   @override
@@ -41,12 +44,17 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   bool _isActionDropdownVisible = false;
   bool _isImageEnlarged = false;
 
-  File? _imageFile;
-  List<FileInfo> _images = [];
   final ImagePicker _picker = ImagePicker();
-  List<XFile>? _imageFiles = [];
-  File? jointureFichier;
-  PlatformFile? infoFichier;
+
+  List<XFile>? _imageFiles = []; // All picked image files (mobile + web UI)
+  List<html.File>? _webImageFiles = []; // Raw files to upload on web
+
+  List<XFile> _mobileImages = []; // For mobile: picked + fetched images
+  List<XFile> _webImages = []; // For web: picked + fetched images
+
+  dynamic jointureFichier; // Either html.File or dart.io.File
+  PlatformFile? infoFichier; // Info about selected jointure file
+
   bool hasDeletedFile = false;
   bool _isLoading = false;
 
@@ -59,28 +67,58 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
       final question = await _questionFuture;
 
-      final updatedComment = _isEditingComment ? _commentController.text : question.commentaire;
-      final updatedActionId = _isActionDropdownVisible && _selectedAction != null ? _selectedAction!.id : question.actionId;
+      // ✅ Update comment and selected action
+      final updatedComment =
+          _isEditingComment ? _commentController.text : question.commentaire;
+      final updatedActionId =
+          _isActionDropdownVisible && _selectedAction != null
+              ? _selectedAction!.id
+              : question.actionId;
 
       question.commentaire = updatedComment;
       question.actionId = updatedActionId;
-      if(_images.isEmpty && _imageFiles!.isNotEmpty) {
-        final firstFile = _imageFiles!.first;
-        imageName = await MissionService().uploadFile(File(firstFile.path));
+
+      // ✅ Determine which images are newly added (not in _existingImageNames)
+      final allImages = kIsWeb ? _webImages : _mobileImages;
+      final newImages = allImages
+          .where((img) => !_existingImageNames.contains(img.name))
+          .toList();
+
+      // ✅ Upload only if there's at least one new image
+      if (newImages.isNotEmpty) {
+        final XFile firstNewImage = newImages.first;
+
+        if (kIsWeb) {
+          final htmlFile = html.File(
+            [await firstNewImage.readAsBytes()],
+            firstNewImage.name,
+          );
+          imageName = await MissionService().uploadFileWeb(htmlFile);
+        } else {
+          imageName =
+              await MissionService().uploadFile(File(firstNewImage.path));
+        }
+
         question.fileName = imageName;
       }
-      if(jointureFichier != null && question.jointureFichier == null){
-        fileName = await MissionService().uploadJointure(jointureFichier!);
+
+      // ✅ Upload jointure file if it's new
+      if (jointureFichier != null && question.jointureFichier == null) {
+        fileName = kIsWeb
+            ? await MissionService()
+                .uploadJointureWeb(jointureFichier as html.File)
+            : await MissionService().uploadJointure(jointureFichier as File);
         question.jointureFichier = fileName;
       }
-      if(jointureFichier == null && question.jointureFichier == null){
+
+      // ✅ Clear jointure if it was removed
+      if (jointureFichier == null && question.jointureFichier == null) {
         question.jointureFichier = null;
       }
 
-
-
-
-      await MissionService().updateMissionQuestion(widget.questionId, question,context);
+      // ✅ Update the question
+      await MissionService()
+          .updateMissionQuestion(widget.questionId, question, context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -95,8 +133,10 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
         ),
       );
 
+      // ✅ Refresh data
       setState(() {
-        _questionFuture = MissionService().getQuestionDetails(widget.questionId);
+        _questionFuture =
+            MissionService().getQuestionDetails(widget.questionId);
       });
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,74 +154,94 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       setState(() => _isLoading = false);
     } finally {
       setState(() => _isLoading = false);
-
     }
   }
 
-
-
+  List<String> _existingImageNames = [];
+  List<String> _existingFileNames = [];
 
   @override
   void initState() {
     super.initState();
     _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
-    _questionFuture.then((questionDetails) {
-      _commentController.text = questionDetails.commentaire ?? ''; // Initialize the controller
-    }).catchError((error) {
-      print('Failed to fetch question details: $error');
-    });
-    _questionFuture.then((questionDetails) {
-      if (questionDetails.fileName != null && questionDetails.fileName!.isNotEmpty) {
-        _fetchImage(questionDetails.fileName!);
+
+    _questionFuture.then((questionDetails) async {
+      // Initialize comment controller
+      _commentController.text = questionDetails.commentaire ?? '';
+
+      // Load initial image(s) if present
+      if (questionDetails.fileName != null &&
+          questionDetails.fileName!.isNotEmpty) {
+        await _fetchImage(questionDetails.fileName!);
+        _existingImageNames.add(questionDetails.fileName!);
       }
+      if (questionDetails.jointureFichier != null &&
+          questionDetails.jointureFichier!.isNotEmpty){
+        _existingFileNames.add(questionDetails.jointureFichier!);
+      }
+
+        setState(() {});
     }).catchError((error) {
-      print('Failed to fetch question details: $error');
+      print('❌ Failed to fetch question details: $error');
     });
   }
 
   void selectFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result != null) {
-      jointureFichier = File(result.files.single.path!);
+    final result = await FilePicker.platform.pickFiles(withData: true);
 
+    if (result != null && result.files.isNotEmpty) {
       infoFichier = result.files.first;
 
-      print(infoFichier?.name);
-      print(infoFichier?.bytes);
-      print(infoFichier?.size);
-      print(infoFichier?.extension);
-      print(infoFichier?.path);
+      if (kIsWeb) {
+        jointureFichier = html.File([infoFichier!.bytes!], infoFichier!.name);
+        print("📄 Web file selected: ${infoFichier!.name}");
+      } else {
+        jointureFichier = File(infoFichier!.path!);
+        print("📄 Mobile file selected: ${infoFichier!.name}");
+      }
+
       setState(() {});
     } else {
-      // User canceled the picker
+      print("❌ File picking cancelled");
     }
   }
 
   Future<void> _fetchImage(String filename) async {
     try {
-      final file = await MissionService().getImage(filename);
-      setState(() {
-        if(file != null) {
-          final fileInfo = FileInfo(file: file,name: filename);
-          _images?.add(fileInfo); // Add to the image list for slideshow
+      final mimeType = lookupMimeType(filename) ?? 'image/jpeg';
 
+      if (kIsWeb) {
+        final bytes = await MissionService().getImageBytes(filename);
+        if (bytes != null) {
+          final xfile =
+              XFile.fromData(bytes, name: filename, mimeType: mimeType);
+          setState(() {
+            _webImages.add(xfile);
+          });
+          print("✅ Image fetched (web): $filename");
         }
-
-      });
+      } else {
+        final file = await MissionService().getImage(filename);
+        if (file != null) {
+          final bytes = await file.readAsBytes();
+          final xfile =
+              XFile.fromData(bytes, name: filename, mimeType: mimeType);
+          setState(() {
+            _mobileImages.add(xfile);
+          });
+          print("✅ Image fetched (mobile): $filename");
+        }
+      }
     } catch (e) {
-      print('Failed to fetch image: $e');
-      setState(() {
-        _imageFile = null;
-      });
+      print('❌ Failed to fetch image $filename: $e');
     }
   }
 
   void _showImageViewer(int index) {
-    final imageProvider = Image.file(_images[index].file).image;
-    showImageViewer(context, imageProvider,useSafeArea: true,immersive: false);
+    // final imageProvider = Image.file(_imageFiles[index].file).image;
+    // showImageViewer(context, imageProvider,useSafeArea: true,immersive: false);
   }
-
 
   void _toggleImageSize() {
     setState(() {
@@ -189,12 +249,11 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     });
   }
 
-
   Future<Map<String, dynamic>?> _showResponseEditDialog(
       int modeleReponse, int questionId) async {
     // Fetch the list of choices from the service
     var _listChoixReponse =
-    await MissionService().getAllChoixReponse(modeleReponse);
+        await MissionService().getAllChoixReponse(modeleReponse);
 
     return await showDialog<Map<String, dynamic>>(
       context: context,
@@ -218,7 +277,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                           'id': choix.id,
                           'libelle': choix.libelle,
                           'valeur': choix.valeur,
-                          'color':choix.color
+                          'color': choix.color
                         });
                       },
                     );
@@ -227,7 +286,8 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(null), // Cancel selection
+                  onPressed: () => Navigator.of(context).pop(null),
+                  // Cancel selection
                   child: Text('Annuler'),
                 ),
               ],
@@ -237,11 +297,6 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       },
     );
   }
-
-
-
-
-
 
   void _toggleCommentEdit() {
     setState(() {
@@ -254,6 +309,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       _isActionDropdownVisible = !_isActionDropdownVisible;
     });
   }
+
   Color? hexToColor(String? code) {
     if (code == null || code.isEmpty) {
       return null;
@@ -264,6 +320,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
   @override
   Widget build(BuildContext context) {
+    final imagesToShow = kIsWeb ? _webImages : _mobileImages;
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
@@ -271,9 +328,8 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           leading: IconButton(
               icon: Icon(Icons.arrow_back),
               onPressed: () {
-                Navigator.pop(context,true); // Navigate back
-              }
-          ),
+                Navigator.pop(context, true); // Navigate back
+              }),
         ),
         body: SingleChildScrollView(
           child: Padding(
@@ -301,10 +357,12 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                       children: [
                         Text(
                           'Description:',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 18.0),
                         ),
                         SizedBox(height: 4),
-                        Text('${question.description ?? 'No Description'}', style: TextStyle(fontSize: 16.0)),
+                        Text('${question.description ?? 'No Description'}',
+                            style: TextStyle(fontSize: 16.0)),
                       ],
                     ),
                     SizedBox(height: 20),
@@ -319,7 +377,9 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 children: [
                                   Text(
                                     'Réponse:',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18.0),
                                   ),
                                   SizedBox(height: 4),
                                   Row(
@@ -329,7 +389,8 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                           '${question.choixReponseQuestion!.valeur ?? 'No Response'}',
                                           style: TextStyle(
                                             fontSize: 16.0,
-                                            color: hexToColor(question.choixReponseQuestion!.color),
+                                            color: hexToColor(question
+                                                .choixReponseQuestion!.color),
                                           ),
                                         ),
                                       ),
@@ -338,23 +399,35 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                           '${question.choixReponseQuestion!.libelle ?? 'No Response'}',
                                           style: TextStyle(
                                             fontSize: 16.0,
-                                            color: hexToColor(question.choixReponseQuestion!.color),
+                                            color: hexToColor(question
+                                                .choixReponseQuestion!.color),
                                           ),
                                         ),
                                       ),
                                       IconButton(
                                         icon: Icon(Iconsax.edit),
                                         onPressed: () async {
-                                          var selectedChoice = await _showResponseEditDialog(widget.modeleReponseId, question.id);
+                                          var selectedChoice =
+                                              await _showResponseEditDialog(
+                                                  widget.modeleReponseId,
+                                                  question.id);
                                           if (selectedChoice != null) {
                                             setState(() {
-                                              question.reponseID = selectedChoice['id'];
-                                              question.choixReponseQuestion!.libelle = selectedChoice['libelle'];
-                                              question.choixReponseQuestion!.valeur = selectedChoice['valeur'];
-                                              question.choixReponseQuestion!.color = selectedChoice['color'];
+                                              question.reponseID =
+                                                  selectedChoice['id'];
+                                              question.choixReponseQuestion!
+                                                      .libelle =
+                                                  selectedChoice['libelle'];
+                                              question.choixReponseQuestion!
+                                                      .valeur =
+                                                  selectedChoice['valeur'];
+                                              question.choixReponseQuestion!
+                                                      .color =
+                                                  selectedChoice['color'];
                                             }); // Refresh the UI
                                           }
-                                        },                                      ),
+                                        },
+                                      ),
                                     ],
                                   ),
                                 ],
@@ -376,7 +449,9 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 children: [
                                   Text(
                                     'Commentaire:',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18.0),
                                   ),
                                   SizedBox(height: 4),
                                   Text(
@@ -430,7 +505,9 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                 children: [
                                   Text(
                                     'Action:',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18.0),
                                   ),
                                   SizedBox(height: 4),
                                   Text(
@@ -460,12 +537,17 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                           FutureBuilder<List<ActionM>>(
                             future: _actionsFuture,
                             builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return Center(child: CircularProgressIndicator());
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Center(
+                                    child: CircularProgressIndicator());
                               } else if (snapshot.hasError) {
-                                return Center(child: Text('Error: ${snapshot.error}'));
-                              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                                return Center(child: Text('No actions available'));
+                                return Center(
+                                    child: Text('Error: ${snapshot.error}'));
+                              } else if (!snapshot.hasData ||
+                                  snapshot.data!.isEmpty) {
+                                return Center(
+                                    child: Text('No actions available'));
                               }
 
                               final actions = snapshot.data!;
@@ -484,18 +566,23 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                       children: [
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 'Action sélectionnée:',
-                                                style: TextStyle(fontWeight: FontWeight.bold),
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                               SizedBox(height: 4),
                                               Text(
                                                 '${newActionDescription.isNotEmpty ? newActionDescription : (currentAction?.description ?? 'No Action Description')}',
                                                 softWrap: true,
                                                 maxLines: null,
-                                                style: TextStyle(overflow: TextOverflow.visible),
+                                                style: TextStyle(
+                                                    overflow:
+                                                        TextOverflow.visible),
                                               ),
                                             ],
                                           ),
@@ -522,10 +609,12 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                       maxlines: 1,
                                       decoration: CustomDropdownDecoration(
                                         expandedFillColor: Colors.grey,
-                                        expandedBorder: Border.all(color: Colors.white),
+                                        expandedBorder:
+                                            Border.all(color: Colors.white),
                                         expandedShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.5),
+                                            color:
+                                                Colors.black.withOpacity(0.5),
                                             spreadRadius: 3,
                                             blurRadius: 7,
                                             offset: Offset(0, 3),
@@ -542,25 +631,23 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                         if (question.jointureFichier != null) ...[
                           Text(
                             'Cette réponse contient un fichier joint :',
-                            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 16.0, fontWeight: FontWeight.bold),
                           ),
                           SizedBox(height: 8),
                           ElevatedButton.icon(
-                            onPressed: () {
-                              // Logic to download the file
-                              _downloadFile(question.jointureFichier!,context);
-                            },
+                            onPressed: () => _downloadFile(
+                                question.jointureFichier!, context),
                             icon: Icon(Icons.download),
                             label: Text('Télécharger le fichier'),
                             style: ElevatedButton.styleFrom(
-                              minimumSize: Size(double.infinity, 50),
-                            ),
+                                minimumSize: Size(double.infinity, 50)),
                           ),
                           SizedBox(height: 10),
                           ElevatedButton.icon(
                             onPressed: () {
-                              // Logic to delete the file
-                              deleteFileByName(question.jointureFichier!,context);
+                              deleteFileByName(
+                                  question.jointureFichier!, context);
                               setState(() {
                                 question.jointureFichier = null;
                                 jointureFichier = null;
@@ -574,115 +661,148 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                               backgroundColor: Colors.red,
                             ),
                           ),
-                        ] else
-                          if (jointureFichier != null && infoFichier != null) ...[
-                            Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.start,
-                                      children: [
-                                        // Adding an icon for the file attachment
-                                        Icon(
-                                          Icons.attach_file,
-                                          // Attach file icon
-                                          color:
-                                          Colors.blue, // Color for the icon
-                                        ),
-                                        SizedBox(width: 8),
-                                        // Bold text for the "Fichier joint" label
-                                        Text(
-                                          "Fichier joint :",
-                                          style: TextStyle(
+                        ] else if (jointureFichier != null &&
+                            infoFichier != null) ...[
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.attach_file,
+                                          color: Colors.blue),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        "Fichier joint :",
+                                        style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            // Bolder text
-                                            fontSize:
-                                            16, // Optional: Adjust the font size for emphasis
-                                          ),
-                                        ),
-                                        Spacer(),
-                                        // Pushes the "X" button to the right
-                                        IconButton(
-                                          icon: Icon(Icons.close,
-                                              color: Colors.red),
-                                          onPressed: () {
-                                            setState(() {
-                                              jointureFichier = null;
-                                              infoFichier = null;
-                                            });
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text("Nom: ${infoFichier?.name}"),
-                                    Text(
-                                        "Taille: ${(infoFichier!.size / 1024).toStringAsFixed(2)} KB"),
-                                    Text(
-                                        "Type: ${infoFichier?.extension ?? 'Inconnu'}"),
-                                  ],
-                                ),
-                              ),
-                            )
-                          ] else ... [
-
-                            ElevatedButton.icon(
-                              onPressed: selectFile,
-                              icon: Icon(Icons.attach_file),
-                              label: Text('Ajouter un fichier'),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: Size(double.infinity, 50),
+                                            fontSize: 16),
+                                      ),
+                                      Spacer(),
+                                      IconButton(
+                                        icon: Icon(Icons.close,
+                                            color: Colors.red),
+                                        onPressed: () {
+                                          setState(() {
+                                            jointureFichier = null;
+                                            infoFichier = null;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text("Nom: ${infoFichier?.name}"),
+                                  Text(
+                                      "Taille: ${(infoFichier!.size / 1024).toStringAsFixed(2)} KB"),
+                                  Text(
+                                      "Type: ${infoFichier?.extension ?? 'Inconnu'}"),
+                                ],
                               ),
                             ),
-                          ]
-
-
+                          )
+                        ] else ...[
+                          ElevatedButton.icon(
+                            onPressed: selectFile,
+                            icon: Icon(Icons.attach_file),
+                            label: Text('Ajouter un fichier'),
+                            style: ElevatedButton.styleFrom(
+                                minimumSize: Size(double.infinity, 50)),
+                          ),
+                        ]
                       ],
                     ),
-
-
-
                     SizedBox(height: 20),
-                    if (_imageFiles != null && _imageFiles!.isNotEmpty) ...[
+                    if (imagesToShow.isNotEmpty) ...[
                       ImageSlideshow(
                         width: double.infinity,
                         height: 300,
                         initialPage: 0,
                         indicatorColor: Colors.blue,
                         indicatorBackgroundColor: Colors.grey,
-                        onPageChanged: (value) {
-                          print('Page changed: $value');
-                        },
                         isLoop: true,
-                        children: _imageFiles!.asMap().entries.map((entry) {
+                        children: imagesToShow.asMap().entries.map((entry) {
                           final index = entry.key;
                           final imageFile = entry.value;
 
                           return Stack(
                             children: [
                               Container(
-                                margin:
-                                EdgeInsets.symmetric(horizontal: 8.0),
+                                margin: EdgeInsets.symmetric(horizontal: 8.0),
                                 child: GestureDetector(
-                                  onTap: () => _showImageViewer(index),
-                                  child: Image.file(
-                                    File(imageFile.path),
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
+                                  onTap: () {
+                                    if (!kIsWeb) _showImageViewer(index);
+                                  },
+                                  child: kIsWeb
+                                      ? FutureBuilder<Uint8List>(
+                                          future: imageFile.readAsBytes(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                    ConnectionState.done &&
+                                                snapshot.hasData) {
+                                              return Image.memory(
+                                                snapshot.data!,
+                                                fit: BoxFit.cover,
+                                                width: double.infinity,
+                                              );
+                                            } else {
+                                              return Center(
+                                                  child:
+                                                      CircularProgressIndicator());
+                                            }
+                                          },
+                                        )
+                                      : Image.file(
+                                          File(imageFile.path),
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                        ),
                                 ),
                               ),
                               Positioned(
                                 right: 8,
                                 top: 8,
                                 child: IconButton(
-                                  icon: Icon(Iconsax.trash,
-                                      color: Colors.red),
-                                  onPressed: () {
-                                    _removeImageFile(index);
+                                  icon: Icon(Iconsax.trash, color: Colors.red),
+                                  onPressed: () async {
+                                    final images =
+                                        kIsWeb ? _webImages : _mobileImages;
+                                    final imageName = images[index].name;
+
+                                    final isAlreadyUploaded =
+                                        _existingImageNames.contains(imageName);
+
+                                    if (isAlreadyUploaded) {
+                                      try {
+                                        await MissionService()
+                                            .deleteImage(imageName);
+                                        setState(() {
+                                          images.removeAt(index);
+                                          _existingImageNames.remove(
+                                              imageName); // Also clean it from the tracked list
+                                        });
+                                        print(
+                                            "🗑️ Deleted image from server: $imageName");
+                                      } catch (e) {
+                                        print(
+                                            "❌ Failed to delete image $imageName: $e");
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text(
+                                                  'Failed to delete image from server')),
+                                        );
+                                      }
+                                    } else {
+                                      // Local-only image, safe to just remove
+                                      setState(() {
+                                        images.removeAt(index);
+                                      });
+                                      print(
+                                          "🗑️ Removed local image: $imageName");
+                                    }
                                   },
                                 ),
                               ),
@@ -690,55 +810,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                           );
                         }).toList(),
                       ),
-                    ],
-                    if (_images!.isNotEmpty && _imageFiles!.isEmpty) ...[
-                      Text(
-                        'Cette réponse contient une image :',
-                        style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                      ),
-                      ImageSlideshow(
-                        width: double.infinity,
-                        height: _isImageEnlarged ? 500 : 300,
-                        initialPage: 0,
-                        indicatorColor: Colors.blue,
-                        indicatorBackgroundColor: Colors.grey,
-                        onPageChanged: (value) {
-                          print('Page changed: $value');
-                        },
-                        isLoop: true,
-                        children: _images.map((image) {
-                          final index = _images.indexOf(image); // Get the index of the image
-                          return SafeArea(
-                            child: GestureDetector(
-                              onTap: () => _showImageViewer(index),
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Image.file(
-                                      image.file,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 10,
-                                    right: 10,
-                                    child: IconButton(
-                                      icon: Icon(Iconsax.trash, color: Colors.red, size: 30),
-                                      onPressed: () {
-                                        setState(() {
-                                           _removeImageXFile(index,image.name);
-                                          _images.removeAt(index); // Remove the selected image
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ] else ... [
+                    ] else ...[
                       Text('Joindre des images',
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
@@ -752,31 +824,42 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                         ),
                       ),
                       SizedBox(height: 16),
-
+                      /*
                       OutlinedButton.icon(
-                        onPressed: _openCamera,
+                        onPressed: () {
+                          if (kIsWeb) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Camera is not supported on web.')),
+                            );
+                          } else {
+                            _openCamera();
+                          }
+                        },
                         icon: Icon(Icons.camera_alt, size: 24),
                         label: Text('Ouvrir Camera'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: Size(double.infinity, 48),
                         ),
                       )
+                      */
                     ],
                     SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () {
-                        _isLoading ? null : updateQuestion() ;
+                        _isLoading ? null : updateQuestion();
                       },
                       child: _isLoading
                           ? CircularProgressIndicator(
-                        color: Colors.white,
-                      )
+                              color: Colors.white,
+                            )
                           : Text('Enregistrer'),
                       style: ElevatedButton.styleFrom(
-                        minimumSize: Size(double.infinity, 50), // Full width and fixed height
+                        minimumSize: Size(
+                            double.infinity, 50), // Full width and fixed height
                       ),
                     )
-
                   ],
                 );
               },
@@ -788,78 +871,50 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   }
 
   Future<void> _pickImages() async {
-    final List<XFile>? selectedImages = await _picker.pickMultiImage();
-    if (selectedImages != null) {
-      setState(() {
-        _imageFiles = selectedImages;
-      });
-    }
-  }
+    if (kIsWeb) {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.image,
+        withData: true,
+      );
 
-  void _openCamera() async {
-    // Navigate to CaptureImageScreen and await result
-    final Uint8List? imageBytes = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CaptureImageScreen(),
-      ),
-    );
-
-    if (imageBytes != null) {
-      try {
-        // Get the temporary directory
-        final directory = await getTemporaryDirectory();
-        final filePath =
-            '${directory.path}/temp_image_${DateTime.now().millisecondsSinceEpoch}.png';
-
-        // Write the Uint8List to the file
-        final file = File(filePath);
-        await file.writeAsBytes(imageBytes);
-
-        // Save the image to the gallery
-        final result = await ImageGallerySaver.saveImage(imageBytes);
-
-        if (result != null && result['isSuccess'] == true) {
-          print('Image saved to gallery successfully');
-        } else {
-          print('Failed to save image to gallery');
-        }
-
-        // Create an XFile from the file path
-        final XFile imageFile = XFile(filePath);
-
-        // Ensure the widget is still mounted before calling setState
-        if (mounted) {
-          setState(() {
-            // Add the newly picked image to the existing list
-            _imageFiles = [imageFile];
-          });
-        }
-      } catch (e) {
-        print('Error saving image to file: $e');
+      if (result != null) {
+        setState(() {
+          _webImages.addAll(result.files.map((file) {
+            return XFile.fromData(file.bytes!,
+                name: file.name, mimeType: file.extension);
+          }));
+        });
+        print("🖼️ ${_webImages.length} images selected (web)");
+      }
+    } else {
+      final selected = await _picker.pickMultiImage();
+      if (selected != null && selected.isNotEmpty) {
+        setState(() {
+          _mobileImages.addAll(selected);
+        });
+        print("🖼️ ${_mobileImages.length} images selected (mobile)");
       }
     }
   }
-  Future<void> _removeImageXFile(int index, String imageName) async {
-    await MissionService().deleteImage(imageName);
 
+  void _openCamera() async {}
+
+  void _removeImage(int index) {
     setState(() {
-      _imageFiles!.removeAt(index);
+      if (kIsWeb) {
+        _webImages.removeAt(index);
+      } else {
+        _mobileImages.removeAt(index);
+      }
     });
   }
-  void _removeImageFile(int index) {
-
-    setState(() {
-      _images.removeAt(index);
-    });
-  }
-
 
   Future<String> uploadFile(File file) async {
     try {
       // Call the MissionService's uploadJointure method to upload the file
       final String uploadedFileName =
-      await MissionService().uploadJointure(file);
+          await MissionService().uploadJointure(file);
 
       // Return the uploaded file's name
       return uploadedFileName; // No need to access as a Map, just return the file name
@@ -897,62 +952,75 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     }
   }
 
-
   void _downloadFile(String fileName, BuildContext context) async {
     try {
-      // Request storage permissions
-      var status = await Permission.storage.request();
-      if (!status.isGranted) {
+      if (kIsWeb) {
+        // ✅ Web: Download via browser
+        final bytes = await MissionService().getFileBytes(fileName);
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+
+        html.Url.revokeObjectUrl(url);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Storage permission denied.'),
-            backgroundColor: Colors.red,
+            content: Text('✅ Fichier téléchargé via le navigateur.'),
+            backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
           ),
         );
-        return;
+      } else {
+        // ✅ Mobile: Download using service and save to Downloads
+        final status = await Permission.storage.request();
+        if (!status.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Permission de stockage refusée.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+
+        final tempFilePath = await MissionService().downloadFile(fileName);
+        final tempFile = File(tempFilePath);
+
+        // ✅ Downloads directory (fallback if needed)
+        final downloadsDir = Directory('/storage/emulated/0/Download');
+        if (!downloadsDir.existsSync()) {
+          await downloadsDir.create(recursive: true);
+        }
+
+        final destinationPath = '${downloadsDir.path}/$fileName';
+        await tempFile.copy(destinationPath);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Fichier téléchargé : $destinationPath'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        print('📥 File saved at: $destinationPath');
       }
-
-      // Download the file to a temporary location
-      String tempFilePath = await MissionService().downloadFile(fileName);
-      File tempFile = File(tempFilePath);
-
-      // Get the system's Downloads directory
-      Directory downloadsDir = Directory('/storage/emulated/0/Download');
-
-      if (!downloadsDir.existsSync()) {
-        throw Exception('Downloads directory not found.');
-      }
-
-      // Move the file to the Downloads directory
-      String destinationPath = "${downloadsDir.path}/$fileName";
-      File destinationFile = tempFile.copySync(destinationPath);
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('File downloaded successfully: $destinationPath'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
-
-      print('File downloaded successfully at: $destinationPath');
     } catch (e) {
-      // Show error message
+      print('❌ Error downloading file: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error downloading file: $e'),
+          content: Text('❌ Erreur lors du téléchargement: $e'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
         ),
       );
-
-      print('Error downloading file: $e');
     }
   }
 
 
 
 }
-

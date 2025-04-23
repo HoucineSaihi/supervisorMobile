@@ -70,7 +70,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (result['success']) {
         // Replace the login screen with the home screen
-        Get.offAll(() => NavigationMenu());
+       // Get.offAll(() => NavigationMenu());
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => NavigationMenu()),
+        );
+
       } else {
         // Handle login failure
         ScaffoldMessenger.of(context).showSnackBar(
@@ -82,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred. Please try again later.')),
       );
+      print(e);
     } finally {
       setState(() {
         _isLoading = false;
