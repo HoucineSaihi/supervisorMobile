@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:supervisormobile/features/Profile/models/boutique_model.dart';
@@ -9,11 +9,14 @@ import 'package:supervisormobile/features/incidents/models/AllProblemsLazy.dart'
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
 
 class IncidentService {
-  final String _problemBaseUrl = '${dotenv.env['BASE_URL']}/api/Problem';
 
-  final String _coefficientBaseUrl = '${dotenv.env['BASE_URL']}/api/Coefficient';
+  static String get baseURL => "http://shopconnect.exoticgroup.net:8080";
 
-  final String _paramsBaseUrl = '${dotenv.env['BASE_URL']}/api/Parameters';
+  final String _problemBaseUrl = '$baseURL/api/Problem';
+  final String _coefficientBaseUrl = '$baseURL/api/Coefficient';
+  final String _paramsBaseUrl = '$baseURL/api/Parameters';
+
+
 
 
   final _storage = FlutterSecureStorage();
@@ -188,7 +191,7 @@ class IncidentService {
 
     List<int> userIdArray = [currentUserID];
 
-    final String boutiquesUrl = '${dotenv.env['BASE_URL']}/api/Boutiques/getBoutiquesByUserIDs';
+    final String boutiquesUrl = '${baseURL}/api/Boutiques/getBoutiquesByUserIDs';
 
     final response = await http.post(
       Uri.parse(boutiquesUrl),

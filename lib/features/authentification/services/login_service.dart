@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -8,8 +7,6 @@ import 'package:flutter/foundation.dart'; // For kIsWeb
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // For Web fallback
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
 class SecureStorageService {
   final _secureStorage = const FlutterSecureStorage();
 
@@ -76,7 +73,7 @@ class SecureStorageService {
 
 
 class LoginService {
-  final String _baseURL = '${dotenv.env['BASE_URL']}/api/Caisses/login';
+  final String _baseURL = 'http://shopconnect.exoticgroup.net:8080/api/Caisses/login';
   final SecureStorageService _storageService = SecureStorageService();
 
   Future<Map<String, dynamic>> login(String username, String password) async {

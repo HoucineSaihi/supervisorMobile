@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -10,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
 
 class UserService {
-  String _baseUrl = "${dotenv.env['BASE_URL']}"; // Replace with your actual base URL
+  static String get _baseUrl => "http://shopconnect.exoticgroup.net:8080";
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
 

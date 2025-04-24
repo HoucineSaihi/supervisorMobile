@@ -5,7 +5,6 @@ import 'dart:html' as html;
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -33,7 +32,8 @@ class MissionService {
 
   }
 
-  final String baseURL = '${dotenv.env['BASE_URL']}';
+
+  final String baseURL = "http://shopconnect.exoticgroup.net:8080";
 
   // API endpoints using baseURL
   late final String apiUrl;
@@ -41,9 +41,9 @@ class MissionService {
   late final String actionsUrl;
 
   MissionService() {
-    apiUrl = '${dotenv.env['BASE_URL']}/api/Missions/getMissionsForAreaManager';
-    missionDetailsUrl = '${dotenv.env['BASE_URL']}/api/Missions/missionAllQuestion';
-    actionsUrl = '${dotenv.env['BASE_URL']}/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
+    apiUrl = '${baseURL}/api/Missions/getMissionsForAreaManager';
+    missionDetailsUrl = '${baseURL}/api/Missions/missionAllQuestion';
+    actionsUrl = '${baseURL}/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
   }
   Future<void> deleteImage(String fileName) async {
     final Uri uri = Uri.parse('$baseURL/api/Files/deleteImage/$fileName');
@@ -248,7 +248,7 @@ class MissionService {
 
   Future<QuestionMission> getQuestionDetails(int questionId) async {
     final response = await http.get(
-      Uri.parse('${dotenv.env['BASE_URL']}/api/MissionQuestions/$questionId'),
+      Uri.parse('$baseURL/api/MissionQuestions/$questionId'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -280,7 +280,7 @@ class MissionService {
   }
 
   Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion,BuildContext context) async {
-    final String url = '${dotenv.env['BASE_URL']}/api/MissionQuestions/$questionId';
+    final String url = '${baseURL}/api/MissionQuestions/$questionId';
 
     try {
       final response = await http.put(
@@ -313,7 +313,7 @@ class MissionService {
   }
 
   Future<void> updateMission(int missionId, Mission updatedMission,int status) async {
-    final String url = '${dotenv.env['BASE_URL']}/api/Missions/$missionId';
+    final String url = '${baseURL}/api/Missions/$missionId';
     updatedMission.status = status;
     final response = await http.put(
       Uri.parse(url),
@@ -361,7 +361,7 @@ class MissionService {
     List<int> userIdArray = [];
     userIdArray.add(userId!);
 
-    final String boutiquesUrl = '${dotenv.env['BASE_URL']}/api/Boutiques/getBoutiquesByUserIDs';
+    final String boutiquesUrl = '${baseURL}/api/Boutiques/getBoutiquesByUserIDs';
 
     final response = await http.post(
       Uri.parse(boutiquesUrl),
@@ -406,7 +406,7 @@ class MissionService {
       // Handle the case where the user ID was not found
     }
 
-    final String url = '${dotenv.env['BASE_URL']}/api/Missions/GetAllNotPlanifiedMissions/$userId'; // Static userID is 2
+    final String url = '${baseURL}/api/Missions/GetAllNotPlanifiedMissions/$userId'; // Static userID is 2
 
     final response = await http.get(
       Uri.parse(url),
@@ -427,7 +427,7 @@ class MissionService {
   Future<void> addMission(Mission mission, BuildContext context) async {
     try {
       final response = await http.post(
-        Uri.parse('${dotenv.env['BASE_URL']}/api/Missions'),
+        Uri.parse('${baseURL}/api/Missions'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -621,7 +621,7 @@ class MissionService {
   }
 
   Future<List<QuestionMission>> getQuestionsForSousMission(int sousMissionId) async {
-    final String url = '${dotenv.env['BASE_URL']}/api/MissionQuestions?idSousMission=$sousMissionId';
+    final String url = '${baseURL}/api/MissionQuestions?idSousMission=$sousMissionId';
 
     final response = await http.get(
       Uri.parse(url),
@@ -641,7 +641,7 @@ class MissionService {
 
   Future<List<ChoixReponseQuestion>> getAllChoixReponse(int modeleReponseID) async {
 
-    final String url = '${dotenv.env['BASE_URL']}/api/ChoixReponseQuestion/$modeleReponseID';
+    final String url = '${baseURL}/api/ChoixReponseQuestion/$modeleReponseID';
     final response = await http.get(
       Uri.parse(url),
       headers: <String, String>{

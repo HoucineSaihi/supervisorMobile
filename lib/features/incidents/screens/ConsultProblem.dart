@@ -1,7 +1,8 @@
 import 'dart:io';
+import 'dart:html' as html;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';  // To format date
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supervisormobile/features/calendar/models/Problem.dart';
@@ -19,7 +20,7 @@ class ConsultProblem extends StatefulWidget {
 }
 
 class _ConsultProblemState extends State<ConsultProblem> {
-  final String _baseUrl = '${dotenv.env['BASE_URL']}/api';
+  final String _baseUrl = "http://shopconnect.exoticgroup.net:8080";
 
 
   late IncidentService _problemService;
@@ -58,57 +59,73 @@ class _ConsultProblemState extends State<ConsultProblem> {
 
   void _downloadFile(String fileName, BuildContext context) async {
     try {
-      // Request storage permissions
-      var status = await Permission.storage.request();
-      if (!status.isGranted) {
+      if (kIsWeb) {
+        // ✅ Web: Download via browser
+        final bytes = await MissionService().getFileBytes(fileName);
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+
+        html.Url.revokeObjectUrl(url);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Storage permission denied.'),
-            backgroundColor: Colors.red,
+            content: Text('✅ Fichier téléchargé via le navigateur.'),
+            backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
           ),
         );
-        return;
+      } else {
+        // ✅ Mobile: Download using service and save to Downloads
+        final status = await Permission.storage.request();
+        if (!status.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Permission de stockage refusée.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+
+        final tempFilePath = await MissionService().downloadFile(fileName);
+        final tempFile = File(tempFilePath);
+
+        // ✅ Downloads directory (fallback if needed)
+        final downloadsDir = Directory('/storage/emulated/0/Download');
+        if (!downloadsDir.existsSync()) {
+          await downloadsDir.create(recursive: true);
+        }
+
+        final destinationPath = '${downloadsDir.path}/$fileName';
+        await tempFile.copy(destinationPath);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Fichier téléchargé : $destinationPath'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        print('📥 File saved at: $destinationPath');
       }
-
-      // Download the file to a temporary location
-      String tempFilePath = await MissionService().downloadFile(fileName);
-      File tempFile = File(tempFilePath);
-
-      // Get the system's Downloads directory
-      Directory downloadsDir = Directory('/storage/emulated/0/Download');
-
-      if (!downloadsDir.existsSync()) {
-        throw Exception('Downloads directory not found.');
-      }
-
-      // Move the file to the Downloads directory
-      String destinationPath = "${downloadsDir.path}/$fileName";
-      File destinationFile = tempFile.copySync(destinationPath);
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('File downloaded successfully: $destinationPath'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
-
-      print('File downloaded successfully at: $destinationPath');
     } catch (e) {
-      // Show error message
+      print('❌ Error downloading file: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error downloading file: $e'),
+          content: Text('❌ Erreur lors du téléchargement: $e'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
         ),
       );
-
-      print('Error downloading file: $e');
     }
   }
+
 
 
   @override
