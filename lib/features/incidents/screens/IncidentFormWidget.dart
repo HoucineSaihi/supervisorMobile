@@ -63,22 +63,27 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
   void selectFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
-      withData: true, // this is crucial for Web
+      withData: true, // crucial for Web
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'], // ✅ only allowed types
     );
 
-    if (result != null) {
+    if (result != null && result.files.isNotEmpty) {
       infoFichier = result.files.first;
 
       if (kIsWeb) {
-        // Store as html.File for later upload
-        jointureFichier = html.File(
-          infoFichier!.bytes!,
-          infoFichier!.name,
-        );
+        // ✅ Use the picked file's raw bytes directly for upload
+        // Instead of creating a new html.File, you should keep the bytes and filename
+
+        // Just save the bytes and name; do NOT recreate html.File manually
+        jointureFichier = infoFichier!.bytes != null
+            ? html.File([infoFichier!.bytes!], infoFichier!.name)
+            : null;
+
         print("📄 Web file selected: ${infoFichier!.name}");
         print("Size: ${infoFichier!.bytes?.length} bytes");
       } else {
-        // Mobile/Desktop
+        // ✅ Mobile/Desktop
         jointureFichier = File(result.files.single.path!);
         print("📄 Mobile file selected: ${infoFichier!.name}");
         print("Path: ${infoFichier!.path}");
@@ -89,6 +94,8 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       print("❌ File picking cancelled");
     }
   }
+
+
 
   Future<String> uploadFile(File file) async {
     try {

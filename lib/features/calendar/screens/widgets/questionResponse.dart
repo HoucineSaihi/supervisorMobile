@@ -153,23 +153,30 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
 
   void selectFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
-      withData: true, // this is crucial for Web
+      withData: true, // crucial for Web
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'], // ✅ allowed file types
     );
 
-    if (result != null) {
+    if (result != null && result.files.isNotEmpty) {
       infoFichier = result.files.first;
 
-      if (kIsWeb) {
-        // Store as html.File for later upload
-        jointureFichier = html.File(
-          infoFichier!.bytes!,
-          infoFichier!.name,
-        );
+      // ✅ Check file size before proceeding (max 10MB)
+      const int maxSizeInBytes = 10 * 1024 * 1024; // 10MB
+      if (infoFichier!.size > maxSizeInBytes) {
+        print("❌ Selected file is too large (${infoFichier!.size} bytes). Maximum allowed size is 10MB.");
+        // You can also show a toast/snackbar here if needed
+        return;
+      }
+
+      if (kIsWeb && infoFichier!.bytes != null) {
+        // ✅ Correct: use the picked file bytes directly, do not recreate unnecessarily
+        jointureFichier = html.File([infoFichier!.bytes!], infoFichier!.name);
         print("📄 Web file selected: ${infoFichier!.name}");
-        print("Size: ${infoFichier!.bytes?.length} bytes");
-      } else {
-        // Mobile/Desktop
-        jointureFichier = File(result.files.single.path!);
+        print("Size: ${infoFichier!.bytes!.length} bytes");
+      } else if (!kIsWeb && infoFichier!.path != null) {
+        // ✅ Mobile/Desktop
+        jointureFichier = File(infoFichier!.path!);
         print("📄 Mobile file selected: ${infoFichier!.name}");
         print("Path: ${infoFichier!.path}");
       }
@@ -179,6 +186,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       print("❌ File picking cancelled");
     }
   }
+
 
 
 

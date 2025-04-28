@@ -73,7 +73,7 @@ class SecureStorageService {
 
 
 class LoginService {
-  final String _baseURL = 'http://shopconnect.exoticgroup.net:8080/api/Caisses/login';
+  final String _baseURL = 'http://localhost:7000/api/Caisses/login';
   final SecureStorageService _storageService = SecureStorageService();
 
   Future<Map<String, dynamic>> login(String username, String password) async {

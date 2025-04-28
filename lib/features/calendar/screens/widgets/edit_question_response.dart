@@ -188,17 +188,32 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   }
 
   void selectFile() async {
-    final result = await FilePicker.platform.pickFiles(withData: true);
+    final result = await FilePicker.platform.pickFiles(
+      withData: true,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'], // ✅ allowed types
+    );
 
     if (result != null && result.files.isNotEmpty) {
       infoFichier = result.files.first;
 
-      if (kIsWeb) {
+      // ✅ Size check: max 10MB
+      const int maxSizeInBytes = 10 * 1024 * 1024;
+      if (infoFichier!.size > maxSizeInBytes) {
+        print("❌ Selected file is too large (${infoFichier!.size} bytes). Maximum allowed size is 10MB.");
+        return;
+      }
+
+      if (kIsWeb && infoFichier!.bytes != null) {
+        // ✅ Web: use the picked bytes directly (no corruption)
         jointureFichier = html.File([infoFichier!.bytes!], infoFichier!.name);
         print("📄 Web file selected: ${infoFichier!.name}");
-      } else {
+        print("Size: ${infoFichier!.bytes!.length} bytes");
+      } else if (!kIsWeb && infoFichier!.path != null) {
+        // ✅ Mobile/Desktop
         jointureFichier = File(infoFichier!.path!);
         print("📄 Mobile file selected: ${infoFichier!.name}");
+        print("Path: ${infoFichier!.path}");
       }
 
       setState(() {});
@@ -206,6 +221,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       print("❌ File picking cancelled");
     }
   }
+
 
   Future<void> _fetchImage(String filename) async {
     try {

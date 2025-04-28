@@ -10,7 +10,7 @@ import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
 
 class IncidentService {
 
-  static String get baseURL => "http://shopconnect.exoticgroup.net:8080";
+  static String get baseURL => "http://localhost:7000";
 
   final String _problemBaseUrl = '$baseURL/api/Problem';
   final String _coefficientBaseUrl = '$baseURL/api/Coefficient';

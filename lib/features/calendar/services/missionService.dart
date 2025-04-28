@@ -33,7 +33,7 @@ class MissionService {
   }
 
 
-  final String baseURL = "http://shopconnect.exoticgroup.net:8080";
+  final String baseURL = "http://localhost:7000";
 
   // API endpoints using baseURL
   late final String apiUrl;
@@ -92,13 +92,16 @@ class MissionService {
 
     final response = await http.get(
       uri,
-      headers: {'accept': 'application/octet-stream'},
+      headers: {
+        'Accept': 'application/octet-stream', // ✅ Important to tell server we expect binary
+      },
     );
 
     if (response.statusCode == 200) {
+      // ✅ Return the bodyBytes directly (it contains raw binary data)
       return response.bodyBytes;
     } else {
-      throw Exception('❌ Failed to fetch file bytes for $fileName');
+      throw Exception('❌ Failed to fetch file bytes for $fileName. StatusCode: ${response.statusCode}');
     }
   }
   Future<void> deleteFile(String fileName) async {
@@ -523,7 +526,7 @@ class MissionService {
     final request = http.MultipartRequest('POST', uri);
     request.files.add(
       http.MultipartFile.fromBytes(
-        'file', // Doesn't matter, API uses Request.Form.Files[0]
+        'image', // Doesn't matter, API uses Request.Form.Files[0]
         fileBytes,
         filename: file.name,
         contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
