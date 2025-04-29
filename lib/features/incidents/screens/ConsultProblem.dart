@@ -20,7 +20,7 @@ class ConsultProblem extends StatefulWidget {
 }
 
 class _ConsultProblemState extends State<ConsultProblem> {
-  final String _baseUrl = "http://shopconnect.exoticgroup.net:8080";
+  final String _baseUrl = "http://172.28.3.180:7070";
 
 
   late IncidentService _problemService;

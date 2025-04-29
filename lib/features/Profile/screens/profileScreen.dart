@@ -124,7 +124,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                                   borderRadius: BorderRadius.circular(100),
                                   child: user.img != null && user.img!.isNotEmpty
                                       ? Image.network(
-                                    'http://shopconnect.exoticgroup.net:8080/api/Files/getImage/${user.img!}',
+                                    'http://172.28.3.180:7070/api/Files/getImage/${user.img!}',
                                     fit: BoxFit.cover,
                                   )
                                       : Image.asset('lib/assets/logos/testLogo.png'),
