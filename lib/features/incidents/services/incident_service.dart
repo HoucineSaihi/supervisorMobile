@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -7,35 +8,35 @@ import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/incidents/models/AllProblemsLazy.dart';
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
 
+import '../../../Interceptors/ClientIdInterceptor.dart';
+import '../../../services/DioService.dart';
+import '../../../utils/Helpers/secure_storage_data.dart';
+
 class IncidentService {
-  final String _problemBaseUrl = '${dotenv.env['BASE_URL']}/api/Problem';
 
-  final String _coefficientBaseUrl = '${dotenv.env['BASE_URL']}/api/Coefficient';
+  static final Dio dio =DioService.dio;// Adjust your base URL
 
-  final String _paramsBaseUrl = '${dotenv.env['BASE_URL']}/api/Parameters';
+  final String _problemBaseUrl = '/Problem';
+
+  final String _coefficientBaseUrl = '/Coefficient';
+
+  final String _paramsBaseUrl = '/Parameters';
 
 
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
 
   Future<List<Coefficient>> getAllCoefficients() async {
-    final uri = Uri.parse(_coefficientBaseUrl);
-
     try {
-      // Making the GET request
-      final response = await http.get(uri);
+      final response = await DioService.dio.get(_coefficientBaseUrl); // ✅ using Dio now
 
-      // Check if the response is successful
       if (response.statusCode == 200) {
-        List<dynamic> jsonResponse = json.decode(response.body);
-
-        // Convert JSON to a list of Coefficient objects
+        List<dynamic> jsonResponse = response.data; // ✅ No need to decode manually, Dio handles it
         return jsonResponse.map((data) => Coefficient.fromJson(data)).toList();
       } else {
         throw Exception('Failed to load coefficients. Status code: ${response.statusCode}');
       }
     } catch (error) {
-      // Handle network or other unexpected errors
       throw Exception('An error occurred while fetching coefficients: $error');
     }
   }
@@ -48,25 +49,21 @@ class IncidentService {
   }
 
   Future<List<dynamic>> getAllowedStatus() async {
-    final Uri url = Uri.parse(_paramsBaseUrl+"/GetAllowedStatus"); // Replace with your actual API URL
-
     try {
-      final response = await http.get(url);
+      final response = await DioService.dio.get('$_paramsBaseUrl/GetAllowedStatus'); // ✅ Using Dio now
 
-      // Check if the request was successful
       if (response.statusCode == 200) {
-        // Decode the JSON response
-        final List<dynamic> statuses = json.decode(response.body);
+        final List<dynamic> statuses = response.data; // ✅ No need to decode manually
         return statuses;
       } else {
-        // Handle the error
-        throw Exception('Failed to load allowed statuses');
+        throw Exception('Failed to load allowed statuses. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error: $e');
-      rethrow; // You can also handle the error gracefully here
+      rethrow; // Let the caller handle the error
     }
   }
+
 
 
 
@@ -82,28 +79,27 @@ class IncidentService {
     int? currentUserID = userIdString != null ? int.tryParse(userIdString) : null;
 
     final Map<String, dynamic> requestBody = {
-      "requester_id" : currentUserID,
+      "requester_id": currentUserID,
       "boutique_id": boutiqueId,
       "coef_id": coefId,
       "origin": origin,
       "statut": statut,
       "first": first,
-      "rows":10
+      "rows": 10
     }..removeWhere((key, value) => value == null);
 
     print(requestBody);
 
     try {
-      final response = await http.post(
-        Uri.parse("$_problemBaseUrl/filtered"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(requestBody),
+      final response = await DioService.dio.post(
+        '$_problemBaseUrl/filtered',
+        data: requestBody, // ✅ No need to jsonEncode manually, Dio handles it
       );
 
-      print("API Response: ${response.body}"); // Debugging line
+      print("API Response: ${response.data}"); // Debugging line
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final Map<String, dynamic> responseData = response.data;
 
         // Debugging: Check first problem item
         if (responseData["problems"] is List && responseData["problems"].isNotEmpty) {
@@ -115,7 +111,7 @@ class IncidentService {
         if (responseData["problems"] is List) {
           return AllProblemsLazy(
             problems: (responseData["problems"] as List<dynamic>)
-                .map((incident) => Problem.fromJson(incident as Map<String, dynamic>)) // Ensure conversion
+                .map((incident) => Problem.fromJson(incident as Map<String, dynamic>))
                 .toList(),
             totalRecords: responseData["totalRecords"] ?? 0,
           );
@@ -134,20 +130,19 @@ class IncidentService {
 
 
 
+
   Future<void> cloturerIncident(int questionId) async {
-    // Constructing the URL for updating the clouture
-    final uri = Uri.parse('$_problemBaseUrl/updateClouture/$questionId');
+    try {
+      final response = await DioService.dio.put(
+        '$_problemBaseUrl/updateClouture/$questionId',
+      );
 
-    // Making the PATCH request
-    final response = await http.put(
-      uri,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode != 204) {
-      throw Exception('Failed to update clouture');
+      if (response.statusCode != 204) {
+        throw Exception('Failed to update clouture');
+      }
+    } catch (e) {
+      print('Error occurred while updating clouture: $e');
+      throw Exception('Error occurred while updating clouture: $e');
     }
   }
 
@@ -155,15 +150,14 @@ class IncidentService {
 
   // Fetch problem by ID
   Future<Problem?> getProblemById(int id) async {
-    final url = Uri.parse('$_problemBaseUrl/$id');
-
     try {
-      print('Making API call to: $url');
-      final response = await http.get(url);
+      final response = await DioService.dio.get('$_problemBaseUrl/$id');
+
+      print('Making API call to: $_problemBaseUrl/$id');
 
       if (response.statusCode == 200) {
-        print('Response: ${response.body}');
-        return Problem.fromJson(json.decode(response.body));
+        print('Response: ${response.data}');
+        return Problem.fromJson(response.data); // ✅ Dio auto-decodes JSON
       } else {
         print('Error: ${response.statusCode}');
         throw Exception('Failed to load problem');
@@ -180,51 +174,42 @@ class IncidentService {
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
-    List<int> userIdArray = [];
-    userIdArray.add(_currentUserID);
+    List<int> userIdArray = [_currentUserID]; // ✅ shorter way to initialize
 
-    final String boutiquesUrl = '${dotenv.env['BASE_URL']}/api/Boutiques/getBoutiquesByUserIDs';
+    final String boutiquesUrl = '/Boutiques/getBoutiquesByUserIDs';
 
-    final response = await http.post(
-      Uri.parse(boutiquesUrl),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(
-        userIdArray, // Add the array to the body
-      ),
-    );
+    try {
+      final response = await DioService.dio.post(
+        boutiquesUrl,
+        data: userIdArray, // ✅ Directly send list, Dio will jsonEncode automatically
+      );
 
-    if (response.statusCode == 200) {
-      List<dynamic> body = json.decode(response.body);
-      List<BoutiqueModel> boutiques = body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
-      return boutiques;
-    } else {
-      throw Exception('Failed to load boutiques');
+      if (response.statusCode == 200) {
+        List<dynamic> body = response.data; // ✅ No manual decoding needed
+        List<BoutiqueModel> boutiques = body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
+        return boutiques;
+      } else {
+        throw Exception('Failed to load boutiques. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching boutiques: $e');
+      throw Exception('Error fetching boutiques: $e');
     }
   }
 
   Future<Problem> addProblem(Problem problem) async {
-    final uri = Uri.parse(_problemBaseUrl);
-
     try {
-      // Make the POST request with the Problem object as JSON
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(problem.toJson()),
+      final response = await DioService.dio.post(
+        _problemBaseUrl,
+        data: problem.toJson(), // ✅ No need to manually jsonEncode
       );
 
-      // Check for a successful response
       if (response.statusCode == 201) {
-        // Parse the response to create a Problem object
         print("gooooooooooood");
-        return Problem.fromJson(json.decode(response.body));
+        return Problem.fromJson(response.data); // ✅ response.data already parsed
       } else {
         throw Exception(
-            'Failed to add problem. Status code: ${response.statusCode}, Response: ${response.body}');
+            'Failed to add problem. Status code: ${response.statusCode}, Response: ${response.data}');
       }
     } catch (error) {
       throw Exception('An error occurred while adding the problem: $error');

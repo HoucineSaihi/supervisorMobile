@@ -140,20 +140,35 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
 
 
   void selectFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result != null) {
-      jointureFichier = File(result.files.single.path!);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'], // ✅ Only allowed types
+    );
 
+    if (result != null && result.files.isNotEmpty) {
       infoFichier = result.files.first;
 
-      print(infoFichier?.name);
-      print(infoFichier?.bytes);
-      print(infoFichier?.size);
-      print(infoFichier?.extension);
-      print(infoFichier?.path);
+      // ✅ Size check: max 10MB
+      const int maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+      if (infoFichier!.size > maxSizeInBytes) {
+        print("❌ Selected file is too large (${infoFichier!.size} bytes). Maximum allowed size is 5MB.");
+        return;
+      }
+
+      if (infoFichier!.path != null) {
+        jointureFichier = File(infoFichier!.path!);
+        print("📄 Mobile file selected: ${infoFichier!.name}");
+        print("Size: ${infoFichier!.size} bytes");
+        print("Extension: ${infoFichier!.extension}");
+        print("Path: ${infoFichier!.path}");
+      } else {
+        print("❌ No valid file path.");
+        return;
+      }
+
       setState(() {});
     } else {
-      // User canceled the picker
+      print("❌ File picking cancelled");
     }
   }
 
@@ -180,12 +195,45 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
 
   Future<void> _pickImages() async {
     final List<XFile>? selectedImages = await _picker.pickMultiImage();
-    if (selectedImages != null) {
+
+    if (selectedImages != null && selectedImages.isNotEmpty) {
+      const int maxImageSizeInBytes = 5 * 1024 * 1024; // 5MB limit
+      final allowedExtensions = ['jpg', 'jpeg', 'png'];
+
+      List<XFile> filteredImages = [];
+
+      for (final image in selectedImages) {
+        final extension = image.name.split('.').last.toLowerCase();
+        final isValidExtension = allowedExtensions.contains(extension);
+
+        if (isValidExtension) {
+          final fileSize = await image.length(); // ✅ Async correct size check
+          if (fileSize <= maxImageSizeInBytes) {
+            filteredImages.add(image);
+          } else {
+            print("❌ Image ${image.name} is too large (${fileSize} bytes). Skipped.");
+          }
+        } else {
+          print("❌ Image ${image.name} has unsupported format. Skipped.");
+        }
+      }
+
+      if (filteredImages.isEmpty) {
+        print("❌ No valid images selected. Only JPG, JPEG, PNG under 5MB are allowed.");
+        return;
+      }
+
       setState(() {
-        _imageFiles = selectedImages;
+        _imageFiles = filteredImages;
       });
+
+      print("📷 Selected ${filteredImages.length} valid image(s).");
+    } else {
+      print("❌ No images selected.");
     }
   }
+
+
 
   void _showImageViewer(int index) {
     if (_imageFiles != null && _imageFiles!.isNotEmpty) {
