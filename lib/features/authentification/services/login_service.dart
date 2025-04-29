@@ -1,12 +1,10 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'dart:convert';
-import 'package:flutter/foundation.dart'; // For kIsWeb
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart' as dio;
+
+import 'package:flutter/foundation.dart'; // For kIsWeb
 import 'package:shared_preferences/shared_preferences.dart'; // For Web fallback
-import 'package:http/http.dart' as http;
+import 'package:supervisormobile/services/DioService.dart';
 class SecureStorageService {
   final _secureStorage = const FlutterSecureStorage();
 
@@ -73,27 +71,38 @@ class SecureStorageService {
 
 
 class LoginService {
-  final String _baseURL = 'http://localhost:7000/api/Caisses/login';
   final SecureStorageService _storageService = SecureStorageService();
 
   Future<Map<String, dynamic>> login(String username, String password) async {
-    final response = await http.post(
-      Uri.parse(_baseURL),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'username': username, 'passwd': password}),
-    );
+    try {
+      final response = await DioService.dio.post(
+        '/Caisses/login', // ✅ Relative path
+        data: {
+          'username': username,
+          'passwd': password,
+        },
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        final data = response.data;
 
-      if (data['success']) {
-        await _storageService.saveLoginData(data);
-        return data;
+        if (data['success']) {
+          await _storageService.saveLoginData(data);
+          return data;
+        } else {
+          throw Exception('Login failed: ${data['message'] ?? 'Unknown error'}');
+        }
       } else {
-        throw Exception('Login failed');
+        throw Exception('Failed to login. Status code: ${response.statusCode}');
       }
-    } else {
-      throw Exception('Failed to connect to the server');
+    } catch (e) {
+      print('Login error: $e');
+      throw Exception('Login failed: $e');
     }
   }
 }

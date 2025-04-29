@@ -16,8 +16,11 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+import 'package:dio/dio.dart' as dio;
 
 import 'dart:typed_data';
+
+import 'package:supervisormobile/services/DioService.dart';
 
 class MissionService {
 
@@ -33,7 +36,8 @@ class MissionService {
   }
 
 
-  final String baseURL = "http://localhost:7000";
+  static final dio.Dio _dio = DioService.dio;
+
 
   // API endpoints using baseURL
   late final String apiUrl;
@@ -41,85 +45,102 @@ class MissionService {
   late final String actionsUrl;
 
   MissionService() {
-    apiUrl = '${baseURL}/api/Missions/getMissionsForAreaManager';
-    missionDetailsUrl = '${baseURL}/api/Missions/missionAllQuestion';
-    actionsUrl = '${baseURL}/api/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
+    apiUrl = '/Missions/getMissionsForAreaManager';
+    missionDetailsUrl = '/Missions/missionAllQuestion';
+    actionsUrl = '/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
   }
   Future<void> deleteImage(String fileName) async {
-    final Uri uri = Uri.parse('$baseURL/api/Files/deleteImage/$fileName');
+    try {
+      final response = await _dio.delete(
+        '/Files/deleteImage/$fileName', // ✅ Relative path
+        options: dio.Options(
+          headers: {
+            'accept': '*/*',
+          },
+        ),
+      );
 
-    final response = await http.delete(
-      uri,
-      headers: {
-        'accept': '*/*',
-      },
-    );
-
-    if (response.statusCode != 200) {
-      final responseBody = json.decode(response.body);
-      throw Exception('Failed to delete image: ${responseBody['message']}');
+      if (response.statusCode != 200) {
+        final responseBody = response.data;
+        throw Exception('Failed to delete image: ${responseBody['message']}');
+      }
+    } catch (e) {
+      print('Error deleting image: $e');
+      throw Exception('Error deleting image: $e');
     }
   }
+
 
   Future<String> downloadFile(String fileName) async {
-    final Uri uri = Uri.parse('$baseURL/api/Files/download/$fileName');
-
-    final response = await http.get(
-      uri,
-      headers: {
-        'accept': 'application/octet-stream',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      // Get the directory to save the file
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/$fileName';
-
-      // Write the file bytes to the file
-      final file = File(filePath);
-      await file.writeAsBytes(response.bodyBytes);
-
-      return filePath; // Return the file path for further use
-    } else {
-      final responseBody = json.decode(response.body);
-      throw Exception('Failed to download file: ${responseBody['message']}');
-    }
-  }
-
-  Future<Uint8List> getFileBytes(String fileName) async {
-    final uri = Uri.parse('$baseURL/api/Files/download/$fileName');
-
-    final response = await http.get(
-      uri,
-      headers: {
-        'Accept': 'application/octet-stream', // ✅ Important to tell server we expect binary
-      },
-    );
-
-    if (response.statusCode == 200) {
-      // ✅ Return the bodyBytes directly (it contains raw binary data)
-      return response.bodyBytes;
-    } else {
-      throw Exception('❌ Failed to fetch file bytes for $fileName. StatusCode: ${response.statusCode}');
-    }
-  }
-  Future<void> deleteFile(String fileName) async {
-    final Uri uri = Uri.parse('$baseURL/api/Files/deleteFile/$fileName');
-
     try {
-      final response = await http.delete(
-        uri,
-        headers: {
-          'accept': 'application/json',
-        },
+      final response = await _dio.get(
+        '/Files/download/$fileName', // ✅ Relative path
+        options: dio.Options(
+          responseType: dio.ResponseType.bytes, // ✅ Important: get bytes, not JSON
+          headers: {
+            'accept': 'application/octet-stream',
+          },
+        ),
       );
 
       if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
+        final directory = await getApplicationDocumentsDirectory();
+        final filePath = '${directory.path}/$fileName';
+
+        final file = File(filePath);
+        await file.writeAsBytes(response.data); // ✅ response.data is already bytes
+
+        return filePath; // Return saved file path
+      } else {
+        final responseBody = response.data;
+        throw Exception('Failed to download file: ${responseBody['message']}');
+      }
+    } catch (e) {
+      print('Error downloading file: $e');
+      throw Exception('Error downloading file: $e');
+    }
+  }
+
+
+  Future<Uint8List> getFileBytes(String fileName) async {
+    try {
+      final response = await _dio.get(
+        '/Files/download/$fileName', // ✅ Relative path
+        options: dio.Options(
+          responseType: dio.ResponseType.bytes, // ✅ Important: receive raw bytes
+          headers: {
+            'Accept': 'application/octet-stream',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data; // ✅ Already Uint8List
+      } else {
+        throw Exception('❌ Failed to fetch file bytes for $fileName. StatusCode: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching file bytes: $e');
+      throw Exception('Error fetching file bytes: $e');
+    }
+  }
+
+  Future<void> deleteFile(String fileName) async {
+    try {
+      final response = await _dio.delete(
+        '/Files/deleteFile/$fileName', // ✅ Relative path
+        options: dio.Options(
+          headers: {
+            'accept': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = response.data;
         print('File deleted successfully: ${responseBody['message']}');
       } else {
-        final responseBody = json.decode(response.body);
+        final responseBody = response.data;
         throw Exception('Failed to delete file: ${responseBody['message']}');
       }
     } catch (e) {
@@ -127,321 +148,365 @@ class MissionService {
       throw Exception('Error deleting file: $e');
     }
   }
+
   //File upload for web
   Future<String> uploadJointureWeb(html.File file) async {
-    final Uri uri = Uri.parse('$baseURL/api/Files/upload'); // Your file upload API URL
+    try {
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoadEnd.first;
 
-    // Determine the MIME type based on the file extension
-    final mimeType = lookupMimeType(file.name) ?? 'application/octet-stream';
-    final mimeTypeParts = mimeType.split('/');
+      if (reader.result == null) {
+        throw Exception('Failed to read file data');
+      }
 
-    // Create a multipart request for the file upload
-    var request = http.MultipartRequest('POST', uri)
-      ..headers['accept'] = '*/*'
-      ..headers['Content-Type'] = 'multipart/form-data';
+      final fileBytes = reader.result as List<int>;
 
-    // Using FileReader to convert the file to a Blob for upload
-    final reader = html.FileReader();
+      final mimeType = lookupMimeType(file.name) ?? 'application/octet-stream';
+      final mimeTypeParts = mimeType.split('/');
 
-    // Wait until the file is read as a data URL (base64 encoded)
-    reader.readAsArrayBuffer(file);
+      final formData = dio.FormData.fromMap({
+        'file': dio.MultipartFile.fromBytes(
+          fileBytes,
+          filename: file.name,
+          contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]), // ✅ fixed
+        ),
+      });
 
-    // When the file is loaded successfully
-    await reader.onLoadEnd.first;
-
-    final fileBytes = reader.result as List<int>;
-
-    // Add the file to the multipart request
-    request.files.add(
-      http.MultipartFile(
-        'file', // API endpoint parameter name should be 'file'
-        Stream.fromIterable([fileBytes]),
-        fileBytes.length,
-        filename: file.name,
-        contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
-      ),
-    );
-
-    // Send the request and wait for the response
-    final response = await request.send();
-
-    // Check if the response is successful
-    if (response.statusCode == 200) {
-      final responseString = await response.stream.bytesToString();
-      final responseData = json.decode(responseString);
-      return responseData['fileName']; // Return the uploaded file's name
-    } else {
-      throw Exception('Failed to upload file');
-    }
-  }
-  Future<String> uploadJointure(File file) async {
-    final Uri uri = Uri.parse('$baseURL/api/Files/upload'); // Your file upload API URL
-
-    // Determine the MIME type based on the file extension
-    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
-    final mimeTypeParts = mimeType.split('/');
-
-    var request = http.MultipartRequest('POST', uri)
-      ..headers['accept'] = '*/*'
-      ..headers['Content-Type'] = 'multipart/form-data'
-      ..files.add(
-        http.MultipartFile(
-          'file', // API endpoint parameter name should be 'file'
-          file.readAsBytes().asStream(),
-          file.lengthSync(),
-          filename: file.path.split('/').last,
-          contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+      final response = await _dio.post(
+        '/Files/upload',
+        data: formData,
+        options: dio.Options(
+          headers: {
+            'accept': '*/*',
+            'Content-Type': 'multipart/form-data',
+          },
         ),
       );
 
-    final response = await request.send();
+      if (response.statusCode == 200) {
+        return response.data['fileName'];
+      } else {
+        throw Exception('Failed to upload file. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading file: $e');
+      throw Exception('Error uploading file: $e');
+    }
+  }
+  Future<String> uploadJointure(File file) async {
+    try {
+      final fileName = file.path.split('/').last;
+      final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+      final mimeTypeParts = mimeType.split('/');
 
-    if (response.statusCode == 200) {
-      // Parse the response data
-      final responseString = await response.stream.bytesToString();
-      final responseData = json.decode(responseString);
+      final formData = dio.FormData.fromMap({
+        'file': await dio.MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+          contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+        ),
+      });
 
-      // Return the response as a map with file details
-      return
-        responseData['fileName'];
+      final response = await _dio.post(
+        '/Files/upload',
+        data: formData,
+        options: dio.Options(
+          headers: {
+            'accept': '*/*',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
 
-    } else {
-      throw Exception('Failed to upload file');
+      if (response.statusCode == 200) {
+        return response.data['fileName'];
+      } else {
+        throw Exception('Failed to upload file. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading jointure: $e');
+      throw Exception('Error uploading jointure: $e');
     }
   }
 
-  Future<List<Mission>> getPlanifiedMissions(List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt) async {
-    final String formattedDate = planifiedAt.toIso8601String();
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, dynamic>{
-        'userIds': userIds,
-        'boutiqueIds': boutiqueIds,
-        'planifiedAt': formattedDate,
-      }),
-    );
+  Future<List<Mission>> getPlanifiedMissions(
+      List<int> userIds,
+      List<int> boutiqueIds,
+      DateTime planifiedAt,
+      ) async {
+    try {
+      final String formattedDate = planifiedAt.toIso8601String();
 
-    if (response.statusCode == 200) {
-      List<dynamic> body = json.decode(response.body);
-      List<Mission> missions = body.map((dynamic item) => Mission.fromJson(item)).toList();
-      return missions;
-    } else {
-      throw Exception('Failed to load missions');
+      final response = await _dio.post(
+        '/Missions/getMissionsForAreaManager', // ✅ use your actual relative path if known
+        data: {
+          'userIds': userIds,
+          'boutiqueIds': boutiqueIds,
+          'planifiedAt': formattedDate,
+        },
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = response.data;
+        return body.map((dynamic item) => Mission.fromJson(item)).toList();
+      } else {
+        throw Exception('Failed to load missions. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching missions: $e');
+      throw Exception('Error fetching missions: $e');
     }
   }
+
 
   Future<Mission> getMissionDetails(int missionId) async {
-    final response = await http.get(
-      Uri.parse('$missionDetailsUrl/$missionId'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-    );
+    try {
+      final response = await _dio.get(
+        '/Missions/$missionId', // ✅ Use relative path only
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      final body = json.decode(response.body);
-      return Mission.fromJson(body); // Assuming Mission.fromJson can handle a single mission object
-    } else {
-      throw Exception('Failed to load mission details');
+      if (response.statusCode == 200) {
+        return Mission.fromJson(response.data); // ✅ Already parsed
+      } else {
+        throw Exception('Failed to load mission details. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching mission details: $e');
+      throw Exception('Error fetching mission details: $e');
     }
   }
+
 
   Future<QuestionMission> getQuestionDetails(int questionId) async {
-    final response = await http.get(
-      Uri.parse('$baseURL/api/MissionQuestions/$questionId'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-    );
+    try {
+      final response = await _dio.get(
+        '/MissionQuestions/$questionId', // ✅ Relative path
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> json = jsonDecode(response.body);
-      return QuestionMission.fromJson(json);
-    } else {
-      throw Exception('Failed to load question details');
+      if (response.statusCode == 200) {
+        return QuestionMission.fromJson(response.data); // ✅ Already parsed by Dio
+      } else {
+        throw Exception('Failed to load question details. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching question details: $e');
+      throw Exception('Error fetching question details: $e');
     }
   }
+
 
   Future<List<ActionM>> getActions() async {
-    final response = await http.get(
-      Uri.parse(actionsUrl),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-    );
+    try {
+      final response = await _dio.get(
+        '/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous', // ✅ Make sure this is the correct relative path from your API
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      List<dynamic> body = json.decode(response.body);
-      List<ActionM> actions = body.map((dynamic item) => ActionM.fromJson(item)).toList();
-      return actions;
-    } else {
-      throw Exception('Failed to load actions');
+      if (response.statusCode == 200) {
+        List<dynamic> body = response.data; // ✅ No need to jsonDecode manually
+        return body.map((dynamic item) => ActionM.fromJson(item)).toList();
+      } else {
+        throw Exception('Failed to load actions. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching actions: $e');
+      throw Exception('Error fetching actions: $e');
     }
   }
 
-  Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion,BuildContext context) async {
-    final String url = '${baseURL}/api/MissionQuestions/$questionId';
 
+  Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion, BuildContext context) async {
     try {
-      final response = await http.put(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(updatedQuestion.toJson()),
+      final response = await _dio.put(
+        '/MissionQuestions/$questionId', // ✅ Relative API path
+        data: updatedQuestion.toJson(), // ✅ No need to manually jsonEncode
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
       );
 
       if (response.statusCode == 200) {
         // Successfully updated
-
+        print('✅ Mission question updated successfully.');
       } else {
-        // Parse the response body to get the message
-        final responseBody = json.decode(response.body);
+        // If status != 200, handle error
+        final responseBody = response.data;
         final errorMessage = responseBody['message'] ?? 'An error occurred';
 
-        // Optionally, you can throw an exception or return the message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),
         );
-        throw Exception('Ecrire un commentaire.');
+        throw Exception('Écrire un commentaire.');
       }
     } catch (e) {
-      // Handle any exceptions that occur
       print('Exception: $e');
       throw Exception('Failed to update the mission question');
     }
   }
 
-  Future<void> updateMission(int missionId, Mission updatedMission,int status) async {
-    final String url = '${baseURL}/api/Missions/$missionId';
-    updatedMission.status = status;
-    final response = await http.put(
-      Uri.parse(url),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(updatedMission.toJson()), // Convert updatedMission to JSON
-    );
 
-    if (response.statusCode == 204) {
-      // Successfully updated
-    } else if (response.statusCode == 400 ) {
-      // Handle failure
-      throw Exception('Vous devez répondre a tous les questions.');
-    } else {
-      throw Exception('Une Erreur est survenue.');
+  Future<void> updateMission(int missionId, Mission updatedMission, int status) async {
+    try {
+      updatedMission.status = status; // ✅ Update status before sending
+
+      final response = await _dio.put(
+        '/Missions/$missionId', // ✅ Relative path
+        data: updatedMission.toJson(),
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
+
+      if (response.statusCode == 204) {
+        // ✅ Successfully updated
+        print('✅ Mission updated successfully.');
+      } else if (response.statusCode == 400) {
+        throw Exception('Vous devez répondre à toutes les questions.');
+      } else {
+        throw Exception('Une erreur est survenue.');
+      }
+    } catch (e) {
+      print('Error updating mission: $e');
+      throw Exception('Failed to update mission: $e');
     }
   }
 
+
   Future<List<BoutiqueModel>> getBoutiques() async {
-    String? userIdString;
-    int? userId;
+    try {
+      String? userIdString;
+      int? userId;
 
-    if (kIsWeb) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      userIdString = prefs.getString('currentUserId');
-    } else {
-      final _storage = FlutterSecureStorage();
-      userIdString = await _storage.read(key: 'currentUserId');
-    }
-
-// Convert the string to int
-    if (userIdString != null) {
-      userId = int.tryParse(userIdString);
-      if (userId == null) {
-        print('Failed to parse userIdString to int');
-        // Handle the error appropriately
+      if (kIsWeb) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        userIdString = prefs.getString('currentUserId');
+      } else {
+        final _storage = FlutterSecureStorage();
+        userIdString = await _storage.read(key: 'currentUserId');
       }
-    } else {
-      print('userIdString is null');
-      // Handle the case where the user ID was not found
-    }
 
+      if (userIdString != null) {
+        userId = int.tryParse(userIdString);
+        if (userId == null) {
+          print('Failed to parse userIdString to int');
+          throw Exception('Invalid user ID');
+        }
+      } else {
+        print('userIdString is null');
+        throw Exception('User ID not found');
+      }
 
-    List<int> userIdArray = [];
-    userIdArray.add(userId!);
+      final List<int> userIdArray = [userId];
 
-    final String boutiquesUrl = '${baseURL}/api/Boutiques/getBoutiquesByUserIDs';
+      final response = await _dio.post(
+        '/Boutiques/getBoutiquesByUserIDs', // ✅ Relative API path
+        data: userIdArray, // ✅ Pass list directly
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
 
-    final response = await http.post(
-      Uri.parse(boutiquesUrl),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(
-        userIdArray, // Add the array to the body
-      ),
-    );
-
-    if (response.statusCode == 200) {
-      List<dynamic> body = json.decode(response.body);
-      List<BoutiqueModel> boutiques = body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
-      return boutiques;
-    } else {
-      throw Exception('Failed to load boutiques');
+      if (response.statusCode == 200) {
+        List<dynamic> body = response.data;
+        return body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
+      } else {
+        throw Exception('Failed to load boutiques. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error loading boutiques: $e');
+      throw Exception('Error loading boutiques: $e');
     }
   }
 
   Future<List<Mission>> getAllNotPlanifiedMissions() async {
-    String? userIdString;
-    int? userId;
-
-    if (kIsWeb) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      userIdString = prefs.getString('currentUserId');
-    } else {
-      final _storage = FlutterSecureStorage();
-      userIdString = await _storage.read(key: 'currentUserId');
-    }
-
-// Convert the string to int
-    if (userIdString != null) {
-      userId = int.tryParse(userIdString);
-      if (userId == null) {
-        print('Failed to parse userIdString to int');
-        // Handle the error appropriately
-      }
-    } else {
-      print('userIdString is null');
-      // Handle the case where the user ID was not found
-    }
-
-    final String url = '${baseURL}/api/Missions/GetAllNotPlanifiedMissions/$userId'; // Static userID is 2
-
-    final response = await http.get(
-      Uri.parse(url),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      List<dynamic> body = json.decode(response.body);
-      List<Mission> missions = body.map((dynamic item) => Mission.fromJson(item)).toList();
-      return missions;
-    } else {
-      throw Exception('Failed to load missions');
-    }
-  }
-
-  Future<void> addMission(Mission mission, BuildContext context) async {
     try {
-      final response = await http.post(
-        Uri.parse('${baseURL}/api/Missions'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(mission.toJson()),
+      String? userIdString;
+      int? userId;
+
+      if (kIsWeb) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        userIdString = prefs.getString('currentUserId');
+      } else {
+        final _storage = FlutterSecureStorage();
+        userIdString = await _storage.read(key: 'currentUserId');
+      }
+
+      if (userIdString != null) {
+        userId = int.tryParse(userIdString);
+        if (userId == null) {
+          print('Failed to parse userIdString to int');
+          throw Exception('Invalid user ID');
+        }
+      } else {
+        print('userIdString is null');
+        throw Exception('User ID not found');
+      }
+
+      final response = await _dio.get(
+        '/Missions/GetAllNotPlanifiedMissions/$userId', // ✅ Relative API path
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
       );
 
       if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
+        List<dynamic> body = response.data;
+        return body.map((dynamic item) => Mission.fromJson(item)).toList();
+      } else {
+        throw Exception('Failed to load missions. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error loading not planified missions: $e');
+      throw Exception('Error loading not planified missions: $e');
+    }
+  }
+
+
+  Future<void> addMission(Mission mission, BuildContext context) async {
+    try {
+      final response = await _dio.post(
+        '/Missions', // ✅ Relative path
+        data: mission.toJson(),
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = response.data;
 
         if (responseBody['success'] == true) {
-          // Success
+          // ✅ Success Snackbar
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: AwesomeSnackbarContent(
@@ -455,7 +520,7 @@ class MissionService {
             ),
           );
         } else {
-          // Failure response from API
+          // ❌ API indicated failure
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: AwesomeSnackbarContent(
@@ -470,7 +535,7 @@ class MissionService {
           );
         }
       } else {
-        // Server error (non-200 status)
+        // ❌ Server error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: AwesomeSnackbarContent(
@@ -485,7 +550,7 @@ class MissionService {
         );
       }
     } catch (e) {
-      // Catch unexpected errors
+      print('Unexpected error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
@@ -502,117 +567,143 @@ class MissionService {
   }
 
 
+
   //image upload on web
   Future<String> uploadFileWeb(html.File file) async {
-    final Uri uri = Uri.parse('$baseURL/api/Files/webImageUpload');
+    try {
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoad.first;
 
-    final mimeType = lookupMimeType(file.name) ?? 'application/octet-stream';
-    final mimeTypeParts = mimeType.split('/');
+      if (reader.result == null) {
+        throw Exception('Failed to read file data.');
+      }
 
-    final reader = html.FileReader();
-    reader.readAsArrayBuffer(file);
-    await reader.onLoad.first;
+      Uint8List fileBytes;
+      if (reader.result is ByteBuffer) {
+        fileBytes = Uint8List.view(reader.result as ByteBuffer);
+      } else if (reader.result is Uint8List) {
+        fileBytes = reader.result as Uint8List;
+      } else {
+        throw Exception('Unsupported file format: ${reader.result.runtimeType}');
+      }
 
-    // ✅ Safely extract Uint8List regardless of browser implementation
-    Uint8List fileBytes;
-    if (reader.result is ByteBuffer) {
-      fileBytes = Uint8List.view(reader.result as ByteBuffer);
-    } else if (reader.result is Uint8List) {
-      fileBytes = reader.result as Uint8List;
-    } else {
-      throw Exception("Unsupported file format: ${reader.result.runtimeType}");
-    }
+      final formData = dio.FormData.fromMap({
+        'image': dio.MultipartFile.fromBytes(
+          fileBytes,
+          filename: file.name,
+        ),
+      });
 
-    final request = http.MultipartRequest('POST', uri);
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'image', // Doesn't matter, API uses Request.Form.Files[0]
-        fileBytes,
-        filename: file.name,
-        contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
-      ),
-    );
-
-    final response = await request.send();
-
-    if (response.statusCode == 200) {
-      final responseString = await response.stream.bytesToString();
-      final responseData = json.decode(responseString);
-      return responseData['file']; // Adjust this to match your API response
-    } else {
-      final error = await response.stream.bytesToString();
-      throw Exception('❌ Upload failed: ${response.statusCode} — $error');
-    }
-  }
-  Future<String> uploadFile(File file) async {
-    final Uri uri = Uri.parse('$baseURL/api/Files'); // Construct the URI for your file upload endpoint
-
-    // Determine the MIME type based on the file extension
-    final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
-    final mimeTypeParts = mimeType.split('/');
-
-    var request = http.MultipartRequest('POST', uri)
-      ..headers['accept'] = '*/*'
-      ..headers['Content-Type'] = 'multipart/form-data'
-      ..files.add(
-        http.MultipartFile(
-          'image', // Name of the file parameter in your API
-          file.readAsBytes().asStream(),
-          file.lengthSync(),
-          filename: file.path.split('/').last,
-          contentType: MediaType(mimeTypeParts[0], mimeTypeParts[1]),
+      final response = await _dio.post(
+        '/Files/webImageUpload', // ✅ Only relative path
+        data: formData,
+        options: dio.Options(
+          headers: {
+            'accept': '*/*',
+            'Content-Type': 'multipart/form-data',
+          },
         ),
       );
 
-    final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        return responseData['file']; // ✅ Correct!
+      } else {
+        throw Exception('❌ Upload failed with status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading file (Web): $e');
+      throw Exception('Error uploading file (Web): $e');
+    }
+  }
 
-    if (response.statusCode == 200) {
-      final responseString = await response.stream.bytesToString();
-      final responseData = json.decode(responseString);
-      return responseData['file']; // Extract the filename from the response
-    } else {
-      throw Exception('Failed to upload file');
+
+  Future<String> uploadFile(File file) async {
+    try {
+      final fileName = file.path.split('/').last;
+
+      final fileBytes = await file.readAsBytes();
+
+      final formData = dio.FormData.fromMap({
+        'image': dio.MultipartFile.fromBytes(
+          fileBytes,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _dio.post(
+        '/Files', // ✅ Only relative path
+        data: formData,
+        options: dio.Options(
+          headers: {
+            'accept': '*/*',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        return responseData['file']; // ✅ Correct field returned
+      } else {
+        throw Exception('❌ Failed to upload file. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error uploading file: $e');
+      throw Exception('Error uploading file: $e');
     }
   }
 
   Future<File> getImage(String filename) async {
-    final Uri uri = Uri.parse('$baseURL/api/Files/getImage/$filename');
+    try {
+      final response = await _dio.get(
+        '/Files/getImage/$filename', // ✅ Only relative API path
+        options: dio.Options(
+          responseType: dio.ResponseType.bytes, // ✅ Important: receive raw bytes
+          headers: {
+            'accept': '*/*', // Accept all image types
+          },
+        ),
+      );
 
-    final response = await http.get(uri, headers: {
-      'accept': '*/*', // ✅ Accept any image MIME type (not just jpeg)
-    });
+      if (response.statusCode == 200) {
+        final bytes = response.data as List<int>;
 
-    if (response.statusCode == 200) {
-      final bytes = response.bodyBytes;
+        // ✅ Create temporary file
+        final tempDir = await Directory.systemTemp.createTemp('img_');
+        final filePath = '${tempDir.path}/$filename';
+        final file = File(filePath);
 
-      // ✅ Create temp directory
-      final tempDir = await Directory.systemTemp.createTemp('img_');
-      final filePath = '${tempDir.path}/$filename';
+        await file.writeAsBytes(bytes, flush: true);
 
-      final file = File(filePath);
-
-      // ✅ Write file safely
-      await file.writeAsBytes(bytes, flush: true);
-
-      print('✅ Image file saved to $filePath');
-      return file;
-    } else {
-      final msg = '❌ Failed to retrieve image: ${response.statusCode} — ${response.reasonPhrase}';
-      print(msg);
-      throw Exception(msg);
+        print('✅ Image file saved to $filePath');
+        return file;
+      } else {
+        final msg = '❌ Failed to retrieve image: ${response.statusCode}';
+        print(msg);
+        throw Exception(msg);
+      }
+    } catch (e) {
+      print('Error retrieving image: $e');
+      throw Exception('Error retrieving image: $e');
     }
   }
 
   Future<Uint8List?> getImageBytes(String filename) async {
-    final uri = Uri.parse('$baseURL/api/Files/getImage/$filename');
-
     try {
-      final response = await http.get(uri, headers: {
-        'accept': '*/*', // Accept any image format
-      });
+      final response = await _dio.get(
+        '/Files/getImage/$filename', // ✅ Relative path only
+        options: dio.Options(
+          responseType: dio.ResponseType.bytes, // ✅ Important for raw bytes
+          headers: {
+            'accept': '*/*', // Accept any image MIME type
+          },
+        ),
+      );
 
       if (response.statusCode == 200) {
-        return response.bodyBytes;
+        return response.data as Uint8List;
       } else {
         print('❌ Failed to fetch image bytes: ${response.statusCode}');
         return null;
@@ -624,39 +715,51 @@ class MissionService {
   }
 
   Future<List<QuestionMission>> getQuestionsForSousMission(int sousMissionId) async {
-    final String url = '${baseURL}/api/MissionQuestions?idSousMission=$sousMissionId';
+    try {
+      final response = await _dio.get(
+        '/MissionQuestions',
+        queryParameters: {
+          'idSousMission': sousMissionId, // ✅ Properly send as query param
+        },
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
 
-    final response = await http.get(
-      Uri.parse(url),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      List<dynamic> body = json.decode(response.body);
-      List<QuestionMission> questions = body.map((dynamic item) => QuestionMission.fromJson(item)).toList();
-      return questions;
-    } else {
-      throw Exception('Failed to load questions for sousMission');
+      if (response.statusCode == 200) {
+        List<dynamic> body = response.data;
+        return body.map((item) => QuestionMission.fromJson(item)).toList();
+      } else {
+        throw Exception('Failed to load questions for sousMission');
+      }
+    } catch (e) {
+      print('❌ Error fetching questions for sousMission: $e');
+      throw Exception('Error fetching questions for sousMission: $e');
     }
   }
 
   Future<List<ChoixReponseQuestion>> getAllChoixReponse(int modeleReponseID) async {
+    try {
+      final response = await _dio.get(
+        '/ChoixReponseQuestion/$modeleReponseID', // ✅ Correct relative path
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
 
-    final String url = '${baseURL}/api/ChoixReponseQuestion/$modeleReponseID';
-    final response = await http.get(
-      Uri.parse(url),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-    );
-    if (response.statusCode == 200) {
-      List<dynamic> body = json.decode(response.body);
-      List<ChoixReponseQuestion> allChoix = body.map((dynamic item) => ChoixReponseQuestion.fromJson(item)).toList();
-      return allChoix;
-    } else {
-      throw Exception('Failed to load questions for sousMission');
+      if (response.statusCode == 200) {
+        List<dynamic> body = response.data;
+        return body.map((item) => ChoixReponseQuestion.fromJson(item)).toList();
+      } else {
+        throw Exception('Failed to load choix reponse questions');
+      }
+    } catch (e) {
+      print('❌ Error fetching choix reponse questions: $e');
+      throw Exception('Error fetching choix reponse questions: $e');
     }
   }
 
