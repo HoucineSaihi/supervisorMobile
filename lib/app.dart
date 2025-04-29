@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
 import 'package:supervisormobile/features/authentification/screens/onBoarding/onboarding.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:supervisormobile/utils/navigation_key.dart';
 import 'package:supervisormobile/utils/theme/theme.dart';
 
 import 'features/calendar/screens/calendar.dart';
@@ -46,6 +47,8 @@ class _AppState extends State<App> {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+      navigatorKey: navigatorKey, // ✅ ADD THIS LINE
+
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -67,6 +70,7 @@ class _AppState extends State<App> {
             ? const NavigationMenu()
             : const LoginScreen(),
       ),
+
     );
   }
 
