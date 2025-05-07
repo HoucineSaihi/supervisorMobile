@@ -30,10 +30,11 @@ class _ConsultProblemState extends State<ConsultProblem> {
 
   // Map for statut colors
   final Map<int, Color> statutColors = {
-    0: Colors.blue,
-    1: Colors.green,  // Statut 1: Green
-    2: Colors.orange, // Statut 2: Orange
-    3: Colors.red,    // Statut 3: Red
+    1: Color(0xFF856404), // Pending
+    2: Color(0xFF1A237E), // Planned
+    3: Color(0xFFFF6F00), // In Progress
+    4: Color(0xFF33691E), // Finished
+    5: Color(0xFF2E7D32), // Solved
   };
   String fullImageUrl(String filename) {
     return '$_baseUrl/Files/getImage/$filename';

@@ -250,17 +250,30 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
   // statusColors in Dart
   final Map<String, Map<String, String>> statusColors = {
-    'Declared': {'background': '#f8d7da', 'color': '#721c24'},
-    // Light red background, dark red text
-    'Solved': {'background': '#d4edda', 'color': '#155724'},
+    'Solved': {
+      'background': '#e6f4ea', // Light green
+      'color': '#2e7d32'
+    },
     // Light green background, dark green text
-    'Pending': {'background': '#fff3cd', 'color': '#856404'},
+    'Pending': {
+      'background': '#fff3cd', // Light yellow
+      'color': '#856404'
+    },
     // Light yellow background, dark yellow text
-    'Planned': {'background': '#e2e3e5', 'color': '#383d41'},
+    'Planned': {
+      'background': '#e8f0fe', // Light blue
+      'color': '#1a237e'
+    },
     // Light gray background, dark gray text
-    'InProgress': {'background': '#f5c6cb', 'color': '#721c24'},
+    'InProgress': {
+      'background': '#fff8e1', // Light amber
+      'color': '#ff6f00'
+    },
     // Light red background, dark red text
-    'Finished': {'background': '#f8d7da', 'color': '#721c24'},
+    'Finished': {
+      'background': '#f1f8e9', // Pale green
+      'color': '#33691e'
+    },
     // Light red background, dark red text
   };
 
@@ -424,21 +437,21 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   }
 
   final Map<int, Color> statutColors = {
-    1: Colors.yellow,
-    2: Colors.greenAccent, // Statut 1: Green
-    3: Colors.orange, // Statut 2: Orange
-    4: Colors.blueAccent, // Statut 3: Red
-    5: Colors.green,
+    1: Color(0xFF856404), // Pending
+    2: Color(0xFF1A237E), // Planned
+    3: Color(0xFFFF6F00), // In Progress
+    4: Color(0xFF33691E), // Finished
+    5: Color(0xFF2E7D32), // Solved
   };
 
   Widget _listItem(Problem problem) {
     // Define a dictionary for statut colors
     final Map<int, Color> statutColors = {
-      1: Colors.yellow,
-      2: Colors.greenAccent, // Statut 1: Green
-      3: Colors.orange, // Statut 2: Orange
-      4: Colors.blueAccent, // Statut 3: Red
-      5: Colors.green,
+      1: Color(0xFF856404), // Pending
+      2: Color(0xFF1A237E), // Planned
+      3: Color(0xFFFF6F00), // In Progress
+      4: Color(0xFF33691E), // Finished
+      5: Color(0xFF2E7D32), // Solved
     };
 
     // Get the color based on the statut, or use a default color
