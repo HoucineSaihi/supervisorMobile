@@ -117,17 +117,25 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       print(selectedResponseVallue);
 
       try {
-        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion,context);
+        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion, context);
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Question updated successfully')),
+          const SnackBar(content: Text('Question updated successfully')),
         );
+
         Navigator.pop(context, true); // Navigate back
-      } catch (e) {
+      } catch (e, stackTrace) {
+        // Optional: Log the stack trace for debugging
+        debugPrint('Error updating question: $e');
+        debugPrintStack(stackTrace: stackTrace);
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update question')),
+          SnackBar(content: Text('Failed to update question: $e')),
         );
+
         setState(() => _isLoading = false);
       }
+
       finally {
         setState(() => _isLoading = false); // Stop loader
       }
@@ -346,7 +354,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         ),
                         SizedBox(height: 16),
                         // Actions Dropdown (if applicable)
-
+/*
                         FutureBuilder<List<ActionM>>(
                           future: _actionsFuture,
                           builder: (context, snapshot) {
@@ -411,6 +419,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                             );
                           },
                         ),
+
                         SizedBox(height: 16.0),
                         _selectedAction != null
                             ? Row(
@@ -429,7 +438,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               )
                             : SizedBox.shrink(),
                         // Returns an empty widget when _selectedAction is null
-
+*/
                         SizedBox(height: 16),
                         Text('Commentaire',
                             style: TextStyle(

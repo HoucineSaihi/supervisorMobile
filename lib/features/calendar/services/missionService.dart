@@ -214,7 +214,7 @@ class MissionService {
     }
   }
 
-  Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion,BuildContext context) async {
+  Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion, BuildContext context) async {
     final String url = '${dotenv.env['BASE_URL']}/api/MissionQuestions/$questionId';
 
     try {
@@ -227,25 +227,31 @@ class MissionService {
       );
 
       if (response.statusCode == 200) {
-        // Successfully updated
-
+        // Success: nothing to do
+        return;
       } else {
-        // Parse the response body to get the message
-        final responseBody = json.decode(response.body);
-        final errorMessage = responseBody['message'] ?? 'An error occurred';
+        // Attempt to parse server error message
+        String errorMessage = 'Erreur inconnue';
+        try {
+          final body = json.decode(response.body);
+          if (body is String) {
+            errorMessage = body; // raw string error message from backend
+          } else if (body is Map && body.containsKey('message')) {
+            errorMessage = body['message'];
+          }
+        } catch (_) {
+          // response is not JSON – use default error message
+          errorMessage = response.reasonPhrase ?? 'Une erreur est survenue';
+        }
 
-        // Optionally, you can throw an exception or return the message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
-        throw Exception('Ecrire un commentaire.');
+        throw Exception(errorMessage);
       }
     } catch (e) {
-      // Handle any exceptions that occur
-      print('Exception: $e');
-      throw Exception('Failed to update the mission question');
+      // Propagate error to be handled by UI
+      throw Exception('Erreur lors de la mise à jour de la question : $e');
     }
   }
+
 
   Future<void> updateMission(int missionId, Mission updatedMission,int status) async {
     final String url = '${dotenv.env['BASE_URL']}/api/Missions/$missionId';
