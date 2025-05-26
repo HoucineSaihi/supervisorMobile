@@ -270,7 +270,6 @@ class MissionService {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),
         );
-        throw Exception('Ecrire un commentaire.');
       }
     } catch (e) {
       print('Exception: $e');
