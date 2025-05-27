@@ -6,6 +6,7 @@ import '../../incidents/models/Coefficient.dart';
 
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import '../../incidents/models/Coefficient.dart';
+import '../../incidents/models/IncidentCategory.dart';
 
 class Problem {
   int id;
@@ -35,6 +36,7 @@ class Problem {
   Group? departement;  // Renamed to match C# field 'departement'
   int? StatusType;  // Renamed to match C# field 'StatusType'
   int? Status;  // Renamed to match C# field 'Status'
+  IncidentCategory? type;
 
   Problem({
     required this.id,
@@ -64,6 +66,7 @@ class Problem {
     this.departement,
     this.StatusType,
     this.Status,
+    this.type
   });
 
   // Adjust the factory constructor to reflect the C# names.
@@ -96,6 +99,7 @@ class Problem {
       departement: json['departement'] != null ? Group.fromJson(json['departement']) : null,
       StatusType: json['statusType'] as int?,
       Status: json['status'] as int?,
+      type: json['type'] != null ? IncidentCategoryExtension.fromString(json['type']) : null,
     );
   }
 
@@ -128,6 +132,7 @@ class Problem {
       'departement': departement?.toJson(),
       'StatusType': StatusType,
       'Status': Status,
+      'type': type?.value,
     };
   }
 }

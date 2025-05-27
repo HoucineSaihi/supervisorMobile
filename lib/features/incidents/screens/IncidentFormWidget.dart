@@ -20,6 +20,8 @@ import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 
+import '../models/IncidentCategory.dart';
+
 class IncidentFormWidget extends StatefulWidget {
   @override
   _IncidentFormWidgetState createState() => _IncidentFormWidgetState();
@@ -37,6 +39,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
   List<XFile>? _imageFiles;
   dynamic jointureFichier;
   PlatformFile? infoFichier;
+  IncidentCategory? _selectedCategory;
 
   BoutiqueModel? _selectedBoutique;
 
@@ -241,6 +244,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
           commentaire: _commentController.text,
           description: _descriptionController.text,
           cluster: _selectedBoutique!.cluster,
+          type: _selectedCategory
         );
 
         print("📦 Problem submitted: ${declaredProblem.toJson()}");
@@ -284,6 +288,29 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: 16.0),
+
+                DropdownButtonFormField<IncidentCategory>(
+                  decoration: InputDecoration(
+                    labelText: "Catégorie d'incident",
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                  ),
+                  value: _selectedCategory,
+                  items: IncidentCategory.values
+                      .map((category) => DropdownMenuItem(
+                    value: category,
+                    child: Text(category.label),
+                  ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                    });
+                  },
+                  validator: (value) =>
+                  value == null ? "Veuillez sélectionner une catégorie" : null,
+                ),
+
                 const SizedBox(height: 16.0),
                 DropdownButtonFormField<BoutiqueModel>(
                   decoration: InputDecoration(
