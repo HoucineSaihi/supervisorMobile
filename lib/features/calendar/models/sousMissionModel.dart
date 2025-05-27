@@ -1,5 +1,7 @@
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 
+import '../../incidents/models/IncidentCategory.dart';
+
 class SousMission {
   int? id;
   String? libelle;
@@ -16,6 +18,7 @@ class SousMission {
   int? nombreQuestion;
   int? coefficient_ID;
   double? selectedCoefficient;
+  IncidentCategory? typeIncident;
 
   SousMission({
     this.id,
@@ -31,7 +34,8 @@ class SousMission {
     this.tauxConformiteCategorie,
     this.nombreQuestion,
     this.coefficient_ID,
-    this.selectedCoefficient
+    this.selectedCoefficient,
+    this.typeIncident
   });
 
   factory SousMission.fromJson(Map<String, dynamic> json) {
@@ -51,7 +55,9 @@ class SousMission {
       tauxConformiteCategorie: (json['tauxConformiteCategorie'] as num?)?.toDouble(),
         nombreQuestion : (json['nombreQuestion'] as int?),
         coefficient_ID : (json['coefficient_ID'] as int?),
-        selectedCoefficient : (json['selectedCoefficient'] as num?)?.toDouble()
+        selectedCoefficient : (json['selectedCoefficient'] as num?)?.toDouble(),
+      typeIncident: json['typeIncident'] != null ? IncidentCategoryExtension.fromString(json['typeIncident']) : null,
+
     );
   }
 
@@ -70,7 +76,9 @@ class SousMission {
       'tauxConformiteCategorie': tauxConformiteCategorie,
       'nombreQuestion':nombreQuestion,
       'coefficient_ID':coefficient_ID,
-      'selectedCoefficient':selectedCoefficient
+      'selectedCoefficient':selectedCoefficient,
+      'typeIncident': typeIncident?.value,
+
     };
   }
 }

@@ -16,6 +16,8 @@ import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; //
 import 'package:mime/mime.dart';
 import 'package:supervisormobile/services/DioService.dart';
 
+import '../../../dtos/questions/questionAnswerDto.dart';
+
 class MissionService {
   final dio.Dio _dio = DioService.dio; // ✅ Correct way: reuse existing Dio instance
 
@@ -192,6 +194,7 @@ class MissionService {
 
       if (response.statusCode == 200) {
         final body = response.data; // ✅ Already parsed
+        print(body);
         return Mission.fromJson(body); // ✅ Directly create the Mission object
       } else {
         throw Exception('Failed to load mission details. Status code: ${response.statusCode}');
@@ -248,7 +251,7 @@ class MissionService {
       throw Exception('Error fetching actions: $e');
     }
   }
-  Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion, BuildContext context) async {
+  Future<void> updateMissionQuestion(int questionId, questionAnswerDto updatedQuestion, BuildContext context) async {
     try {
       final response = await _dio.put(
         '/MissionQuestions/$questionId', // ✅ Only relative path

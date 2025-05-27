@@ -16,7 +16,9 @@ import 'package:supervisormobile/features/calendar/screens/widgets/captureImageS
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
+import 'package:supervisormobile/features/incidents/models/IncidentCategory.dart';
 
+import '../../../../dtos/questions/questionAnswerDto.dart';
 import '../../DTOs/FileInfo.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -78,9 +80,19 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       }
 
 
+      final updatedQuestion = questionAnswerDto(
+          id: widget.questionId,
+          commentaire: question.commentaire,
+          actionId: question.actionId,
+          fileName: question.fileName, // Add the uploaded file path
+          reponseID: question.reponseID,
+          selectedResponseValue: question.selectedResponseValue,
+          jointureFichier: question.fileName,
+          typeIncident: IncidentCategory.all
 
+      );
 
-      await MissionService().updateMissionQuestion(widget.questionId, question,context);
+      await MissionService().updateMissionQuestion(widget.questionId, updatedQuestion,context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

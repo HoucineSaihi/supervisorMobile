@@ -14,14 +14,18 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
-import 'package:path_provider/path_provider.dart'; // For accessing the temp directory
+import 'package:path_provider/path_provider.dart';
+import 'package:supervisormobile/features/incidents/models/IncidentCategory.dart';
+
+import '../../../../dtos/questions/questionAnswerDto.dart'; // For accessing the temp directory
 
 class QuestionResponseWidget extends StatefulWidget {
   final int questionId;
   final int modelResponseID;
+  final IncidentCategory preSelectedType;
 
   const QuestionResponseWidget(
-      {Key? key, required this.questionId, required this.modelResponseID})
+      {Key? key, required this.questionId, required this.modelResponseID, required this.preSelectedType})
       : super(key: key);
 
   @override
@@ -46,6 +50,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   File? jointureFichier;
   PlatformFile? infoFichier;
   bool _isLoading = false;
+  IncidentCategory? _selectedCategory;
   @override
   void initState() {
     super.initState();
@@ -99,7 +104,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       }
 
       // Create the updated question object
-      final updatedQuestion = QuestionMission(
+      final updatedQuestion = questionAnswerDto(
         id: widget.questionId,
         commentaire: _commentController.text,
         actionId: _selectedAction?.id,
@@ -107,6 +112,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         reponseID: selectedResponseID,
         selectedResponseValue: selectedResponseVallue,
         jointureFichier: fileName,
+        typeIncident: _selectedCategory ?? widget.preSelectedType
 
       );
 
@@ -117,7 +123,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       print(selectedResponseVallue);
 
       try {
-        await MissionService().updateMissionQuestion(updatedQuestion.id, updatedQuestion,context);
+        await MissionService().updateMissionQuestion(widget.questionId, updatedQuestion,context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Question updated successfully')),
         );
@@ -479,6 +485,28 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         // Returns an empty widget when _selectedAction is null
 
                         SizedBox(height: 16),
+                        DropdownButtonFormField<IncidentCategory>(
+                          decoration: InputDecoration(
+                            labelText: "Catégorie d'incident",
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                          ),
+                          value: _selectedCategory ?? widget.preSelectedType, // ✅ Use the preselected if nothing chosen yet
+                          items: IncidentCategory.values
+                              .map((category) => DropdownMenuItem(
+                            value: category,
+                            child: Text(category.label),
+                          ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCategory = value!;
+                            });
+                          },
+                          validator: (value) =>
+                          value == null ? "Veuillez sélectionner une catégorie" : null,
+                        ),
+                        SizedBox(height: 16),
+
                         Text('Commentaire',
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
