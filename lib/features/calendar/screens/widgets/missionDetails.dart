@@ -8,6 +8,7 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/mission_question.dart';
+import 'package:supervisormobile/features/incidents/models/IncidentCategory.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 
 class MissionDetailsWidget extends StatefulWidget {
@@ -182,7 +183,8 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                         mode: widget.mode,
                                         sousMissionID: sousMission.id!,
                                         modelResponseID: mission.modelReponseQuestionId!,
-                                        status:widget.status
+                                        status:widget.status,
+                                        preSelectedType: sousMission.typeIncident ?? IncidentCategory.all,
                                       ),
                                     ),
                                   );

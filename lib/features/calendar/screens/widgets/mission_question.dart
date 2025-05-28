@@ -15,6 +15,8 @@ import 'package:supervisormobile/features/calendar/screens/widgets/questionRespo
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 
+import '../../../incidents/models/IncidentCategory.dart';
+
 class QuestionsListWidget extends StatefulWidget {
   final List<QuestionMission> questions;
   final Function(int questionId, String response) onResponseSelected;
@@ -22,6 +24,7 @@ class QuestionsListWidget extends StatefulWidget {
   final int sousMissionID;
   final int modelResponseID;
   final int status;
+  final IncidentCategory preSelectedType;
 
   const QuestionsListWidget({
     Key? key,
@@ -30,7 +33,8 @@ class QuestionsListWidget extends StatefulWidget {
     required this.mode,
     required this.sousMissionID,
     required this.modelResponseID,
-    required this.status
+    required this.status,
+    required this.preSelectedType
   }) : super(key: key);
 
   @override
@@ -167,6 +171,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                     builder: (context) => QuestionResponseWidget(
                                       questionId: question.id ?? 0,
                                       modelResponseID: widget.modelResponseID,
+                                      preSelectedType: widget.preSelectedType,
                                     ),
                                   ),
                                 );

@@ -22,6 +22,8 @@ import 'dart:typed_data';
 
 import 'package:supervisormobile/services/DioService.dart';
 
+import '../../../dtos/questions/questionAnswerDto.dart';
+
 class MissionService {
 
   final _storage = FlutterSecureStorage();
@@ -335,7 +337,7 @@ class MissionService {
   }
 
 
-  Future<void> updateMissionQuestion(int questionId, QuestionMission updatedQuestion, BuildContext context) async {
+  Future<void> updateMissionQuestion(int questionId, questionAnswerDto updatedQuestion, BuildContext context) async {
     try {
       final response = await _dio.put(
         '/MissionQuestions/$questionId', // ✅ Relative API path
