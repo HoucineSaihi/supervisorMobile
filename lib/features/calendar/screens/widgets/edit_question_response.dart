@@ -25,8 +25,9 @@ import 'package:permission_handler/permission_handler.dart';
 class EditQuestionResponse extends StatefulWidget {
   final int questionId;
   final int modeleReponseId;
+  final IncidentCategory preSelectedType;
 
-  const EditQuestionResponse({Key? key, required this.questionId,required this.modeleReponseId})
+  const EditQuestionResponse({Key? key, required this.questionId,required this.modeleReponseId,required this.preSelectedType})
       : super(key: key);
 
   @override
@@ -51,6 +52,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   PlatformFile? infoFichier;
   bool hasDeletedFile = false;
   bool _isLoading = false;
+  IncidentCategory? _selectedCategory;
 
   void updateQuestion() async {
     setState(() => _isLoading = true);
@@ -88,7 +90,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           reponseID: question.reponseID,
           selectedResponseValue: question.selectedResponseValue,
           jointureFichier: question.fileName,
-          typeIncident: IncidentCategory.all
+          typeIncident: _selectedCategory ?? widget.preSelectedType
 
       );
 
@@ -443,6 +445,28 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                             ],
                           ),
                       ],
+                    ),
+                    SizedBox(height: 20),
+
+                    DropdownButtonFormField<IncidentCategory>(
+                      decoration: InputDecoration(
+                        labelText: "Type d'incident",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                      value: _selectedCategory ?? widget.preSelectedType, // ✅ Use the preselected if nothing chosen yet
+                      items: IncidentCategory.values
+                          .map((category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(category.label),
+                      ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategory = value!;
+                        });
+                      },
+                      validator: (value) =>
+                      value == null ? "Veuillez sélectionner une catégorie" : null,
                     ),
                     SizedBox(height: 20),
                     Column(

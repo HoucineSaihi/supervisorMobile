@@ -229,6 +229,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
   var _statusValidation = null;
 
+
+
   final Map<int, Map<int, String>> statusTypeMap = {
     1: {
       1: 'Declared',
@@ -248,21 +250,24 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     },
   };
 
-  // statusColors in Dart
-  final Map<String, Map<String, String>> statusColors = {
-    'Declared': {'background': '#f8d7da', 'color': '#721c24'},
-    // Light red background, dark red text
-    'Solved': {'background': '#d4edda', 'color': '#155724'},
-    // Light green background, dark green text
-    'Pending': {'background': '#fff3cd', 'color': '#856404'},
-    // Light yellow background, dark yellow text
-    'Planned': {'background': '#e2e3e5', 'color': '#383d41'},
-    // Light gray background, dark gray text
-    'InProgress': {'background': '#f5c6cb', 'color': '#721c24'},
-    // Light red background, dark red text
-    'Finished': {'background': '#f8d7da', 'color': '#721c24'},
-    // Light red background, dark red text
-  };
+// Example function to get status string:
+  String? getStatusLabel(int statusType, int statusNumber) {
+    return statusTypeMap[statusType]?[statusNumber];
+  }
+
+
+
+
+  Color hexToColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length == 6) {
+      hex = 'FF$hex'; // Add opacity if missing
+    }
+    return Color(int.parse('0x$hex'));
+  }
+
+
+
 
   Widget _buildFilterForm() {
     return Column(
@@ -376,6 +381,12 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
             ),
             ..._alowedStatus.map((status) {
               int statusId = status['identifier'];
+              String statusName = status['name'] ?? 'Unknown';
+
+              // Use 'color' from statusColors instead of 'background'
+              final String? hexColor = statusColors[statusName]?['color'];
+              final Color colorDot = hexColor != null ? hexToColor(hexColor) : Colors.grey;
+
               return DropdownMenuItem<int>(
                 value: statusId,
                 child: Row(
@@ -383,19 +394,20 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     Container(
                       width: 10,
                       height: 10,
-                      margin: EdgeInsets.only(right: 8),
-                      // Space between dot and text
+                      margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: statutColors[statusId] ??
-                            Colors.grey, // Default to grey if not found
+                        color: colorDot,
                       ),
                     ),
-                    Text(status['name'] ?? 'Unknown'),
+                    Text(statusName),
                   ],
                 ),
               );
             }).toList(),
+
+
+
           ],
           onChanged: (int? newValue) {
             setState(() {
@@ -423,26 +435,34 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     );
   }
 
-  final Map<int, Color> statutColors = {
-    1: Colors.yellow,
-    2: Colors.greenAccent, // Statut 1: Green
-    3: Colors.orange, // Statut 2: Orange
-    4: Colors.blueAccent, // Statut 3: Red
-    5: Colors.green,
+  final Map<String, Map<String, String>> statusColors = {
+    'Declared': {'background': '#f8d7da', 'color': '#721c24'},
+    // Light red background, dark red text
+    'Solved': {'background': '#d4edda', 'color': '#155724'},
+    // Light green background, dark green text
+    'Pending': {'background': '#fff3cd', 'color': '#856404'},
+    // Light yellow background, dark yellow text
+    'Planned': {'background': '#e2e3e5', 'color': '#383d41'},
+    // Light gray background, dark gray text
+    'InProgress': {'background': '#f5c6cb', 'color': '#721c24'},
+    // Light red background, dark red text
+    'Finished': {'background': '#f8d7da', 'color': '#721c24'},
+    // Light red background, dark red text
   };
 
-  Widget _listItem(Problem problem) {
-    // Define a dictionary for statut colors
-    final Map<int, Color> statutColors = {
-      1: Colors.yellow,
-      2: Colors.greenAccent, // Statut 1: Green
-      3: Colors.orange, // Statut 2: Orange
-      4: Colors.blueAccent, // Statut 3: Red
-      5: Colors.green,
-    };
 
-    // Get the color based on the statut, or use a default color
-    final Color borderColor = statutColors[problem.Status] ?? Colors.grey;
+  Widget _listItem(Problem problem) {
+    // Get status label
+    final String? statusLabel =
+    getStatusLabel(problem.StatusType ?? 3, problem.Status ?? 5);
+
+    // Get background color for the left border using status label
+    final String? hexBackground =
+    statusColors[statusLabel]?['background'];
+
+    final Color borderColor = hexBackground != null
+        ? hexToColor(hexBackground)
+        : Colors.grey; // Default color if not found
 
     // Format the date (display only the date part)
     final String formattedDate = problem.declaration_date != null
@@ -474,7 +494,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       'Decr:',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -483,7 +503,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     ),
                     Text(
                       problem.coefficient?.libelle ?? 'No priority',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         color: Colors.black,
@@ -491,7 +511,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     ),
                   ],
                 ),
-                SizedBox(height: 4.0),
+                const SizedBox(height: 4.0),
                 Text(
                   problem.description ?? 'No description',
                   style: TextStyle(
@@ -499,10 +519,10 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     color: Colors.grey[600],
                   ),
                 ),
-                SizedBox(height: 8.0),
+                const SizedBox(height: 8.0),
 
                 // Commentaire
-                Text(
+                const Text(
                   'Commentaire:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
@@ -512,10 +532,19 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     color: Colors.grey[600],
                   ),
                 ),
-                SizedBox(height: 8.0),
-
+                const SizedBox(height: 8.0),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Statut: ${statusLabel ?? 'N/A'}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
                 // Date déclaration
-                Text(
+                const Text(
                   'Date déclaration:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
@@ -549,6 +578,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       ],
     );
   }
+
 
   void _showModal(BuildContext context, Map<String, dynamic> item) {
     AwesomeBottomSheet().show(

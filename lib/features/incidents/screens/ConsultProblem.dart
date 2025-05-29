@@ -38,6 +38,31 @@ class _ConsultProblemState extends State<ConsultProblem> {
   String fullImageUrl(String filename) {
     return '$_baseUrl/Files/getImage/$filename';
   }
+
+  final Map<int, Map<int, String>> statusTypeMap = {
+    1: {
+      1: 'Declared',
+      2: 'Solved',
+    },
+    2: {
+      1: 'Declared',
+      2: 'Pending',
+      3: 'Solved',
+    },
+    3: {
+      1: 'Pending',
+      2: 'Planned',
+      3: 'InProgress',
+      4: 'Finished',
+      5: 'Solved',
+    },
+  };
+
+// Example function to get status string:
+  String? getStatusLabel(int statusType, int statusNumber) {
+    return statusTypeMap[statusType]?[statusNumber];
+  }
+
   @override
   void initState() {
     super.initState();
@@ -111,7 +136,28 @@ class _ConsultProblemState extends State<ConsultProblem> {
     }
   }
 
+  final Map<String, Map<String, String>> statusColors = {
+    'Declared': {'background': '#f8d7da', 'color': '#721c24'},
+    // Light red background, dark red text
+    'Solved': {'background': '#d4edda', 'color': '#155724'},
+    // Light green background, dark green text
+    'Pending': {'background': '#fff3cd', 'color': '#856404'},
+    // Light yellow background, dark yellow text
+    'Planned': {'background': '#e2e3e5', 'color': '#383d41'},
+    // Light gray background, dark gray text
+    'InProgress': {'background': '#f5c6cb', 'color': '#721c24'},
+    // Light red background, dark red text
+    'Finished': {'background': '#f8d7da', 'color': '#721c24'},
+    // Light red background, dark red text
+  };
 
+  Color hexToColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length == 6) {
+      hex = 'FF$hex'; // Add opacity if missing
+    }
+    return Color(int.parse('0x$hex'));
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -148,24 +194,23 @@ class _ConsultProblemState extends State<ConsultProblem> {
               children: [
                 // First Row: Declaration Date, Status and Closing Date
                 Container(
-                  color: statusColor,
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today, size: 24, color: Colors.white),
+                      const Icon(Icons.calendar_today, size: 24),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Declared on: $formattedDeclarationDate',
-                          style: const TextStyle(fontSize: 16, color: Colors.white),
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ),
-                      const Icon(Icons.arrow_forward, size: 24, color: Colors.white),
+                      const Icon(Icons.arrow_forward, size: 24),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Closed on: $formattedClosedDate',
-                          style: const TextStyle(fontSize: 16, color: Colors.white),
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ),
                     ],
@@ -174,6 +219,44 @@ class _ConsultProblemState extends State<ConsultProblem> {
                 const SizedBox(height: 12),
 
                 // Description Row
+                Row(
+                  children: [
+                    const Icon(Icons.comment, size: 24),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Builder(
+                        builder: (context) {
+                          String? label = getStatusLabel(problem.StatusType!, problem.Status!);
+                          if (label == null) {
+                            return const Text('Statut: N/A', style: TextStyle(fontSize: 16));
+                          }
+
+                          final colorInfo = statusColors[label];
+                          final backgroundColor = colorInfo != null ? hexToColor(colorInfo['background']!) : Colors.grey[200]!;
+                          final textColor = colorInfo != null ? hexToColor(colorInfo['color']!) : Colors.black;
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: backgroundColor,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Statut: $label',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: textColor,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
                 Row(
                   children: [
                     const Icon(Icons.description, size: 24),

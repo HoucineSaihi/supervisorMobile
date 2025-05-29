@@ -304,6 +304,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                             builder: (context) => EditQuestionResponse(
                                               questionId: question.id ?? 0,
                                               modeleReponseId: widget.modelResponseID,
+                                              preSelectedType: widget.preSelectedType,
                                             ),
                                           ),
                                         );
@@ -346,6 +347,8 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                   builder: (context) => EditQuestionResponse(
                                     questionId: question.id ?? 0,
                                     modeleReponseId: widget.modelResponseID,
+                                    preSelectedType: widget.preSelectedType,
+
                                   ),
                                 ),
                               );
