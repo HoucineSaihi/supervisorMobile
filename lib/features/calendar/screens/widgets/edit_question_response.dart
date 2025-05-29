@@ -526,7 +526,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                     SizedBox(height: 16),
                     DropdownButtonFormField<IncidentCategory>(
                       decoration: InputDecoration(
-                        labelText: "Catégorie d'incident",
+                        labelText: "Type d'incident",
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
                       ),
                       value: _selectedCategory ?? widget.preSelectedType, // ✅ Use the preselected if nothing chosen yet
@@ -542,7 +542,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                         });
                       },
                       validator: (value) =>
-                      value == null ? "Veuillez sélectionner une catégorie" : null,
+                      value == null ? "Veuillez sélectionner un type" : null,
                     ),
                     SizedBox(height: 20),
                     Column(

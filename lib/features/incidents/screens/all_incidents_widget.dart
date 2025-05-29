@@ -276,7 +276,13 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     },
     // Light red background, dark red text
   };
-
+  Color hexToColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length == 6) {
+      hex = 'FF$hex'; // Add opacity if missing
+    }
+    return Color(int.parse('0x$hex'));
+  }
   Widget _buildFilterForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
@@ -389,6 +395,12 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
             ),
             ..._alowedStatus.map((status) {
               int statusId = status['identifier'];
+              String statusName = status['name'] ?? 'Unknown';
+
+              // Use 'color' from statusColors instead of 'background'
+              final String? hexColor = statusColors[statusName]?['color'];
+              final Color colorDot = hexColor != null ? hexToColor(hexColor) : Colors.grey;
+
               return DropdownMenuItem<int>(
                 value: statusId,
                 child: Row(
@@ -396,19 +408,20 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     Container(
                       width: 10,
                       height: 10,
-                      margin: EdgeInsets.only(right: 8),
-                      // Space between dot and text
+                      margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: statutColors[statusId] ??
-                            Colors.grey, // Default to grey if not found
+                        color: colorDot,
                       ),
                     ),
-                    Text(status['name'] ?? 'Unknown'),
+                    Text(statusName),
                   ],
                 ),
               );
             }).toList(),
+
+
+
           ],
           onChanged: (int? newValue) {
             setState(() {
@@ -443,19 +456,22 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     4: Color(0xFF33691E), // Finished
     5: Color(0xFF2E7D32), // Solved
   };
+  String? getStatusLabel(int statusType, int statusNumber) {
+    return statusTypeMap[statusType]?[statusNumber];
+  }
 
   Widget _listItem(Problem problem) {
-    // Define a dictionary for statut colors
-    final Map<int, Color> statutColors = {
-      1: Color(0xFF856404), // Pending
-      2: Color(0xFF1A237E), // Planned
-      3: Color(0xFFFF6F00), // In Progress
-      4: Color(0xFF33691E), // Finished
-      5: Color(0xFF2E7D32), // Solved
-    };
+    // Get status label
+    final String? statusLabel =
+    getStatusLabel(problem.StatusType ?? 3, problem.Status ?? 5);
 
-    // Get the color based on the statut, or use a default color
-    final Color borderColor = statutColors[problem.Status] ?? Colors.grey;
+    // Get background color for the left border using status label
+    final String? hexBackground =
+    statusColors[statusLabel]?['background'];
+
+    final Color borderColor = hexBackground != null
+        ? hexToColor(hexBackground)
+        : Colors.grey; // Default color if not found
 
     // Format the date (display only the date part)
     final String formattedDate = problem.declaration_date != null
@@ -487,7 +503,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       'Decr:',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -496,7 +512,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     ),
                     Text(
                       problem.coefficient?.libelle ?? 'No priority',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         color: Colors.black,
@@ -504,7 +520,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     ),
                   ],
                 ),
-                SizedBox(height: 4.0),
+                const SizedBox(height: 4.0),
                 Text(
                   problem.description ?? 'No description',
                   style: TextStyle(
@@ -512,10 +528,10 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     color: Colors.grey[600],
                   ),
                 ),
-                SizedBox(height: 8.0),
+                const SizedBox(height: 8.0),
 
                 // Commentaire
-                Text(
+                const Text(
                   'Commentaire:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
@@ -525,10 +541,21 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     color: Colors.grey[600],
                   ),
                 ),
-                SizedBox(height: 8.0),
-
+                const SizedBox(height: 8.0),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Statut: ${statusLabel ?? 'N/A'}',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 // Date déclaration
-                Text(
+                const Text(
                   'Date déclaration:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
@@ -562,6 +589,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       ],
     );
   }
+
 
   void _showModal(BuildContext context, Map<String, dynamic> item) {
     AwesomeBottomSheet().show(
@@ -739,8 +767,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     if (index == _incidents.length) {
                       return _hasMoreData
                           ? const Center(
-                              child:
-                                  CircularProgressIndicator()) // Show loading if more data
+                          child:
+                          CircularProgressIndicator()) // Show loading if more data
                           : const SizedBox(); // No more data, show nothing
                     }
                     return Padding(

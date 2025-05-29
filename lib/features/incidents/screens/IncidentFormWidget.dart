@@ -292,7 +292,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
                 DropdownButtonFormField<IncidentCategory>(
                   decoration: InputDecoration(
-                    labelText: "Catégorie d'incident",
+                    labelText: "Type d'incident",
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
                   ),
                   value: _selectedCategory,
@@ -308,7 +308,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                     });
                   },
                   validator: (value) =>
-                  value == null ? "Veuillez sélectionner une catégorie" : null,
+                  value == null ? "Veuillez sélectionner un type" : null,
                 ),
 
                 const SizedBox(height: 16.0),
