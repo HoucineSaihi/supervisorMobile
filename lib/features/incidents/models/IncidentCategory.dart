@@ -22,7 +22,7 @@ extension IncidentCategoryExtension on IncidentCategory {
   String get label {
     switch (this) {
       case IncidentCategory.all:
-        return 'Tous';
+        return 'Non Applicable';
       case IncidentCategory.healthSafety:
         return 'Santé & Sécurité';
       case IncidentCategory.maintenance:
@@ -49,7 +49,7 @@ extension IncidentCategoryExtension on IncidentCategory {
 
   static IncidentCategory fromString(String value) {
     switch (value) {
-      case 'all':
+      case 'None':
         return IncidentCategory.all;
       case 'healthSafety':
         return IncidentCategory.healthSafety;
