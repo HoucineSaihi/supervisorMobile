@@ -21,8 +21,11 @@ import 'dart:html' as html;
 
 import '../../../../dtos/questions/questionAnswerDto.dart';
 import '../../../incidents/models/IncidentCategory.dart';
+import '../../../incidents/services/incident_service.dart';
 import '../../DTOs/FileInfo.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import '../../models/Problem.dart';
 
 class EditQuestionResponse extends StatefulWidget {
   final int questionId;
@@ -46,6 +49,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   bool _isEditingResponse = false;
   bool _isActionDropdownVisible = false;
   bool _isImageEnlarged = false;
+  late Future<Problem?> _problemFuture;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -194,6 +198,13 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       if (questionDetails.jointureFichier != null &&
           questionDetails.jointureFichier!.isNotEmpty){
         _existingFileNames.add(questionDetails.jointureFichier!);
+      }
+
+      if(questionDetails.incident == true){
+        // Start the fetching of problem data and update _isLoading state when done
+        var prb = await IncidentService().getProblemById(questionDetails.problemId!);
+        _selectedCategory = prb?.type;
+
       }
 
         setState(() {});
