@@ -19,6 +19,7 @@ import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:supervisormobile/features/incidents/models/IncidentCategory.dart';
 
 import '../../../../dtos/questions/questionAnswerDto.dart';
+import '../../../incidents/services/incident_service.dart';
 import '../../DTOs/FileInfo.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -145,9 +146,20 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     }).catchError((error) {
       print('Failed to fetch question details: $error');
     });
-    _questionFuture.then((questionDetails) {
+    _questionFuture.then((questionDetails)  {
       if (questionDetails.fileName != null && questionDetails.fileName!.isNotEmpty) {
         _fetchImage(questionDetails.fileName!);
+      }
+      if(questionDetails.incident == true){
+        // Start the fetching of problem data and update _isLoading state when done
+        var prb =   IncidentService().getProblemById(questionDetails.problemId!);
+        prb.then((res){
+          setState(() {
+            _selectedCategory = res!.type ;
+
+          });
+        });
+
       }
     }).catchError((error) {
       print('Failed to fetch question details: $error');
