@@ -24,11 +24,11 @@ extension IncidentCategoryExtension on IncidentCategory {
       case IncidentCategory.all:
         return 'Non Applicable';
       case IncidentCategory.healthSafety:
-        return 'Santé & Sécurité';
+        return 'Health & Safety';
       case IncidentCategory.maintenance:
         return 'Maintenance';
       case IncidentCategory.it:
-        return 'Informatique';
+        return 'IT';
     }
   }
 

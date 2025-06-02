@@ -45,7 +45,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
   final _storage = FlutterSecureStorage();
   bool _isLoading = false;
-  IncidentCategory? _selectedCategory;
+  IncidentCategory? _selectedCategory = IncidentCategory.maintenance;
 
 
 
