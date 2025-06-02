@@ -64,11 +64,8 @@ class _AppState extends State<App> {
       theme: TAppTheme.lightTheme,
       darkTheme: TAppTheme.darkTheme,
       home: SafeArea(
-        child: _isFirstLaunch
-            ? const OnBoardingScreen()
-            : _hasStoredData
-            ? const NavigationMenu()
-            : const LoginScreen(),
+        child: const LoginScreen()
+
       ),
 
     );

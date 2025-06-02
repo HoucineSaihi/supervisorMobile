@@ -39,7 +39,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
   List<XFile>? _imageFiles;
   dynamic jointureFichier;
   PlatformFile? infoFichier;
-  IncidentCategory? _selectedCategory;
+  IncidentCategory? _selectedCategory = IncidentCategory.maintenance;
 
   BoutiqueModel? _selectedBoutique;
 

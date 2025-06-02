@@ -501,13 +501,14 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
               children: [
                 // Description and coefficient on the same line
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Decr:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                    Expanded(
+                      child: Text(
+                        'Statut: ${statusLabel ?? 'N/A'}',
+                        style: TextStyle(
+                          color: TColors.black,
+                          fontWeight: FontWeight.bold, // Make the text bold
+                        ),
                       ),
                     ),
                     Text(
@@ -518,6 +519,21 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                         color: Colors.black,
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 9.0),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Description:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+
                   ],
                 ),
                 const SizedBox(height: 4.0),
@@ -542,18 +558,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                   ),
                 ),
                 const SizedBox(height: 8.0),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Statut: ${statusLabel ?? 'N/A'}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+
+
                 // Date déclaration
                 const Text(
                   'Date déclaration:',
@@ -716,12 +722,20 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => IncidentFormWidget()),
           );
+
+          if (result == true) {
+            // Refresh your widget or call setState
+            setState(() {
+              _handleRefresh();
+            });
+          }
         },
+
         backgroundColor: TColors.primary,
         child: const Icon(Iconsax.add_circle, color: Colors.white),
       ),
