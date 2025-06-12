@@ -7,7 +7,7 @@ import '../utils/Helpers/secure_storage_data.dart'; // ✅ Correct SecureStorage
 class DioService {
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'https://9d70-102-159-49-192.ngrok-free.app/api', // ⚡ Replace with your real API URL
+      baseUrl: 'http://192.168.1.82:8080/api', // ⚡ Replace with your real API URL
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 15),
