@@ -56,7 +56,9 @@ class SousMission {
       nombreQuestion : (json['nombreQuestion'] as int?),
       coefficient_ID : (json['coefficient_ID'] as int?),
       selectedCoefficient : (json['selectedCoefficient'] as num?)?.toDouble(),
-      typeIncident: json['typeIncident'] != null ? IncidentCategoryExtension.fromString(json['typeIncident']) : null,
+      typeIncident: ( json['typeIncident'] != null)
+          ? IncidentCategoryExtension.fromString(json['typeIncident'])
+          : IncidentCategory.all,
 
     );
   }
