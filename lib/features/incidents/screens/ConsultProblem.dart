@@ -498,7 +498,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Cluster: ${problem.cluster == 0 ? 'Retail' : 'Hospitality'}',
+                        'Cluster: ${problem.cluster == 0 ? 'Retail' : problem.cluster == 1 ? 'Hospitality' : problem.cluster == 2 ? 'Production' : 'Office'}',
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
