@@ -64,6 +64,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
     });
   }
 
+
   void selectFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       withData: true, // crucial for Web
@@ -99,7 +100,19 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
   }
 
 
+Future<void> refreshData() async {
+  MissionService().getBoutiques().then((boutiques) {
+    setState(() {
+      _boutiques = boutiques; // Update the boutique list
+    });
+  });
 
+  IncidentService().getAllCoefficients().then((coefficients) {
+    setState(() {
+      _priorities = coefficients; // Update the priorities list
+    });
+  });
+}
   Future<String> uploadFile(File file) async {
     try {
       // Call the MissionService's uploadJointure method to upload the file
@@ -289,7 +302,16 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16.0),
-
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end, // Align to right
+                  children: [
+                    IconButton(
+                      icon: Icon(Iconsax.refresh),
+                      onPressed: refreshData,
+                      tooltip: 'Refresh data',
+                    ),
+                  ],
+                ),
                 DropdownButtonFormField<IncidentCategory>(
                   decoration: InputDecoration(
                     labelText: "Type d'incident",

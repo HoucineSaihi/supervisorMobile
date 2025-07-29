@@ -739,17 +739,20 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         backgroundColor: TColors.primary,
         child: const Icon(Iconsax.add_circle, color: Colors.white),
       ),
-      body: LiquidPullToRefresh(
-        onRefresh: _handleRefresh,
-        springAnimationDurationInMilliseconds: 300,
-        // Speed up the animation
-        height: 60.0,
-        // Adjust the height as needed
-        color: TColors.primary,
-        child: Padding(
+      body:  Padding(
           padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 16.0),
           child: Column(
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end, // Align to right
+                children: [
+                  IconButton(
+                    icon: Icon(Iconsax.refresh),
+                    onPressed: _handleRefresh,
+                    tooltip: 'Refresh Incidents',
+                  ),
+                ],
+              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -809,7 +812,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
             ],
           ),
         ),
-      ),
+
     );
   }
 }

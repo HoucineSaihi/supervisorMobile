@@ -172,12 +172,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       infoFichier = result.files.first;
 
       // ✅ Check file size before proceeding (max 10MB)
-      const int maxSizeInBytes = 10 * 1024 * 1024; // 10MB
-      if (infoFichier!.size > maxSizeInBytes) {
-        print("❌ Selected file is too large (${infoFichier!.size} bytes). Maximum allowed size is 10MB.");
-        // You can also show a toast/snackbar here if needed
-        return;
-      }
+
 
       if (kIsWeb && infoFichier!.bytes != null) {
         // ✅ Correct: use the picked file bytes directly, do not recreate unnecessarily

@@ -497,6 +497,16 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 // Center the text widgets
                                 children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end, // Align to right
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Iconsax.refresh),
+                                        onPressed: loadMissions,
+                                        tooltip: 'Refresh Missions',
+                                      ),
+                                    ],
+                                  ),
                                   Text(
                                     'Vous avez 0 missions pour ce jour',
                                     style: TextStyle(
@@ -594,6 +604,16 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
             
                               Column(
                                 children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end, // Align to right
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Iconsax.refresh),
+                                        onPressed: loadMissions,
+                                        tooltip: 'Refresh Missions',
+                                      ),
+                                    ],
+                                  ),
                                   Center(
                                     child: Text(
                                       allTermine

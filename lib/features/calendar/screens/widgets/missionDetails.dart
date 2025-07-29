@@ -116,12 +116,8 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
             },
           ),
         ),
-        body: LiquidPullToRefresh(
-          onRefresh: _handleRefresh,
-          springAnimationDurationInMilliseconds: 300, // Speed up the animation
-          height: 60.0, // Adjust the height as needed
-          color: TColors.primary,
-          child: FutureBuilder<Mission>(
+        body:
+           FutureBuilder<Mission>(
             future: _missionFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -140,6 +136,16 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end, // Align to right
+                      children: [
+                        IconButton(
+                          icon: Icon(Iconsax.refresh),
+                          onPressed: _handleRefresh,
+                          tooltip: 'Refresh Categories',
+                        ),
+                      ],
+                    ),
                     Expanded(
                       child: ListView(
                         children: [
@@ -378,7 +384,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
               );
             },
           ),
-        ),
+
       ),
     );
   }

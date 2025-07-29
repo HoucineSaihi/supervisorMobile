@@ -7,6 +7,7 @@ import 'package:supervisormobile/features/authentification/screens/onBoarding/on
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supervisormobile/utils/navigation_key.dart';
 import 'package:supervisormobile/utils/theme/theme.dart';
+import 'package:supervisormobile/interceptors/loading_interceptor.dart';
 
 import 'features/calendar/screens/calendar.dart';
 import 'navigation_menu.dart';
@@ -63,11 +64,19 @@ class _AppState extends State<App> {
       themeMode: ThemeMode.system,
       theme: TAppTheme.lightTheme,
       darkTheme: TAppTheme.darkTheme,
-      home: SafeArea(
-        child: const LoginScreen()
-
+      home: Builder(
+        builder: (context) {
+          // Set the overlay state for the loading interceptor
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final overlay = Overlay.of(context);
+            LoadingInterceptor.setOverlayState(overlay);
+          });
+          
+          return SafeArea(
+            child: const LoginScreen()
+          );
+        },
       ),
-
     );
   }
 

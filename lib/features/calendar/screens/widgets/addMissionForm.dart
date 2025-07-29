@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
@@ -175,6 +176,18 @@ class _AddMissionFormState extends State<AddMissionForm> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end, // Align to right
+                children: [
+                  IconButton(
+                    icon: Icon(Iconsax.refresh),
+                    onPressed: () => {
+                      _initializeData()
+                    },
+                    tooltip: 'Refresh data',
+                  ),
+                ],
+              ),
               // Boutique Selection
               DropdownButtonFormField<int>(
                 decoration: InputDecoration(

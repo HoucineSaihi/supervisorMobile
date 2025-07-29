@@ -113,215 +113,197 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
         appBar: AppBar(
           title: Text('Liste des questions'),
           leading: IconButton(
-            icon: Icon(Iconsax.arrow_left), // Back arrow icon
+            icon: Icon(Iconsax.arrow_left),
             onPressed: () {
               if (widget.mode == 1) {
-                Navigator.pop(context, true); // Navigate back
+                Navigator.pop(context, true);
               } else {
-                Navigator.pop(context); // Navigate back
+                Navigator.pop(context);
               }
             },
           ),
         ),
-        body: LiquidPullToRefresh(
-          onRefresh: _handleRefresh,
-          springAnimationDurationInMilliseconds: 300, // Speed up the animation
-          height: 60.0, // Adjust the height as needed
-          color: TColors.primary, // Customize the color as needed
-          child: ListView.builder(
-            itemCount: _questions.length,
-            itemBuilder: (context, index) {
-              final question = _questions[index];
-              final isResponseYes = question.reponse == 'Oui';
-              final isResponseNo = question.reponse == 'Non';
+        body: Column(
+          children: [
+            // Refresh button at top right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: Icon(Iconsax.refresh),
+                  onPressed: _handleRefresh,
+                  tooltip: 'Refresh Questions',
+                ),
+              ],
+            ),
 
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0), // Space between questions
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Display question description in a row and take the whole width
-                    Row(
+            // Questions list below, scrollable
+            Expanded(
+              child: ListView.builder(
+                itemCount: _questions.length,
+                itemBuilder: (context, index) {
+                  final question = _questions[index];
+                  final isResponseYes = question.reponse == 'Oui';
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            'Q: ${question.description ?? 'No Description'}',
-                            style: TextStyle(fontSize: 18), // Slightly larger font size
-                          ),
+                        Text(
+                          'Q: ${question.description ?? 'No Description'}',
+                          style: TextStyle(fontSize: 18),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: 12), // Space between question and buttons
-                    // Display buttons below the question based on mode
-                    if (widget.mode == 1) ...[
-                      // Check if there is a response
-                      if (question.reponseID == null) ...[
-                        // Show a single button named "Repondre"
-                        SizedBox(
-                          height: 32, // Smaller height for the button
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              if(widget.status != 1 && widget.status != 2 ) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')));
-                              }else {
-                                final shouldRefresh = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => QuestionResponseWidget(
-                                      questionId: question.id ?? 0,
-                                      modelResponseID: widget.modelResponseID,
-                                      preSelectedType: widget.preSelectedType,
-                                    ),
-                                  ),
-                                );
-                                if (shouldRefresh == true) {
-                                  // Handle refresh logic if necessary
-                                  _handleRefresh();
-                                }
-                              }
+                        SizedBox(height: 12),
 
-                            },
-                            child: Text('Repondre'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue, // Modern color for the button
-                              padding: EdgeInsets.symmetric(horizontal: 16.0),
-                            ),
-                          ),
-                        ),
-                      ] else ...[
-                        // If response exists, show libelle and valeur from ChoixReponseQuestion
-                        Container(
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.5),
-                                spreadRadius: 2,
-                                blurRadius: 4,
-                                offset: Offset(0, 2), // Changes position of shadow
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                _getIconForValue(question.choixReponseQuestion?.incident ?? false), // Icon based on value
-                                color: Color(_getColorFromHex(question.choixReponseQuestion?.color ?? '#000000')), // Color from ChoixReponseQuestion
-                                size: 24.0,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      question.choixReponseQuestion?.libelle ?? 'N/A',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(_getColorFromHex(question.choixReponseQuestion?.color ?? '#000000')), // Color from ChoixReponseQuestion
+                        if (widget.mode == 1) ...[
+                          if (question.reponseID == null) ...[
+                            SizedBox(
+                              height: 32,
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  if (widget.status != 1 && widget.status != 2) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')),
+                                    );
+                                  } else {
+                                    final shouldRefresh = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => QuestionResponseWidget(
+                                          questionId: question.id ?? 0,
+                                          modelResponseID: widget.modelResponseID,
+                                          preSelectedType: widget.preSelectedType,
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      'Valeur: ${question.choixReponseQuestion?.valeur ?? 0}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black54,
-                                      ),
-                                    ),
-                                  ],
+                                    );
+                                    if (shouldRefresh == true) _handleRefresh();
+                                  }
+                                },
+                                child: Text('Repondre'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  padding: EdgeInsets.symmetric(horizontal: 16.0),
                                 ),
                               ),
-                              ElevatedButton.icon(
-                                onPressed: () async {
-                                      if(widget.status != 1 && widget.status != 2 ) {
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')));
-                                      }else {
+                            ),
+                          ] else ...[
+                            Container(
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.5),
+                                    spreadRadius: 2,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _getIconForValue(question.choixReponseQuestion?.incident ?? false),
+                                    color: Color(_getColorFromHex(question.choixReponseQuestion?.color ?? '#000000')),
+                                    size: 24.0,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          question.choixReponseQuestion?.libelle ?? 'N/A',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(_getColorFromHex(question.choixReponseQuestion?.color ?? '#000000')),
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Valeur: ${question.choixReponseQuestion?.valeur ?? 0}',
+                                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  ElevatedButton.icon(
+                                    onPressed: () async {
+                                      if (widget.status != 1 && widget.status != 2) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')),
+                                        );
+                                      } else {
                                         final shouldRefresh = await Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) => EditQuestionResponse(
                                               questionId: question.id ?? 0,
                                               modeleReponseId: widget.modelResponseID,
-                                                preSelectedType : widget.preSelectedType
+                                              preSelectedType: widget.preSelectedType,
                                             ),
                                           ),
                                         );
-                                        if (shouldRefresh == true) {
-                                          _handleRefresh();
-                                        }
+                                        if (shouldRefresh == true) _handleRefresh();
                                       }
-
-                                },
-                                icon: Icon(
-                                  Icons.edit,
-                                  color: Colors.white,
-                                ),
-                                label: Text(''),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blueAccent,
-                                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                                ),
-                              ),    //Bouton de modification
-                            ],
-                          ),
-                        ),
-                      ],
-                    ]
-
-                    ,
-
-                    if (widget.mode == 0) ...[
-                      // Handle case when mode is 0 (No buttons displayed)
-                      if (question.reponse != null) ...[
-                        // Button spans full width if response is not null
-                        SizedBox(
-                          height: 32, // Smaller height for buttons
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final shouldRefresh = Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EditQuestionResponse(
-                                    questionId: question.id ?? 0,
-                                    modeleReponseId: widget.modelResponseID,
-                                      preSelectedType : widget.preSelectedType
+                                    },
+                                    icon: Icon(Icons.edit, color: Colors.white),
+                                    label: Text(''),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blueAccent,
+                                    ),
                                   ),
-                                ),
-                              );
-                              if (shouldRefresh == true) {
-                                _handleRefresh();
-                              }
-                            },
-                            icon: Icon(
-                              question.reponse == 'Oui'
-                                  ? Icons.check
-                                  : Icons.cancel,
-                              color: Colors.white,
+                                ],
+                              ),
                             ),
-                            label: Text(question.reponse ?? 'Response'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isResponseYes ? Colors.green : Colors.red,
-                              padding: EdgeInsets.symmetric(horizontal: 16.0), // Adjust padding as needed
+                          ],
+                        ],
+
+                        if (widget.mode == 0 && question.reponse != null) ...[
+                          SizedBox(
+                            height: 32,
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final shouldRefresh = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditQuestionResponse(
+                                      questionId: question.id ?? 0,
+                                      modeleReponseId: widget.modelResponseID,
+                                      preSelectedType: widget.preSelectedType,
+                                    ),
+                                  ),
+                                );
+                                if (shouldRefresh == true) _handleRefresh();
+                              },
+                              icon: Icon(
+                                isResponseYes ? Icons.check : Icons.cancel,
+                                color: Colors.white,
+                              ),
+                              label: Text(question.reponse ?? 'Response'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isResponseYes ? Colors.green : Colors.red,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
+                        SizedBox(height: 30),
+                        Divider(),
                       ],
-                    ],
-                    SizedBox(height: 30), // Space between each question
-                    Divider(), // Horizontal line between questions
-                  ],
-                ),
-              );
-            },
-          ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
 }
