@@ -3,6 +3,7 @@ enum IncidentCategory {
   healthSafety,
   maintenance,
   it,
+  retail,
 }
 
 extension IncidentCategoryExtension on IncidentCategory {
@@ -16,6 +17,11 @@ extension IncidentCategoryExtension on IncidentCategory {
         return 3;
       case IncidentCategory.it:
         return 4;
+      case IncidentCategory.retail:
+        return 5;
+
+      default:
+        throw Exception('Invalid IncidentCategory value: $value');
     }
   }
 
@@ -29,6 +35,10 @@ extension IncidentCategoryExtension on IncidentCategory {
         return 'Maintenance';
       case IncidentCategory.it:
         return 'IT';
+      case IncidentCategory.retail:
+        return 'Retail';
+      default:
+        throw Exception('Invalid IncidentCategory value: $value');
     }
   }
 
@@ -42,6 +52,8 @@ extension IncidentCategoryExtension on IncidentCategory {
         return IncidentCategory.maintenance;
       case 4:
         return IncidentCategory.it;
+      case 5:
+        return IncidentCategory.retail;
       default:
         throw Exception('Invalid IncidentCategory value: $value');
     }
@@ -57,6 +69,8 @@ extension IncidentCategoryExtension on IncidentCategory {
         return IncidentCategory.maintenance;
       case 'it':
         return IncidentCategory.it;
+      case 'retail':
+        return IncidentCategory.retail;
       default:
         throw Exception('Invalid IncidentCategory string: $value');
     }

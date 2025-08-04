@@ -11,6 +11,7 @@ import 'package:supervisormobile/utils/constants/sizes.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -161,6 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               : const Text("Se Connecter"),
                         ),
                       ),
+
                     ],
                   ),
                 ),

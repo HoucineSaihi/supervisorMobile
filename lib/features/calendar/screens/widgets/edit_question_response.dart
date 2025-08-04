@@ -90,7 +90,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           fileName: question.fileName, // Add the uploaded file path
           reponseID: question.reponseID,
           selectedResponseValue: question.selectedResponseValue,
-          jointureFichier: question.fileName,
+          jointureFichier: question.jointureFichier,
           typeIncident: _selectedCategory ?? widget.preSelectedType
 
       );
