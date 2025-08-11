@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
+import 'package:supervisormobile/features/calendar/models/missionResponseModel.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
 import 'package:http_parser/http_parser.dart';
@@ -232,13 +233,18 @@ class MissionService {
     }
   }
 
-  Future<List<Mission>> getPlanifiedMissions(
+  Future<MissionResponseModel> getPlanifiedMissions(
       List<int> userIds,
       List<int> boutiqueIds,
-      DateTime planifiedAt,
-      ) async {
+      DateTime planifiedAt, {
+      int pageNumber = 1,
+      int pageSize = 50,
+      }) async {
     try {
       final String formattedDate = planifiedAt.toIso8601String();
+      
+      print('🚀 MissionService: Fetching missions for date: $formattedDate');
+      print('📋 MissionService: Request params - userIds: $userIds, boutiqueIds: $boutiqueIds, pageNumber: $pageNumber, pageSize: $pageSize');
 
       final response = await _dio.post(
         '/Missions/getMissionsForAreaManager', // ✅ use your actual relative path if known
@@ -246,6 +252,8 @@ class MissionService {
           'userIds': userIds,
           'boutiqueIds': boutiqueIds,
           'planifiedAt': formattedDate,
+          'PageSize': pageSize,
+          'PageNumber': pageNumber,
         },
         options: dio.Options(
           headers: {
@@ -254,14 +262,16 @@ class MissionService {
         ),
       );
 
+      print('✅ MissionService: API call successful. Status: ${response.statusCode}');
+      print('📄 MissionService: Raw response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        List<dynamic> body = response.data;
-        return body.map((dynamic item) => Mission.fromJson(item)).toList();
+        return MissionResponseModel.fromJson(response.data);
       } else {
         throw Exception('Failed to load missions. Status code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching missions: $e');
+      print('❌ MissionService: Error fetching missions: $e');
       throw Exception('Error fetching missions: $e');
     }
   }

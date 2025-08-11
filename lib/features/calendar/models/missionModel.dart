@@ -50,30 +50,193 @@ class Mission {
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) {
-    return Mission(
-      id: json['id'] as int,
-      libelle: json['libelle'] as String?,
-      status: json['status'] as int?,
-      missionCode: json['missionCode'] as String?,
-      description: json['description'] as String?,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      startedAT: json['startedAT'] != null ? DateTime.parse(json['startedAT']) : null,
-      planifiedAt: json['planifiedAt'] != null ? DateTime.parse(json['planifiedAt']) : null,
-      endedAt: json['endedAt'] != null ? DateTime.parse(json['endedAt']) : null,
-      boutiqueId: json['boutiqueId'] as int?,
-      boutique: json['boutique'] != null ? BoutiqueModel.fromJson(json['boutique']) : null,
-      userId: json['userId'] as int?,
-      activated: json['activated'] as bool?,
-      sousMissions: json['sousMissions'] != null
-          ? (json['sousMissions'] as List).map((i) => SousMission.fromJson(i)).toList()
-          : null,
-      modelReponseQuestionId: json['modelReponseQuestionId'] as int?,
-      conformite_ID: json['conformite_ID'] as int?,
-      scoreMax: (json['scoreMax'] as num?)?.toDouble(),
-      totalQuestion: json['totalQuestion'] as int?,
-      tauxConformite: (json['tauxConformite'] as num?)?.toDouble(),
-        progression : (json['progression'] as num?)?.toDouble()
-    );
+    try {
+      // Log the incoming JSON for debugging
+      print('🔍 Mission.fromJson: Parsing mission with ID: ${json['id']}');
+      
+      // Validate required fields
+      if (json['id'] == null) {
+        throw Exception('Mission ID is null or missing');
+      }
+      
+      // Log null values for debugging
+      final nullFields = <String>[];
+      if (json['libelle'] == null) nullFields.add('libelle');
+      if (json['status'] == null) nullFields.add('status');
+      if (json['missionCode'] == null) nullFields.add('missionCode');
+      if (json['description'] == null) nullFields.add('description');
+      if (json['createdAt'] == null) nullFields.add('createdAt');
+      if (json['startedAT'] == null) nullFields.add('startedAT');
+      if (json['planifiedAt'] == null) nullFields.add('planifiedAt');
+      if (json['endedAt'] == null) nullFields.add('endedAt');
+      if (json['boutiqueId'] == null) nullFields.add('boutiqueId');
+      if (json['boutique'] == null) nullFields.add('boutique');
+      if (json['userId'] == null) nullFields.add('userId');
+      if (json['activated'] == null) nullFields.add('activated');
+      if (json['sousMissions'] == null) nullFields.add('sousMissions');
+      if (json['modelReponseQuestionId'] == null) nullFields.add('modelReponseQuestionId');
+      if (json['conformite_ID'] == null) nullFields.add('conformite_ID');
+      if (json['scoreMax'] == null) nullFields.add('scoreMax');
+      if (json['totalQuestion'] == null) nullFields.add('totalQuestion');
+      if (json['tauxConformite'] == null) nullFields.add('tauxConformite');
+      if (json['progression'] == null) nullFields.add('progression');
+      
+      if (nullFields.isNotEmpty) {
+        print('⚠️ Mission.fromJson: Null fields detected: ${nullFields.join(', ')}');
+      }
+      
+      // Detailed field-by-field parsing with error handling
+      print('🔍 Mission.fromJson: Starting field-by-field parsing...');
+      
+      // Parse each field individually with detailed logging
+      final id = json['id'] as int;
+      print('✅ Mission.fromJson: id = $id');
+      
+      final libelle = json['libelle'] as String?;
+      print('✅ Mission.fromJson: libelle = $libelle');
+      
+      final status = json['status'] as int?;
+      print('✅ Mission.fromJson: status = $status');
+      
+      final missionCode = json['missionCode'] as String?;
+      print('✅ Mission.fromJson: missionCode = $missionCode');
+      
+      final description = json['description'] as String?;
+      print('✅ Mission.fromJson: description = $description');
+      
+      DateTime? createdAt;
+      try {
+        createdAt = json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null;
+        print('✅ Mission.fromJson: createdAt = $createdAt');
+      } catch (e) {
+        print('❌ Mission.fromJson: Error parsing createdAt: $e');
+        createdAt = null;
+      }
+      
+      DateTime? startedAT;
+      try {
+        startedAT = json['startedAT'] != null ? DateTime.parse(json['startedAT']) : null;
+        print('✅ Mission.fromJson: startedAT = $startedAT');
+      } catch (e) {
+        print('❌ Mission.fromJson: Error parsing startedAT: $e');
+        startedAT = null;
+      }
+      
+      DateTime? planifiedAt;
+      try {
+        planifiedAt = json['planifiedAt'] != null ? DateTime.parse(json['planifiedAt']) : null;
+        print('✅ Mission.fromJson: planifiedAt = $planifiedAt');
+      } catch (e) {
+        print('❌ Mission.fromJson: Error parsing planifiedAt: $e');
+        planifiedAt = null;
+      }
+      
+      DateTime? endedAt;
+      try {
+        endedAt = json['endedAt'] != null ? DateTime.parse(json['endedAt']) : null;
+        print('✅ Mission.fromJson: endedAt = $endedAt');
+      } catch (e) {
+        print('❌ Mission.fromJson: Error parsing endedAt: $e');
+        endedAt = null;
+      }
+      
+      final boutiqueId = json['boutiqueId'] as int?;
+      print('✅ Mission.fromJson: boutiqueId = $boutiqueId');
+      
+      BoutiqueModel? boutique;
+      try {
+        boutique = json['boutique'] != null ? BoutiqueModel.fromJson(json['boutique']) : null;
+        print('✅ Mission.fromJson: boutique = ${boutique != null ? 'parsed successfully' : 'null'}');
+      } catch (e) {
+        print('❌ Mission.fromJson: Error parsing boutique: $e');
+        boutique = null;
+      }
+      
+      final userId = json['userId'] as int?;
+      print('✅ Mission.fromJson: userId = $userId');
+      
+      final activated = json['activated'] as bool?;
+      print('✅ Mission.fromJson: activated = $activated');
+      
+      List<SousMission>? sousMissions;
+      try {
+        sousMissions = json['sousMissions'] != null
+            ? (json['sousMissions'] as List).map((i) => SousMission.fromJson(i)).toList()
+            : null;
+        print('✅ Mission.fromJson: sousMissions = ${sousMissions?.length ?? 0} items');
+      } catch (e) {
+        print('❌ Mission.fromJson: Error parsing sousMissions: $e');
+        sousMissions = null;
+      }
+      
+      final modelReponseQuestionId = json['modelReponseQuestionId'] as int?;
+      print('✅ Mission.fromJson: modelReponseQuestionId = $modelReponseQuestionId');
+      
+      final conformite_ID = json['conformite_ID'] as int?;
+      print('✅ Mission.fromJson: conformite_ID = $conformite_ID');
+      
+      double? scoreMax;
+      try {
+        scoreMax = json['scoreMax'] != null ? (json['scoreMax'] as num).toDouble() : null;
+        print('✅ Mission.fromJson: scoreMax = $scoreMax');
+      } catch (e) {
+        print('❌ Mission.fromJson: Error parsing scoreMax: $e');
+        print('📄 Mission.fromJson: scoreMax raw value: ${json['scoreMax']} (type: ${json['scoreMax'].runtimeType})');
+        scoreMax = null;
+      }
+      
+      final totalQuestion = json['totalQuestion'] as int?;
+      print('✅ Mission.fromJson: totalQuestion = $totalQuestion');
+      
+      double? tauxConformite;
+      try {
+        tauxConformite = json['tauxConformite'] != null ? (json['tauxConformite'] as num).toDouble() : null;
+        print('✅ Mission.fromJson: tauxConformite = $tauxConformite');
+      } catch (e) {
+        print('❌ Mission.fromJson: Error parsing tauxConformite: $e');
+        print('📄 Mission.fromJson: tauxConformite raw value: ${json['tauxConformite']} (type: ${json['tauxConformite'].runtimeType})');
+        tauxConformite = null;
+      }
+      
+      double? progression;
+      try {
+        progression = json['progression'] != null ? (json['progression'] as num).toDouble() : null;
+        print('✅ Mission.fromJson: progression = $progression');
+      } catch (e) {
+        print('❌ Mission.fromJson: Error parsing progression: $e');
+        print('📄 Mission.fromJson: progression raw value: ${json['progression']} (type: ${json['progression'].runtimeType})');
+        progression = null;
+      }
+      
+      print('🎉 Mission.fromJson: All fields parsed successfully, creating Mission object...');
+      
+      return Mission(
+        id: id,
+        libelle: libelle,
+        status: status,
+        missionCode: missionCode,
+        description: description,
+        createdAt: createdAt,
+        startedAT: startedAT,
+        planifiedAt: planifiedAt,
+        endedAt: endedAt,
+        boutiqueId: boutiqueId,
+        boutique: boutique,
+        userId: userId,
+        activated: activated,
+        sousMissions: sousMissions,
+        modelReponseQuestionId: modelReponseQuestionId,
+        conformite_ID: conformite_ID,
+        scoreMax: scoreMax,
+        totalQuestion: totalQuestion,
+        tauxConformite: tauxConformite,
+        progression: progression,
+      );
+    } catch (e) {
+      print('❌ Mission.fromJson: Error parsing mission: $e');
+      print('📄 Mission.fromJson: JSON data: $json');
+      rethrow; // Re-throw the exception to maintain the original error handling
+    }
   }
 
   Map<String, dynamic> toJson() {

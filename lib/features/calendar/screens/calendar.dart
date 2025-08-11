@@ -10,6 +10,8 @@ import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
+import 'package:supervisormobile/features/calendar/models/missionResponseModel.dart';
+import 'package:supervisormobile/features/calendar/models/paginationModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/RapporterMissionWidget.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/addMissionForm.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/calendar_appbar.dart';
@@ -33,18 +35,24 @@ class CalendarPlanning extends StatefulWidget {
 }
 
 class _CalendarPlanningState extends State<CalendarPlanning> {
-   Future<List<Mission>>? futureMissions;
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay = DateTime.now();
   List<int> boutiqueIds = []; // example boutiqueIds
+  
+  // Pagination state
+  int _currentPage = 1;
+  int _pageSize = 20; // Changed to 20 as requested
+  bool _isLoadingMore = false;
+  bool _isInitialLoading = true;
+  List<Mission> _allMissions = [];
+  PaginationModel? _pagination;
 
   @override
   void initState() {
     super.initState();
-    loadMissions();
     _loadAuthToken();
-
+    loadMissions(resetPagination: true);
   }
 
   Map<String, String> getStatusColors(int? status) {
@@ -94,8 +102,10 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
       'status': colors['status']!
     };
   }
-   Future<void> loadMissions() async {
+   Future<void> loadMissions({bool resetPagination = true}) async {
      try {
+       print('🔄 loadMissions: Starting to load missions...');
+       
        // Retrieve the user ID from storage (localStorage for web)
        String? userIdString;
        int? userId;
@@ -108,22 +118,110 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
          userIdString = await _storage.read(key: 'currentUserId');
        }
 
-
        _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
-       // Fetch missions based on the currentUserID and other parameters
-       futureMissions = MissionService().getPlanifiedMissions(
+       // Reset pagination if needed
+       if (resetPagination) {
+         _currentPage = 1;
+         _allMissions.clear();
+         _pagination = null;
+         setState(() {
+           _isInitialLoading = true;
+         });
+       }
+
+       // Fetch missions based on the currentUserID and other parameters with pagination
+       final response = await MissionService().getPlanifiedMissions(
          [_currentUserID],
          boutiqueIds,
          _focusedDay,
+         pageNumber: _currentPage,
+         pageSize: _pageSize,
        );
 
-       setState(() {}); // Trigger a rebuild if you're using StatefulWidget
+       setState(() {
+         if (resetPagination) {
+           _allMissions = response.data;
+         } else {
+           _allMissions.addAll(response.data);
+         }
+         _pagination = response.pagination;
+         _isInitialLoading = false;
+       });
+
+       print('✅ loadMissions: Loaded ${response.data.length} missions, total: ${_allMissions.length}');
 
      } catch (e) {
-       print('Error loading missions: $e');
+       print('❌ Error loading missions: $e');
+       setState(() {
+         _isInitialLoading = false;
+       });
      }
    }
+
+     Future<void> loadMoreMissions() async {
+    if (_isLoadingMore) return;
+
+    print('🔄 loadMoreMissions: Starting to load more missions...');
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      // Check if we have pagination info
+      if (_pagination == null) {
+        print('❌ loadMoreMissions: No pagination info available');
+        setState(() {
+          _isLoadingMore = false;
+        });
+        return;
+      }
+      
+      print('📊 loadMoreMissions: Current pagination - hasNextPage: ${_pagination!.hasNextPage}, nextPageNumber: ${_pagination!.nextPageNumber}');
+      
+      if (!_pagination!.hasNextPage || _pagination!.nextPageNumber == null) {
+        print('ℹ️ loadMoreMissions: No more pages to load');
+        setState(() {
+          _isLoadingMore = false;
+        });
+        return;
+      }
+
+      // Use the next page number from pagination
+      final nextPage = _pagination!.nextPageNumber!;
+      _currentPage = nextPage;
+      print('📄 loadMoreMissions: Loading page $nextPage');
+      
+      final response = await MissionService().getPlanifiedMissions(
+        [_currentUserID],
+        boutiqueIds,
+        _focusedDay,
+        pageNumber: _currentPage,
+        pageSize: _pageSize,
+      );
+
+      print('✅ loadMoreMissions: Received ${response.data.length} new missions');
+      if (response.data.isNotEmpty) {
+        setState(() {
+          _allMissions.addAll(response.data);
+          _pagination = response.pagination;
+          _isLoadingMore = false;
+        });
+        print('📈 loadMoreMissions: Total missions now: ${_allMissions.length}');
+      } else {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+
+      print('✅ loadMoreMissions: Completed successfully');
+    } catch (e) {
+      print('❌ loadMoreMissions: Error loading more missions: $e');
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
 
 
   void _showModal(BuildContext context, Mission mission) {
@@ -348,11 +446,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   }
 
   Future<void> _handleRefresh() async {
-    setState(() {
-      futureMissions = MissionService()
-          .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
-
-    });
+    loadMissions(resetPagination: true);
   }
 
 
@@ -400,15 +494,15 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
         headerHeight = 250.0;
         break;
       default:
-        headerHeight = 500.0; // Default height if needed
+        headerHeight = 500.0;
         break;
     }
 
     return Scaffold(
       body: LiquidPullToRefresh(
         onRefresh: _handleRefresh,
-        springAnimationDurationInMilliseconds: 300, // Speed up the animation
-        height: 60.0, // Adjust the height as needed
+        springAnimationDurationInMilliseconds: 300,
+        height: 60.0,
         color: TColors.primary,
         child: SingleChildScrollView(
           child: Container(
@@ -428,8 +522,12 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         focusedDay: _focusedDay,
                         calendarFormat: _calendarFormat,
                         daysOfWeekHeight: 30,
-                        startingDayOfWeek : StartingDayOfWeek.monday,
-                        availableCalendarFormats : const {CalendarFormat. month : 'Mois', CalendarFormat. twoWeeks : '2 Semaine', CalendarFormat. week : 'Semaine'} ,
+                        startingDayOfWeek: StartingDayOfWeek.monday,
+                        availableCalendarFormats: const {
+                          CalendarFormat.month: 'Mois',
+                          CalendarFormat.twoWeeks: '2 Semaine',
+                          CalendarFormat.week: 'Semaine'
+                        },
                         selectedDayPredicate: (day) {
                           return isSameDay(_selectedDay, day);
                         },
@@ -438,9 +536,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                             setState(() {
                               _selectedDay = selectedDay;
                               _focusedDay = focusedDay;
-                              futureMissions = MissionService()
-                                  .getPlanifiedMissions([_currentUserID], boutiqueIds, selectedDay);
                             });
+                            loadMissions(resetPagination: true);
                           }
                         },
                         onFormatChanged: (format) {
@@ -454,215 +551,182 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                           _focusedDay = focusedDay;
                         },
                         calendarStyle: CalendarStyle(
-                          defaultTextStyle: TextStyle(color: Colors.white), // Text color of days
-                          todayTextStyle: TextStyle(color: Colors.white), // Text color for today's day
-                          selectedTextStyle: TextStyle(color: Colors.white), // Text color for selected day
-                          weekendTextStyle: TextStyle(color: Colors.white), // Text color for weekend days
-                          outsideTextStyle: TextStyle(color: Colors.white), // Text color for days outside the current month
+                          defaultTextStyle: TextStyle(color: Colors.white),
+                          todayTextStyle: TextStyle(color: Colors.white),
+                          selectedTextStyle: TextStyle(color: Colors.white),
+                          weekendTextStyle: TextStyle(color: Colors.white),
+                          outsideTextStyle: TextStyle(color: Colors.white),
                         ),
                         daysOfWeekStyle: DaysOfWeekStyle(
-                          weekdayStyle: TextStyle(color: Colors.white), // Text color for weekdays
-                          weekendStyle: TextStyle(color: Colors.white), // Text color for weekends
+                          weekdayStyle: TextStyle(color: Colors.white),
+                          weekendStyle: TextStyle(color: Colors.white),
                         ),
                         headerStyle: HeaderStyle(
-                          titleTextStyle: TextStyle(color: Colors.white), // Header title text color
-                          formatButtonVisible: true, // Show format button
-                          formatButtonTextStyle: TextStyle(color: Colors.white), // Format button text color
+                          titleTextStyle: TextStyle(color: Colors.white),
+                          formatButtonVisible: true,
+                          formatButtonTextStyle: TextStyle(color: Colors.white),
                           formatButtonDecoration: BoxDecoration(
-                            color: TColors.buttonDisabled, // Background color for format button
-                            borderRadius: BorderRadius.circular(8.0), // Border radius for format button
+                            color: TColors.buttonDisabled,
+                            borderRadius: BorderRadius.circular(8.0),
                           ),
-                          leftChevronIcon: Icon(Icons.chevron_left, color: Colors.white), // Left navigation arrow color
-                          rightChevronIcon: Icon(Icons.chevron_right, color: Colors.white), // Right navigation arrow color
+                          leftChevronIcon: Icon(Icons.chevron_left, color: Colors.white),
+                          rightChevronIcon: Icon(Icons.chevron_right, color: Colors.white),
                         ),
                         locale: Localizations.localeOf(context).languageCode,
-                      )
-            
-            
-            
-                      ,
+                      ),
                     ],
                   ),
-                  secondChild:  FutureBuilder<List<Mission>>(
-                      future: futureMissions,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return CircularProgressIndicator();
-                        } else if (snapshot.hasError) {
-                          return Text('Error: ${snapshot.error}');
-                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return Column(
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                // Center the text widgets
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end, // Align to right
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(Iconsax.refresh),
-                                        onPressed: loadMissions,
-                                        tooltip: 'Refresh Missions',
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    'Vous avez 0 missions pour ce jour',
-                                    style: TextStyle(
-                                      color: isDarkMode
-                                          ? TColors.textWhite
-                                          : TColors.darkGrey,
-                                      fontSize: 16,
+                  secondChild: _isInitialLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : _allMissions.isEmpty
+                          ? Column(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(Iconsax.refresh),
+                                          onPressed: () => loadMissions(resetPagination: true),
+                                          tooltip: 'Refresh Missions',
+                                        ),
+                                      ],
                                     ),
-                                    textAlign: TextAlign
-                                        .center, // Center text within the text widget
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Cliquer sur ajouter une mission, pour faire un planning',
-                                    style: TextStyle(
-                                      color: TColors.darkGrey,
-                                      fontSize: 14,
-                                    ),
-                                    textAlign: TextAlign
-                                        .center, // Center text within the text widget
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 16),
-                              SizedBox(
-                                width: 250.0, // Set a fixed width for the button
-                                child: OutlinedButton.icon(
-                                  onPressed: () async {
-                                    final shouldRefresh = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => AddMissionForm(Date: _selectedDay),
-                                      ),
-                                    );
-                                    if(shouldRefresh == true){
-                                      setState(() {
-                                        futureMissions = MissionService()
-                                            .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
-                                      });
-                                    }
-                                  },
-                                  icon: Icon(Iconsax.add, color: TColors.buttonPrimary), // Add the icon
-                                  label: Text('Ajouter une mission'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: TColors.buttonPrimary, side: BorderSide(color: TColors.buttonPrimary, width: 2), // Border color and width
-                                    padding: EdgeInsets.symmetric(vertical: 16.0),
-                                    textStyle: TextStyle(fontSize: 16),
-                                  ),
-                                ),
-                              ),
-            
-            
-                            ],
-                          );
-                        } else {
-                          final missions = snapshot.data!;
-                          final statusCounts = countMissionsByStatus(missions);
-                          final totalMissions = missions.length;
-                          final allTermine = (statusCounts[1] ?? 0) == 0 &&
-                              (statusCounts[6] ?? 0) > 0;
-            
-                          return Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center, // Center the children horizontally
-                                children: [
-                                  SizedBox(
-                                    width: 250.0, // Set a fixed width for the button
-                                    child: OutlinedButton.icon(
-                                      onPressed: () async {
-                                        final shouldRefresh = await Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => AddMissionForm(Date: _selectedDay),
-                                          ),
-                                        );
-                                        if(shouldRefresh == true ) {
-                                          setState(() {
-                                            futureMissions = MissionService()
-                                                .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
-                                          });
-                                        }
-                                      },
-                                      icon: Icon(Iconsax.add), // Add the icon
-                                      label: Text('Ajouter une mission'),
-                                      style: OutlinedButton.styleFrom(
-                                        padding: EdgeInsets.symmetric(vertical: 16.0),
-                                        textStyle: TextStyle(fontSize: 16),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 15),
-            
-                              Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end, // Align to right
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(Iconsax.refresh),
-                                        onPressed: loadMissions,
-                                        tooltip: 'Refresh Missions',
-                                      ),
-                                    ],
-                                  ),
-                                  Center(
-                                    child: Text(
-                                      allTermine
-                                          ? 'Tous les missions terminées ✔️'
-                                          : 'Vous avez ${statusCounts[1] ?? 0} mission Planifié',
+                                    Text(
+                                      'Vous avez 0 missions pour ce jour',
                                       style: TextStyle(
                                         color: isDarkMode
                                             ? TColors.textWhite
-                                            : TColors.dark,
+                                            : TColors.darkGrey,
                                         fontSize: 16,
                                       ),
-                                      textAlign: TextAlign
-                                          .center, // Center the text within its container
+                                      textAlign: TextAlign.center,
                                     ),
-                                  ),
-                                  SizedBox(height: 8),
-                                  Center(
-                                    child: Text(
-                                      'Tous les missions sont regroupés par boutique',
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Cliquer sur ajouter une mission, pour faire un planning',
                                       style: TextStyle(
                                         color: TColors.darkGrey,
                                         fontSize: 14,
                                       ),
-                                      textAlign: TextAlign
-                                          .center, // Center the text within its container
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 16),
+                                SizedBox(
+                                  width: 250.0,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final shouldRefresh = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => AddMissionForm(Date: _selectedDay),
+                                        ),
+                                      );
+                                      if (shouldRefresh == true) {
+                                        loadMissions(resetPagination: true);
+                                      }
+                                    },
+                                    icon: Icon(Iconsax.add, color: TColors.buttonPrimary),
+                                    label: Text('Ajouter une mission'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: TColors.buttonPrimary,
+                                      side: BorderSide(color: TColors.buttonPrimary, width: 2),
+                                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                                      textStyle: TextStyle(fontSize: 16),
                                     ),
                                   ),
-                                ],
-                              ),
-                              SizedBox(height: 16),
-                              SingleChildScrollView(
-                                child: GroupedListView<Mission, String>(
+                                ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 250.0,
+                                      child: OutlinedButton.icon(
+                                        onPressed: () async {
+                                          final shouldRefresh = await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => AddMissionForm(Date: _selectedDay),
+                                            ),
+                                          );
+                                          if (shouldRefresh == true) {
+                                            loadMissions(resetPagination: true);
+                                          }
+                                        },
+                                        icon: Icon(Iconsax.add),
+                                        label: Text('Ajouter une mission'),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                                          textStyle: TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 15),
+                                Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(Iconsax.refresh),
+                                          onPressed: () => loadMissions(resetPagination: true),
+                                          tooltip: 'Refresh Missions',
+                                        ),
+                                      ],
+                                    ),
+                                    Center(
+                                      child: Text(
+                                        countMissionsByStatus(_allMissions)[1] == 0 &&
+                                                countMissionsByStatus(_allMissions)[6]! > 0
+                                            ? 'Tous les missions terminées ✔️'
+                                            : 'Vous avez ${countMissionsByStatus(_allMissions)[1] ?? 0} mission Planifié',
+                                        style: TextStyle(
+                                          color: isDarkMode
+                                              ? TColors.textWhite
+                                              : TColors.dark,
+                                          fontSize: 16,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Center(
+                                      child: Text(
+                                        'Tous les missions sont regroupés par boutique',
+                                        style: TextStyle(
+                                          color: TColors.darkGrey,
+                                          fontSize: 14,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 16),
+                                GroupedListView<Mission, String>(
                                   shrinkWrap: true,
-                                  elements: missions,
+                                  elements: _allMissions,
                                   groupBy: (Mission mission) =>
                                       mission.boutique?.libelle ?? 'No Boutique',
                                   groupSeparatorBuilder: (String boutiqueLibelle) {
-                                    // Find a sample mission with the given boutiqueLibelle
-                                    final sampleMission = missions.firstWhere(
+                                    final sampleMission = _allMissions.firstWhere(
                                       (mission) =>
                                           mission.boutique?.libelle == boutiqueLibelle,
                                     );
-                                            
                                     return Center(
                                       child: GestureDetector(
                                         onTap: () {
-                                          // Pass the boutique object to the _showBoutiqueInfo method
-                                          _showBoutiqueInfo(
-                                              context, sampleMission.boutique!);
+                                          _showBoutiqueInfo(context, sampleMission.boutique!);
                                         },
                                         child: Padding(
                                           padding: const EdgeInsets.all(8.0),
@@ -671,10 +735,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                             children: [
                                               Icon(
                                                 Icons.store,
-                                                // Replace with appropriate icon
-                                                color: isDarkMode
-                                                    ? Colors.white
-                                                    : Colors.black,
+                                                color: isDarkMode ? Colors.white : Colors.black,
                                               ),
                                               SizedBox(width: 8),
                                               Text(
@@ -682,9 +743,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                 style: TextStyle(
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold,
-                                                  color: isDarkMode
-                                                      ? Colors.white
-                                                      : Colors.black,
+                                                  color: isDarkMode ? Colors.white : Colors.black,
                                                 ),
                                               ),
                                             ],
@@ -696,39 +755,31 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                   itemBuilder: (context, Mission mission) {
                                     final statusData = getStatusColors(mission.status);
                                     final colors = getStatusColors(mission.status);
-                                    final percentage =
-                                        calculateAnsweredPercentage(mission);
-                                            
+                                    final percentage = calculateAnsweredPercentage(mission);
                                     return GestureDetector(
                                       onTap: () async {
                                         final shouldRefresh = await Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                MissionDetailsWidget(missionId: mission.id,mode: 1,status : mission.status!)                                  ),
+                                                MissionDetailsWidget(missionId: mission.id, mode: 1, status: mission.status!),
+                                          ),
                                         );
-                                        if(shouldRefresh == true){
-                                          setState(() {
-                                            futureMissions = MissionService()
-                                                .getPlanifiedMissions([_currentUserID], boutiqueIds, _focusedDay);
-                                          });
+                                        if (shouldRefresh == true) {
+                                          loadMissions(resetPagination: true);
                                         }
                                       },
                                       onLongPress: () {
-                                        _showModal(context,
-                                            mission); // Pass the mission to the modal
+                                        _showModal(context, mission);
                                       },
                                       child: Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 8.0, horizontal: 16.0),
+                                        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                                         decoration: BoxDecoration(
                                           color: TColors.softGrey,
                                           border: Border(
                                             left: BorderSide(
-                                              color: Color(int.parse(colors['primary']!
-                                                  .replaceFirst('0x', '0xff'))),
-                                              width:
-                                                  8.0, // Adjust the width of the border as needed
+                                              color: Color(int.parse(colors['primary']!.replaceFirst('0x', '0xff'))),
+                                              width: 8.0,
                                             ),
                                           ),
                                           borderRadius: BorderRadius.circular(8.0),
@@ -737,24 +788,20 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                               color: Colors.grey.withOpacity(0.5),
                                               spreadRadius: 2,
                                               blurRadius: 5,
-                                              offset: Offset(
-                                                  0, 3), // changes position of shadow
+                                              offset: Offset(0, 3),
                                             ),
                                           ],
                                         ),
                                         child: Padding(
                                           padding: const EdgeInsets.all(16.0),
                                           child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              // Row for code and libelle with status
                                               Row(
                                                 children: [
                                                   Expanded(
                                                     child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
                                                         Row(
                                                           children: [
@@ -762,27 +809,16 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                               child: Text(
                                                                 'Code: ${mission.missionCode ?? 'No Code'}',
                                                                 style: TextStyle(
-                                                                  color: Color(int.parse(
-                                                                      colors['secondary']!
-                                                                          .replaceFirst(
-                                                                              '0x',
-                                                                              '0xff'))),
-                                                                  fontWeight:
-                                                                      FontWeight.bold,
+                                                                  color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
+                                                                  fontWeight: FontWeight.bold,
                                                                 ),
                                                               ),
                                                             ),
                                                             Text(
                                                               '${statusData['status'] ?? 'Unknown'}',
                                                               style: TextStyle(
-                                                                color: Color(int.parse(
-                                                                    statusData[
-                                                                            'secondary']!
-                                                                        .replaceFirst(
-                                                                            '0x',
-                                                                            '0xff'))),
-                                                                fontWeight:
-                                                                    FontWeight.bold,
+                                                                color: Color(int.parse(statusData['secondary']!.replaceFirst('0x', '0xff'))),
+                                                                fontWeight: FontWeight.bold,
                                                               ),
                                                             ),
                                                           ],
@@ -791,10 +827,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                         Text(
                                                           'Libelle: ${mission.libelle ?? 'No Libelle'}',
                                                           style: TextStyle(
-                                                            color: Color(int.parse(
-                                                                colors['secondary']!
-                                                                    .replaceFirst(
-                                                                        '0x', '0xff'))),
+                                                            color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
                                                             fontWeight: FontWeight.bold,
                                                           ),
                                                         ),
@@ -802,10 +835,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                         Text(
                                                           'Description: ${mission.description ?? 'No Description'}',
                                                           style: TextStyle(
-                                                            color: Color(int.parse(
-                                                                colors['secondary']!
-                                                                    .replaceFirst(
-                                                                        '0x', '0xff'))),
+                                                            color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
                                                             fontWeight: FontWeight.bold,
                                                           ),
                                                         ),
@@ -815,29 +845,20 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                 ],
                                               ),
                                               SizedBox(height: 16),
-                                              // Linear progress indicator
                                               Row(
                                                 children: [
                                                   Expanded(
                                                     child: LinearProgressIndicator(
                                                       value: percentage / 100,
                                                       backgroundColor: Colors.grey[200],
-                                                      color: Color(int.parse(
-                                                          colors['primary']!
-                                                              .replaceFirst(
-                                                                  '0x', '0xff'))),
+                                                      color: Color(int.parse(colors['primary']!.replaceFirst('0x', '0xff'))),
                                                     ),
                                                   ),
                                                   SizedBox(width: 8),
-                                                  // Space between the progress indicator and text
                                                   Text(
                                                     '${percentage.toStringAsFixed(0)}%',
-                                                    // Display percentage as text
                                                     style: TextStyle(
-                                                      color: Color(int.parse(
-                                                          colors['primary']!
-                                                              .replaceFirst(
-                                                                  '0x', '0xff'))),
+                                                      color: Color(int.parse(colors['primary']!.replaceFirst('0x', '0xff'))),
                                                       fontWeight: FontWeight.bold,
                                                     ),
                                                   ),
@@ -850,13 +871,47 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                     );
                                   },
                                 ),
-                              ),
-                            ],
-                          );
-                        }
-                      },
-                    ),
-                  ),
+                                SizedBox(height: 20),
+                                if (_pagination != null && _pagination!.hasNextPage && _pagination!.nextPageNumber != null) ...[
+                                  Center(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _isLoadingMore ? null : loadMoreMissions,
+                                      icon: _isLoadingMore
+                                          ? SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                            )
+                                          : Icon(Icons.keyboard_arrow_down),
+                                      label: Text(
+                                        _isLoadingMore ? 'Chargement...' : 'Charger plus de missions',
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: TColors.primary,
+                                        foregroundColor: Colors.white,
+                                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 10),
+                                ],
+                                if (_pagination != null) ...[
+                                  Center(
+                                    child: Text(
+                                      'Total: ${_pagination!.totalCount} missions',
+                                      style: TextStyle(
+                                        color: TColors.darkGrey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                ),
               ],
             ),
           ),
