@@ -11,6 +11,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
+import 'package:supervisormobile/features/calendar/models/missionResponseModel.dart';
+import 'package:supervisormobile/features/calendar/models/paginationModel.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
 import 'package:mime/mime.dart';
@@ -169,14 +171,109 @@ class MissionService {
       );
 
       if (response.statusCode == 200) {
-        List<dynamic> body = response.data; // ✅ No need to json.decode manually
+        // Handle the new response format with 'data' field
+        final responseData = response.data;
+        List<dynamic> body;
+        
+        if (responseData is Map<String, dynamic> && responseData.containsKey('data')) {
+          // New format: {"data": [...]}
+          body = responseData['data'] as List<dynamic>;
+        } else if (responseData is List) {
+          // Old format: direct array
+          body = responseData;
+        } else {
+          throw Exception('Unexpected response format: $responseData');
+        }
+        
         List<Mission> missions = body.map((dynamic item) => Mission.fromJson(item)).toList();
         return missions;
       } else {
         throw Exception('Failed to load missions. Status code: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching missions: $e');
+      // Handle DioException specifically
+      if (e is dio.DioException) {
+        // Handle 404 error gracefully (no missions found)
+        if (e.response?.statusCode == 404) {
+          print('📭 No missions found for the selected date');
+          return []; // Return empty list instead of throwing error
+        }
+        
+        // Handle other Dio errors
+        print('❌ Dio error fetching missions: ${e.message}');
+        throw Exception('Error fetching missions: ${e.message}');
+      }
+      
+      // Handle other errors
+      print('❌ Error fetching missions: $e');
+      throw Exception('Error fetching missions: $e');
+    }
+  }
+
+  Future<MissionResponseModel> getPlanifiedMissionsWithPagination(
+      List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt, {int pageNumber = 1, int pageSize = 20}) async {
+    try {
+      final String formattedDate = planifiedAt.toIso8601String();
+
+      print('🔍 MissionService.getPlanifiedMissionsWithPagination: Request parameters');
+      print('📊 PageSize: $pageSize, PageNumber: $pageNumber');
+      print('📄 UserIds: $userIds, BoutiqueIds: $boutiqueIds, Date: $formattedDate');
+
+      final response = await _dio.post(
+        apiUrl,
+        data: {
+          'userIds': userIds,
+          'boutiqueIds': boutiqueIds,
+          'planifiedAt': formattedDate,
+          'PageSize': pageSize,
+          'PageNumber': pageNumber,
+        },
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
+
+      print('✅ MissionService.getPlanifiedMissionsWithPagination: API call successful');
+      print('📄 MissionService.getPlanifiedMissionsWithPagination: Raw response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        return MissionResponseModel.fromJson(response.data);
+      } else {
+        throw Exception('Failed to load missions. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Handle DioException specifically
+      if (e is dio.DioException) {
+        // Handle 404 error gracefully (no missions found)
+        if (e.response?.statusCode == 404) {
+          print('📭 No missions found for the selected date (pagination)');
+          // Return empty MissionResponseModel
+          return MissionResponseModel(
+            data: [],
+            pagination: PaginationModel(
+              pageNumber: pageNumber,
+              pageSize: pageSize,
+              totalCount: 0,
+              totalPages: 0,
+              hasNextPage: false,
+              hasPreviousPage: false,
+              isFirstPage: true,
+              isLastPage: true,
+              currentPageSize: 0,
+              remainingItems: 0,
+            ),
+          );
+        }
+        
+        // Handle other Dio errors
+        print('❌ Dio error fetching missions (pagination): ${e.message}');
+        throw Exception('Error fetching missions: ${e.message}');
+      }
+      
+      // Handle other errors
+      print('❌ MissionService.getPlanifiedMissionsWithPagination: Error fetching missions: $e');
       throw Exception('Error fetching missions: $e');
     }
   }

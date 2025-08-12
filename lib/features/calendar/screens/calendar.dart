@@ -101,7 +101,10 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
       );
       setState(() {}); // Trigger a rebuild if you're using StatefulWidget
     } catch (e) {
-      print('Error loading missions: $e');
+      print('❌ Error loading missions: $e');
+      // Set futureMissions to an empty list to show "no missions" instead of error
+      futureMissions = Future.value(<Mission>[]);
+      setState(() {});
     }
   }
 
@@ -452,7 +455,33 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return CircularProgressIndicator();
                         } else if (snapshot.hasError) {
-                          return Text('Error: ${snapshot.error}');
+                          return Column(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 48,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Une erreur est survenue lors du chargement des missions',
+                                style: TextStyle(
+                                  color: isDarkMode ? TColors.textWhite : TColors.darkGrey,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    loadMissions();
+                                  });
+                                },
+                                child: Text('Réessayer'),
+                              ),
+                            ],
+                          );
                         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                           return Column(
                             children: [
