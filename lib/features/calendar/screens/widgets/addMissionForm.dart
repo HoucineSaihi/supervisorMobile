@@ -203,7 +203,6 @@ class _AddMissionFormState extends State<AddMissionForm> {
                 onChanged: (int? newValue) {
                   setState(() {
                     _selectedBoutiqueId = newValue;
-                    _fetchNotPlanifiedMissions();
                   });
                 },
                 value: _selectedBoutiqueId,
