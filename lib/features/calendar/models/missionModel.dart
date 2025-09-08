@@ -25,6 +25,9 @@ class Mission {
   double? tauxConformite;
   double? progression;
 
+  // New properties for mission status
+  bool? isMissed;
+  bool? lateStart;
 
   Mission({
     required this.id,
@@ -46,7 +49,9 @@ class Mission {
     this.scoreMax,
     this.totalQuestion,
     this.tauxConformite,
-    this.progression
+    this.progression,
+    this.isMissed,
+    this.lateStart,
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) {
@@ -80,6 +85,8 @@ class Mission {
       if (json['totalQuestion'] == null) nullFields.add('totalQuestion');
       if (json['tauxConformite'] == null) nullFields.add('tauxConformite');
       if (json['progression'] == null) nullFields.add('progression');
+      if (json['isMissed'] == null) nullFields.add('isMissed');
+      if (json['lateStart'] == null) nullFields.add('lateStart');
       
       if (nullFields.isNotEmpty) {
         print('⚠️ Mission.fromJson: Null fields detected: ${nullFields.join(', ')}');
@@ -207,6 +214,12 @@ class Mission {
         print('📄 Mission.fromJson: progression raw value: ${json['progression']} (type: ${json['progression'].runtimeType})');
         progression = null;
       }
+
+      final isMissed = json['isMissed'] as bool?;
+      print('✅ Mission.fromJson: isMissed = $isMissed');
+
+      final lateStart = json['lateStart'] as bool?;
+      print('✅ Mission.fromJson: lateStart = $lateStart');
       
       print('🎉 Mission.fromJson: All fields parsed successfully, creating Mission object...');
       
@@ -231,6 +244,8 @@ class Mission {
         totalQuestion: totalQuestion,
         tauxConformite: tauxConformite,
         progression: progression,
+        isMissed: isMissed,
+        lateStart: lateStart,
       );
     } catch (e) {
       print('❌ Mission.fromJson: Error parsing mission: $e');
@@ -260,7 +275,9 @@ class Mission {
       'scoreMax': scoreMax,
       'totalQuestion': totalQuestion,
       'tauxConformite': tauxConformite,
-      'progression':progression
+      'progression':progression,
+      'isMissed': isMissed,
+      'lateStart': lateStart,
     };
   }
 }

@@ -794,35 +794,94 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                         ),
                                         child: Padding(
                                           padding: const EdgeInsets.all(16.0),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
                                             children: [
-                                              Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
                                                       children: [
-                                                        Row(
-                                                          children: [
-                                                            Expanded(
-                                                              child: Text(
-                                                                'Code: ${mission.missionCode ?? 'No Code'}',
-                                                                style: TextStyle(
-                                                                  color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
-                                                                  fontWeight: FontWeight.bold,
-                                                                ),
-                                                              ),
+                                                        Expanded(
+                                                          child: Text(
+                                                            'Code: ${mission.missionCode ?? 'No Code'}',
+                                                            style: TextStyle(
+                                                              color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
+                                                              fontWeight: FontWeight.bold,
                                                             ),
-                                                            Text(
-                                                              '${statusData['status'] ?? 'Unknown'}',
-                                                              style: TextStyle(
-                                                                color: Color(int.parse(statusData['secondary']!.replaceFirst('0x', '0xff'))),
-                                                                fontWeight: FontWeight.bold,
-                                                              ),
-                                                            ),
-                                                          ],
+                                                          ),
                                                         ),
+                                                        // Mission indicators for missed and late start
+                                                        if (mission.isMissed == true || mission.lateStart == true) ...[
+                                                          if (mission.isMissed == true)
+                                                            Container(
+                                                              margin: EdgeInsets.only(right: 8),
+                                                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.red,
+                                                                borderRadius: BorderRadius.circular(10),
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisSize: MainAxisSize.min,
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons.error_outline,
+                                                                    color: Colors.white,
+                                                                    size: 12,
+                                                                  ),
+                                                                  SizedBox(width: 3),
+                                                                  Text(
+                                                                    'Manquée',
+                                                                    style: TextStyle(
+                                                                      color: Colors.white,
+                                                                      fontSize: 10,
+                                                                      fontWeight: FontWeight.bold,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          if (mission.lateStart == true)
+                                                            Container(
+                                                              margin: EdgeInsets.only(right: 8),
+                                                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.orange,
+                                                                borderRadius: BorderRadius.circular(10),
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisSize: MainAxisSize.min,
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons.warning_amber_outlined,
+                                                                    color: Colors.white,
+                                                                    size: 12,
+                                                                  ),
+                                                                  SizedBox(width: 3),
+                                                                  Text(
+                                                                    'Démarrage tardif',
+                                                                    style: TextStyle(
+                                                                      color: Colors.white,
+                                                                      fontSize: 10,
+                                                                      fontWeight: FontWeight.bold,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                        ],
+                                                        Text(
+                                                          '${statusData['status'] ?? 'Unknown'}',
+                                                          style: TextStyle(
+                                                            color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                         SizedBox(height: 8),
                                                         Text(
                                                           'Libelle: ${mission.libelle ?? 'No Libelle'}',
