@@ -151,61 +151,45 @@ class MissionService {
     }
   }
 
-  Future<List<Mission>> getPlanifiedMissions(
-      List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt) async {
+  Future<MissionResponseModel> getPlanifiedMissions(
+      List<int> userIds,
+      List<int> boutiqueIds,
+      DateTime planifiedAt, {
+        int pageNumber = 1,
+        int pageSize = 50,
+      }) async {
     try {
       final String formattedDate = planifiedAt.toIso8601String();
 
+      print('🚀 MissionService: Fetching missions for date: $formattedDate');
+      print('📋 MissionService: Request params - userIds: $userIds, boutiqueIds: $boutiqueIds, pageNumber: $pageNumber, pageSize: $pageSize');
+
       final response = await _dio.post(
-        apiUrl, // ✅ Assuming apiUrl is already relative path or full path correctly handled
+        '/Missions/getMissionsForAreaManager', // ✅ use your actual relative path if known
         data: {
           'userIds': userIds,
           'boutiqueIds': boutiqueIds,
           'planifiedAt': formattedDate,
+          'PageSize': pageSize,
+          'PageNumber': pageNumber,
         },
         options: dio.Options(
           headers: {
-            'Content-Type': 'application/json; charset=UTF-8',
+            'Content-Type': 'application/json',
           },
         ),
       );
 
+      print('✅ MissionService: API call successful. Status: ${response.statusCode}');
+      print('📄 MissionService: Raw response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        // Handle the new response format with 'data' field
-        final responseData = response.data;
-        List<dynamic> body;
-        
-        if (responseData is Map<String, dynamic> && responseData.containsKey('data')) {
-          // New format: {"data": [...]}
-          body = responseData['data'] as List<dynamic>;
-        } else if (responseData is List) {
-          // Old format: direct array
-          body = responseData;
-        } else {
-          throw Exception('Unexpected response format: $responseData');
-        }
-        
-        List<Mission> missions = body.map((dynamic item) => Mission.fromJson(item)).toList();
-        return missions;
+        return MissionResponseModel.fromJson(response.data);
       } else {
         throw Exception('Failed to load missions. Status code: ${response.statusCode}');
       }
     } catch (e) {
-      // Handle DioException specifically
-      if (e is dio.DioException) {
-        // Handle 404 error gracefully (no missions found)
-        if (e.response?.statusCode == 404) {
-          print('📭 No missions found for the selected date');
-          return []; // Return empty list instead of throwing error
-        }
-        
-        // Handle other Dio errors
-        print('❌ Dio error fetching missions: ${e.message}');
-        throw Exception('Error fetching missions: ${e.message}');
-      }
-      
-      // Handle other errors
-      print('❌ Error fetching missions: $e');
+      print('❌ MissionService: Error fetching missions: $e');
       throw Exception('Error fetching missions: $e');
     }
   }
