@@ -5,6 +5,8 @@ class LoadingInterceptor extends Interceptor {
   int _requestCount = 0;
   OverlayEntry? _overlayEntry;
   static OverlayState? _overlayState;
+  static CancelToken? _currentCancelToken;
+  static VoidCallback? _onCancelPressed;
 
   // List of endpoints that should not show loading spinner
   final List<String> _excludedEndpoints = [
@@ -16,14 +18,33 @@ class LoadingInterceptor extends Interceptor {
   // Customizable loading message
   final String _loadingMessage;
 
-  
-
   LoadingInterceptor({String loadingMessage = 'Chargement...'})
       : _loadingMessage = loadingMessage;
 
   // Set the overlay state globally
   static void setOverlayState(OverlayState overlayState) {
     _overlayState = overlayState;
+  }
+
+  // Set the current cancel token and callback
+  static void setCurrentCancelToken(CancelToken? cancelToken, VoidCallback? onCancelPressed) {
+    _currentCancelToken = cancelToken;
+    _onCancelPressed = onCancelPressed;
+  }
+
+  // Cancel the current request
+  static void cancelCurrentRequest() {
+    if (_currentCancelToken != null && !_currentCancelToken!.isCancelled) {
+      _currentCancelToken!.cancel('User cancelled request');
+      print('🚫 LoadingInterceptor: Request cancelled by user');
+    }
+    _currentCancelToken = null;
+    _onCancelPressed = null;
+  }
+
+  // Check if there's a cancellable request in progress
+  static bool get hasCancellableRequest {
+    return _currentCancelToken != null && !_currentCancelToken!.isCancelled;
   }
 
   bool _shouldShowLoading(String path) {
@@ -47,7 +68,7 @@ class LoadingInterceptor extends Interceptor {
       _overlayEntry = OverlayEntry(
         builder: (context) => Material(
           color: Colors.black.withOpacity(0.5),
-          child: const Center(
+          child: Center(
             child: Card(
               margin: EdgeInsets.symmetric(horizontal: 20),
               child: Padding(
@@ -58,12 +79,29 @@ class LoadingInterceptor extends Interceptor {
                     CircularProgressIndicator(),
                     SizedBox(height: 16),
                     Text(
-                      'Chargement...',
+                      _loadingMessage,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    // Show cancel button if there's a cancel token available
+                    if (_currentCancelToken != null && !_currentCancelToken!.isCancelled) ...[
+                      SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          cancelCurrentRequest();
+                          _hideLoading();
+                        },
+                        icon: Icon(Icons.cancel, size: 16),
+                        label: Text('Annuler'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -95,6 +133,9 @@ class LoadingInterceptor extends Interceptor {
       try {
         _overlayEntry?.remove();
         _overlayEntry = null;
+        // Clear cancel token when hiding loading
+        _currentCancelToken = null;
+        _onCancelPressed = null;
         print('✅ LoadingInterceptor: Loading overlay removed successfully');
       } catch (e) {
         print('❌ LoadingInterceptor: Error hiding loading overlay: $e');
@@ -105,27 +146,16 @@ class LoadingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     print('🔄 LoadingInterceptor: Request to ${options.path}');
-    if (_shouldShowLoading(options.path)) {
-      _showLoading();
-    } else {
-      print('⏭️ LoadingInterceptor: Skipping loading for ${options.path}');
-    }
     return super.onRequest(options, handler);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    if (_shouldShowLoading(response.requestOptions.path)) {
-      _hideLoading();
-    }
     return super.onResponse(response, handler);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    if (_shouldShowLoading(err.requestOptions.path)) {
-      _hideLoading();
-    }
     return super.onError(err, handler);
   }
 

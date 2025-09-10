@@ -39,10 +39,10 @@ class LoginService {
   final SecureStorageService _storageService = SecureStorageService();
   final dio.Dio _dio = DioService.dio; // ✅ Correct way: reuse existing Dio instance
 
-  Future<Map<String, dynamic>> login(String username, String password) async {
+  Future<Map<String, dynamic>> login(String username, String password, {dio.CancelToken? cancelToken}) async {
     try {
       final response = await _dio.post(
-        '/Caisses/login', // ✅ Only relative path
+        '/Caisses/login',
         data: {
           'username': username,
           'passwd': password,
@@ -52,6 +52,7 @@ class LoginService {
             'Content-Type': 'application/json',
           },
         ),
+        cancelToken: cancelToken,
       );
 
       if (response.statusCode == 200) {
@@ -67,6 +68,10 @@ class LoginService {
         throw Exception('Failed to connect to the server. Status code: ${response.statusCode}');
       }
     } catch (e) {
+      if (e is dio.DioException && e.type == dio.DioExceptionType.cancel) {
+        print('🚫 login: Request was cancelled');
+        throw Exception('Request was cancelled');
+      }
       print('Login error: $e');
       throw Exception('Login error: $e');
     }

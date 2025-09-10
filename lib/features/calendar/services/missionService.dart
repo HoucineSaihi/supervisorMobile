@@ -157,6 +157,7 @@ class MissionService {
       DateTime planifiedAt, {
         int pageNumber = 1,
         int pageSize = 50,
+        dio.CancelToken? cancelToken,
       }) async {
     try {
       final String formattedDate = planifiedAt.toIso8601String();
@@ -178,6 +179,7 @@ class MissionService {
             'Content-Type': 'application/json',
           },
         ),
+        cancelToken: cancelToken, // ✅ Add cancel token support
       );
 
       print('✅ MissionService: API call successful. Status: ${response.statusCode}');
@@ -189,6 +191,33 @@ class MissionService {
         throw Exception('Failed to load missions. Status code: ${response.statusCode}');
       }
     } catch (e) {
+      // Handle cancellation specifically
+      if (e is dio.DioException && e.type == dio.DioExceptionType.cancel) {
+        print('🚫 MissionService: Request was cancelled');
+        throw Exception('Request was cancelled');
+      }
+      
+      // Handle 404 error gracefully (no missions found)
+      if (e is dio.DioException && e.response?.statusCode == 404) {
+        print('📭 No missions found for the selected date');
+        // Return empty MissionResponseModel
+        return MissionResponseModel(
+          data: [],
+          pagination: PaginationModel(
+            pageNumber: pageNumber,
+            pageSize: pageSize,
+            totalCount: 0,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+            isFirstPage: true,
+            isLastPage: true,
+            currentPageSize: 0,
+            remainingItems: 0,
+          ),
+        );
+      }
+      
       print('❌ MissionService: Error fetching missions: $e');
       throw Exception('Error fetching missions: $e');
     }

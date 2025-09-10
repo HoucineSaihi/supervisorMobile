@@ -10,7 +10,6 @@ import 'package:supervisormobile/features/calendar/screens/calendar.dart';
 import 'package:supervisormobile/navigation_menu.dart';
 import 'package:supervisormobile/utils/Keys/navigation_key.dart';
 import 'package:supervisormobile/utils/theme/theme.dart';
-import 'package:supervisormobile/Interceptors/loading_interceptor.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -70,13 +69,7 @@ class _AppState extends State<App> {
         builder: (context) {
           // Set up overlay state as soon as the context is available
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            final overlay = Overlay.of(context);
-            if (overlay != null) {
-              LoadingInterceptor.setOverlayState(overlay);
-              print('✅ App: Overlay state set successfully');
-            } else {
-              print('❌ App: Failed to get overlay state');
-            }
+            // Overlay setup removed - no longer needed
           });
 
           // Show loading while initializing

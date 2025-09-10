@@ -23,6 +23,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:sticky_float_button/sticky_float_button.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
+import 'package:dio/dio.dart';
 
 import '../../../utils/Helpers/secure_storage_data.dart';
 
@@ -46,12 +47,24 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
   bool _isInitialLoading = true;
   List<Mission> _allMissions = [];
   PaginationModel? _pagination;
+  
+  // Cancellation support
+  CancelToken? _currentCancelToken;
 
   @override
   void initState() {
     super.initState();
     _loadAuthToken();
     loadMissions(resetPagination: true);
+  }
+
+  @override
+  void dispose() {
+    // Cancel any ongoing requests when the widget is disposed
+    if (_currentCancelToken != null && !_currentCancelToken!.isCancelled) {
+      _currentCancelToken!.cancel('Widget disposed');
+    }
+    super.dispose();
   }
 
   Map<String, String> getStatusColors(int? status) {
@@ -105,6 +118,17 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
     try {
       print('🔄 loadMissions: Starting to load missions...');
 
+      // Cancel any existing request
+      if (_currentCancelToken != null && !_currentCancelToken!.isCancelled) {
+        _currentCancelToken!.cancel('New request started');
+      }
+
+      // Create new cancel token
+      _currentCancelToken = CancelToken();
+      
+      // Set the cancel token for request cancellation
+      print('🚫 User cancelled mission loading');
+
       // Retrieve the user ID from storage (localStorage for web)
       String? userIdString;
       int? userId;
@@ -136,6 +160,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
         _focusedDay,
         pageNumber: _currentPage,
         pageSize: _pageSize,
+        cancelToken: _currentCancelToken,
       );
 
       setState(() {
@@ -152,6 +177,13 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
 
     } catch (e) {
       print('❌ Error loading missions: $e');
+      
+      // Handle cancellation gracefully
+      if (e.toString().contains('cancelled') || e.toString().contains('Request was cancelled')) {
+        print('🚫 Mission loading was cancelled');
+        return; // Don't show error for cancelled requests
+      }
+      
       setState(() {
         _isInitialLoading = false;
       });
@@ -197,6 +229,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
         _focusedDay,
         pageNumber: _currentPage,
         pageSize: _pageSize,
+        cancelToken: _currentCancelToken,
       );
 
       print('✅ loadMoreMissions: Received ${response.data.length} new missions');
@@ -216,6 +249,13 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
       print('✅ loadMoreMissions: Completed successfully');
     } catch (e) {
       print('❌ loadMoreMissions: Error loading more missions: $e');
+      
+      // Handle cancellation gracefully
+      if (e.toString().contains('cancelled') || e.toString().contains('Request was cancelled')) {
+        print('🚫 Load more missions was cancelled');
+        return; // Don't show error for cancelled requests
+      }
+      
       setState(() {
         _isLoadingMore = false;
       });

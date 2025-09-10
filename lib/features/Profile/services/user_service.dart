@@ -21,18 +21,19 @@ class UserService {
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
   }
-  Future<UserModel?> getUserById() async {
+  Future<UserModel?> getUserById({dio.CancelToken? cancelToken}) async {
     try {
       String? userIdString = await _storage.read(key: 'currentUserId');
       _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
       final response = await _dio.get(
-        '/Caisses/$_currentUserID', // ✅ Only relative path
+        '/Caisses/$_currentUserID',
         options: dio.Options(
           headers: {
             'Content-Type': 'application/json; charset=UTF-8',
           },
         ),
+        cancelToken: cancelToken,
       );
 
       if (response.statusCode == 200) {
@@ -43,12 +44,16 @@ class UserService {
         return null;
       }
     } catch (e) {
+      if (e is dio.DioException && e.type == dio.DioExceptionType.cancel) {
+        print('🚫 getUserById: Request was cancelled');
+        return null;
+      }
       print('Error fetching user: $e');
       return null;
     }
   }
 
-  Future<bool> updateUser(UserModel user) async {
+  Future<bool> updateUser(UserModel user, {dio.CancelToken? cancelToken}) async {
     try {
       String? userIdString = await _storage.read(key: 'currentUserId');
       _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
@@ -56,14 +61,15 @@ class UserService {
       final response = await _dio.put(
         '/Caisses/$_currentUserID',
         queryParameters: {
-          'updatePassword': false, // ✅ Set query param properly
+          'updatePassword': false,
         },
-        data: user.toJson(), // ✅ No need to jsonEncode manually
+        data: user.toJson(),
         options: dio.Options(
           headers: {
             'Content-Type': 'application/json',
           },
         ),
+        cancelToken: cancelToken,
       );
 
       if (response.statusCode == 200) {
@@ -79,12 +85,16 @@ class UserService {
         return false;
       }
     } catch (e) {
+      if (e is dio.DioException && e.type == dio.DioExceptionType.cancel) {
+        print('🚫 updateUser: Request was cancelled');
+        return false;
+      }
       print('Error updating user: $e');
       return false;
     }
   }
 
-  Future<String> uploadFile(File file) async {
+  Future<String> uploadFile(File file, {dio.CancelToken? cancelToken}) async {
     try {
       final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
       final mimeTypeParts = mimeType.split('/');
@@ -93,12 +103,11 @@ class UserService {
         'image': await dio.MultipartFile.fromFile(
           file.path,
           filename: file.path.split('/').last,
-          // ✅ No need to manually specify contentType unless needed
         ),
       });
 
       final response = await _dio.post(
-        '/Files', // ✅ Only relative path
+        '/Files',
         data: formData,
         options: dio.Options(
           headers: {
@@ -106,6 +115,7 @@ class UserService {
             'Content-Type': 'multipart/form-data',
           },
         ),
+        cancelToken: cancelToken,
       );
 
       if (response.statusCode == 200) {
@@ -115,6 +125,10 @@ class UserService {
         throw Exception('Failed to upload file. Status code: ${response.statusCode}');
       }
     } catch (e) {
+      if (e is dio.DioException && e.type == dio.DioExceptionType.cancel) {
+        print('🚫 uploadFile: Request was cancelled');
+        throw Exception('Request was cancelled');
+      }
       print('Error uploading file: $e');
       throw Exception('Error uploading file: $e');
     }

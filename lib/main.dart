@@ -10,8 +10,7 @@ void main() async{
   WidgetsFlutterBinding.ensureInitialized();
  await dotenv.load(fileName: 'config.env');
   
-  // Initialize DioService and loading manager
-  DioService.initialize();
+  // DioService is ready to use
   
   runApp(const App());
 }
