@@ -28,6 +28,7 @@ class Mission {
   // New properties for mission status
   bool? isMissed;
   bool? lateStart;
+  int? original_checklist_id;
 
   Mission({
     required this.id,
@@ -52,6 +53,7 @@ class Mission {
     this.progression,
     this.isMissed,
     this.lateStart,
+    this.original_checklist_id
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) {
@@ -87,7 +89,9 @@ class Mission {
       if (json['progression'] == null) nullFields.add('progression');
       if (json['isMissed'] == null) nullFields.add('isMissed');
       if (json['lateStart'] == null) nullFields.add('lateStart');
-      
+      if (json['original_checklist_id'] == null) nullFields.add('original_checklist_id');
+
+
       if (nullFields.isNotEmpty) {
         print('⚠️ Mission.fromJson: Null fields detected: ${nullFields.join(', ')}');
       }
@@ -220,7 +224,9 @@ class Mission {
 
       final lateStart = json['lateStart'] as bool?;
       print('✅ Mission.fromJson: lateStart = $lateStart');
-      
+
+      final checklistId = json['original_checklist_id'] as int?;
+
       print('🎉 Mission.fromJson: All fields parsed successfully, creating Mission object...');
       
       return Mission(
@@ -246,6 +252,7 @@ class Mission {
         progression: progression,
         isMissed: isMissed,
         lateStart: lateStart,
+          original_checklist_id : checklistId
       );
     } catch (e) {
       print('❌ Mission.fromJson: Error parsing mission: $e');
@@ -278,6 +285,7 @@ class Mission {
       'progression':progression,
       'isMissed': isMissed,
       'lateStart': lateStart,
+      'original_checklist_id':original_checklist_id
     };
   }
 }
