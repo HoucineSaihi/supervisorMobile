@@ -47,21 +47,22 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>We need access to your photo library to select images.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>We need access to your camera to take photos for mission questions.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>We need access to your microphone to record audio for mission questions.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>We need access to your location to record the position where mission questions are answered.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>We need access to your location to record the position where mission questions are answered.</string>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<true/>
+		</dict>
 	</dict>
-	<key>NSPhotoLibraryUsageDescription</key>
-    <string>We need access to your photo library to select images.</string>
-
-
-        <key>NSCameraUsageDescription</key>
-        <string>your usage description here</string>
-        <key>NSMicrophoneUsageDescription</key>
-        <string>your usage description here</string>
-
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key>
-        <true/>
-    </dict>
 
 
 </plist>

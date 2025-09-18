@@ -17,6 +17,7 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
 import 'package:mime/mime.dart';
 import 'package:supervisormobile/services/DioService.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../../dtos/questions/questionAnswerDto.dart';
 
@@ -363,6 +364,44 @@ class MissionService {
   }
   Future<void> updateMissionQuestion(int questionId, questionAnswerDto updatedQuestion, BuildContext context) async {
     try {
+      // Get current location
+      Position? currentPosition;
+      try {
+        // Check if location services are enabled
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (!serviceEnabled) {
+          print('Location services are disabled.');
+        }
+
+        // Check location permissions
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+          if (permission == LocationPermission.denied) {
+            print('Location permissions are denied');
+          }
+        }
+
+        if (permission == LocationPermission.deniedForever) {
+          print('Location permissions are permanently denied');
+        }
+
+        // Get current position if permissions are granted
+        if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+          currentPosition = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+          print('Current position: ${currentPosition.latitude}, ${currentPosition.longitude}');
+        }
+      } catch (e) {
+        print('Error getting location: $e');
+        // Continue without location data
+      }
+
+      // Update the questionAnswerDto with location data
+      updatedQuestion.latitude = currentPosition?.latitude;
+      updatedQuestion.longitude = currentPosition?.longitude;
+
       final response = await _dio.put(
         '/MissionQuestions/$questionId', // ✅ Only relative path
         data: updatedQuestion.toJson(), // ✅ No need to jsonEncode manually

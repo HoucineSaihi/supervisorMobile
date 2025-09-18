@@ -9,9 +9,11 @@ class questionAnswerDto {
   int? selectedResponseValue;
   String? jointureFichier;
   IncidentCategory? typeIncident;
+  double? latitude;
+  double? longitude;
 
   questionAnswerDto({this.id,this.commentaire,this.fileName,this.actionId
-    ,this.reponseID,this.selectedResponseValue,this.jointureFichier,this.typeIncident});
+    ,this.reponseID,this.selectedResponseValue,this.jointureFichier,this.typeIncident,this.latitude,this.longitude});
 
   Map<String, dynamic> toJson() {
     return {
@@ -23,8 +25,8 @@ class questionAnswerDto {
       'selectedResponseValue':selectedResponseValue,
       'jointureFichier':jointureFichier,
       'typeIncident': typeIncident?.value,
-
-
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 

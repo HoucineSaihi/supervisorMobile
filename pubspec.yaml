@@ -70,6 +70,7 @@ dependencies:
   file_picker: ^8.1.6
   permission_handler: ^11.3.1
   dio: ^5.3.2
+  geolocator: ^8.2.1
 
 dev_dependencies:
   flutter_test:
