@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:grouped_list/grouped_list.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
@@ -758,6 +759,20 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                     final percentage = calculateAnsweredPercentage(mission);
                                     return GestureDetector(
                                       onTap: () async {
+                                        final now = DateTime.now();
+                                        final today = DateFormat('yyyy-MM-dd').format(now);
+                                        final missionDate = DateFormat('yyyy-MM-dd').format(mission.planifiedAt!);
+
+                                        if (today != missionDate) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Vous ne pouvez pas consulter ou gérer cette mission'),
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                          return; // stop here
+                                        }
+
                                         final shouldRefresh = await Navigator.push(
                                           context,
                                           MaterialPageRoute(
@@ -770,6 +785,19 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                         }
                                       },
                                       onLongPress: () {
+                                        final now = DateTime.now();
+                                        final today = DateFormat('yyyy-MM-dd').format(now);
+                                        final missionDate = DateFormat('yyyy-MM-dd').format(mission.planifiedAt!);
+
+                                        if (today != missionDate) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Vous ne pouvez pas consulter ou gérer cette mission'),
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                          return; // block modal
+                                        }
                                         _showModal(context, mission);
                                       },
                                       child: Container(
