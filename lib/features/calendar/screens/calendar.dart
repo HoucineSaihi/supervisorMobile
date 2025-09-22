@@ -763,7 +763,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                         final today = DateFormat('yyyy-MM-dd').format(now);
                                         final missionDate = DateFormat('yyyy-MM-dd').format(mission.planifiedAt!);
 
-                                        if (today != missionDate) {
+                                        if (today != missionDate || mission.status != 1) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             const SnackBar(
                                               content: Text('Vous ne pouvez pas consulter ou gérer cette mission'),
@@ -789,7 +789,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                         final today = DateFormat('yyyy-MM-dd').format(now);
                                         final missionDate = DateFormat('yyyy-MM-dd').format(mission.planifiedAt!);
 
-                                        if (today != missionDate) {
+                                        if (today != missionDate || mission.status != 1) {
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             const SnackBar(
                                               content: Text('Vous ne pouvez pas consulter ou gérer cette mission'),
