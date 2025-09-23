@@ -1,21 +1,19 @@
 
 import 'package:dio/dio.dart';
 import 'package:supervisormobile/interceptors/ClientIdInterceptor.dart';
-
-// ✅ Correct paths and file names (lowercase)
-import '../utils/Helpers/secure_storage_data.dart'; // ✅ Correct SecureStorageService import
+import 'package:supervisormobile/interceptors/auth_interceptor.dart';
 
 class DioService {
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'https://fd425a16cf1b.ngrok-free.app'
-          '/api', // ⚡ Replace with your real API URL http://shopconnect.exoticgroup.net:8080/api
+      baseUrl: 'https://fa61c280fe9e.ngrok-free.app/api', // ✅ Using the real API URL
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
     ),
   )..interceptors.addAll([
+    AuthInterceptor(), // Add authentication interceptor first
     ClientIdInterceptor(),
     LogInterceptor(
       request: true,
