@@ -113,7 +113,6 @@ class _AddMissionFormState extends State<AddMissionForm> {
     final selectedMission = _notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId);
 
     // Reset mission properties
-    selectedMission.id = 0;
     selectedMission.boutique = null;
     selectedMission.boutiqueId = _selectedBoutiqueId;
     selectedMission.userId = _currentUserID; // Set the user ID as needed

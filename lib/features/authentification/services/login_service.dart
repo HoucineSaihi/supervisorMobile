@@ -1,71 +1,35 @@
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart' as dio;
-
-import 'package:flutter/foundation.dart'; // For kIsWeb
-import 'package:shared_preferences/shared_preferences.dart'; // For Web fallback
 import 'package:supervisormobile/services/DioService.dart';
-class SecureStorageService {
-  final _secureStorage = const FlutterSecureStorage();
+import 'package:supervisormobile/utils/Helpers/robust_storage_service.dart';
 
+class SecureStorageService {
   Future<void> saveLoginData(Map<String, dynamic> data) async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', data['token']);
-      await prefs.setString('expires', data['expires']);
-      await prefs.setString('currentUserId', data['currentUserId'].toString());
-      await prefs.setString('currentName', data['currentName']);
-      await prefs.setString('role', data['role'].toString());
-      await prefs.setString('idBoutique', data['idBoutique']?.toString() ?? '');
-    } else {
-      await _secureStorage.write(key: 'token', value: data['token']);
-      await _secureStorage.write(key: 'expires', value: data['expires']);
-      await _secureStorage.write(key: 'currentUserId', value: data['currentUserId'].toString());
-      await _secureStorage.write(key: 'currentName', value: data['currentName']);
-      await _secureStorage.write(key: 'role', value: data['role'].toString());
-      await _secureStorage.write(key: 'idBoutique', value: data['idBoutique']?.toString() ?? '');
-    }
+    await RobustStorageService.write('token', data['token']);
+    await RobustStorageService.write('expires', data['expires']);
+    await RobustStorageService.write('currentUserId', data['currentUserId'].toString());
+    await RobustStorageService.write('currentName', data['currentName']);
+    await RobustStorageService.write('role', data['role'].toString());
+    await RobustStorageService.write('idBoutique', data['idBoutique']?.toString() ?? '');
   }
 
   Future<String?> getToken() async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString('token');
-    } else {
-      return await _secureStorage.read(key: 'token');
-    }
+    return await RobustStorageService.read('token');
   }
 
   Future<Map<String, String?>> getLoginData() async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      return {
-        'token': prefs.getString('token'),
-        'expires': prefs.getString('expires'),
-        'currentUserId': prefs.getString('currentUserId'),
-        'currentName': prefs.getString('currentName'),
-        'role': prefs.getString('role'),
-        'idBoutique': prefs.getString('idBoutique'),
-      };
-    } else {
-      return {
-        'token': await _secureStorage.read(key: 'token'),
-        'expires': await _secureStorage.read(key: 'expires'),
-        'currentUserId': await _secureStorage.read(key: 'currentUserId'),
-        'currentName': await _secureStorage.read(key: 'currentName'),
-        'role': await _secureStorage.read(key: 'role'),
-        'idBoutique': await _secureStorage.read(key: 'idBoutique'),
-      };
-    }
+    return {
+      'token': await RobustStorageService.read('token'),
+      'expires': await RobustStorageService.read('expires'),
+      'currentUserId': await RobustStorageService.read('currentUserId'),
+      'currentName': await RobustStorageService.read('currentName'),
+      'role': await RobustStorageService.read('role'),
+      'idBoutique': await RobustStorageService.read('idBoutique'),
+    };
   }
 
   Future<void> clear() async {
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-    } else {
-      await _secureStorage.deleteAll();
-    }
+    await RobustStorageService.clear();
   }
 }
 
@@ -92,7 +56,14 @@ class LoginService {
         final data = response.data;
 
         if (data['success']) {
+          print('🔐 LoginService: Saving login data...');
+          print('🔐 LoginService: Token received: ${data['token'] != null ? 'YES' : 'NO'}');
           await _storageService.saveLoginData(data);
+          
+          // Verify token was saved
+          final savedToken = await _storageService.getToken();
+          print('🔐 LoginService: Token saved successfully: ${savedToken != null ? 'YES' : 'NO'}');
+          
           return data;
         } else {
           throw Exception('Login failed: ${data['message'] ?? 'Unknown error'}');

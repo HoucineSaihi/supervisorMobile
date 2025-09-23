@@ -1,46 +1,30 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../utils/Helpers/secure_storage_data.dart';
 import '../utils/navigation_key.dart';
+import '../utils/Helpers/robust_storage_service.dart';
 
 class ClientIdInterceptor extends Interceptor {
-  final _storage = FlutterSecureStorage();
-
-
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
     try {
-      String? userIdString;
-      int? userId;
-
-      if (kIsWeb) {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        userIdString = prefs.getString('currentUserId');
-      } else {
-        final _storage = FlutterSecureStorage();
-        userIdString = await _storage.read(key: 'currentUserId');
-      }
-
-      if (userIdString != null ) {
+      final String? userIdString = await RobustStorageService.read('currentUserId');
+      
+      if (userIdString != null) {
         options.headers['X-ClientId'] = userIdString;
       } else {
-        print('No currentUserId found in secure storage.');
+        print('No currentUserId found in storage.');
       }
     } catch (e) {
-      print('Error fetching clientId from secure storage: $e');
+      print('Error fetching clientId from storage: $e');
     }
     return super.onRequest(options, handler);
   }
 
   @override
-  void onError(DioError err, ErrorInterceptorHandler handler) {
+  void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 429) {
       // 👉 Always show a static message (ignore Retry-After)
-      const waitMessage = 'Beaucoup de requêtes envoyées. Veuillez patienter une minute.';
 
       // Show a snackbar using navigatorKey
       final context = navigatorKey.currentState?.overlay?.context;

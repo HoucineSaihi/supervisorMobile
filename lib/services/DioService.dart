@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:supervisormobile/interceptors/ClientIdInterceptor.dart';
 import 'package:supervisormobile/interceptors/loading_interceptor.dart';
+import 'package:supervisormobile/interceptors/auth_interceptor.dart';
 import 'package:supervisormobile/utils/loading_manager.dart';
 
 // ✅ Correct paths and file names (lowercase)
@@ -11,7 +12,7 @@ class DioService {
   
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://localhost:7000'
+      baseUrl: 'http://192.168.168.200:7010'
           '/api', // ⚡ Replace with your real API URL http://shopconnect.exoticgroup.net:8080/api
       headers: {
         'Accept': 'application/json',
@@ -19,7 +20,8 @@ class DioService {
       },
     ),
   )..interceptors.addAll([
-    _loadingInterceptor,
+    AuthInterceptor(), // Add authentication interceptor first
+   // _loadingInterceptor,
     ClientIdInterceptor(),
     LogInterceptor(
       request: true,
