@@ -770,7 +770,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                               duration: Duration(seconds: 2),
                                             ),
                                           );
-                                          return; // stop here
+                                        //  return; // stop here
                                         }
 
                                         final shouldRefresh = await Navigator.push(
@@ -796,7 +796,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                               duration: Duration(seconds: 2),
                                             ),
                                           );
-                                          return; // block modal
+                                        //  return; // block modal
                                         }
                                         _showModal(context, mission);
                                       },
