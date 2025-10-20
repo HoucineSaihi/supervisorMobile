@@ -1,0 +1,1027 @@
+{
+  "@@locale": "en",
+  "appTitle": "SuperVisor",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "appDescription": "Organize and track your missions with ease using our dedicated application.",
+  "@appDescription": {
+    "description": "Description of the application"
+  },
+  "welcomeTitle": "Welcome to SuperVisor",
+  "@welcomeTitle": {
+    "description": "Welcome title on onboarding screen"
+  },
+  "welcomeSubtitle": "Optimize your performance with features designed for Area Managers.",
+  "@welcomeSubtitle": {
+    "description": "Welcome subtitle on onboarding screen"
+  },
+  "manageMissionsTitle": "Manage Your Missions",
+  "@manageMissionsTitle": {
+    "description": "Title for mission management onboarding screen"
+  },
+  "manageMissionsSubtitle": "Organize and track your missions with ease using our dedicated application.",
+  "@manageMissionsSubtitle": {
+    "description": "Subtitle for mission management onboarding screen"
+  },
+  "skip": "Skip",
+  "@skip": {
+    "description": "Skip button text"
+  },
+  "next": "Next",
+  "@next": {
+    "description": "Next button text"
+  },
+  "enterUsername": "Enter your username",
+  "@enterUsername": {
+    "description": "Username input field label"
+  },
+  "enterPassword": "Enter your password",
+  "@enterPassword": {
+    "description": "Password input field label"
+  },
+  "login": "Login",
+  "@login": {
+    "description": "Login button text"
+  },
+  "usernamePasswordEmpty": "Username and password cannot be empty",
+  "@usernamePasswordEmpty": {
+    "description": "Error message when username or password is empty"
+  },
+  "loginFailed": "Login failed. Please try again.",
+  "@loginFailed": {
+    "description": "Generic login failure message"
+  },
+  "errorOccurred": "An error occurred. Please try again later.",
+  "@errorOccurred": {
+    "description": "Generic error message"
+  },
+  "calendar": "Calendar",
+  "@calendar": {
+    "description": "Calendar navigation label"
+  },
+  "incidents": "Incidents",
+  "@incidents": {
+    "description": "Incidents navigation label"
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile navigation label"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Language selection label"
+  },
+  "english": "English",
+  "@english": {
+    "description": "English language option"
+  },
+  "french": "French",
+  "@french": {
+    "description": "French language option"
+  },
+  "selectLanguage": "Select Language",
+  "@selectLanguage": {
+    "description": "Language selection dialog title"
+  },
+  "editProfile": "Edit Profile",
+  "@editProfile": {
+    "description": "Edit profile button text"
+  },
+  "logout": "Logout",
+  "@logout": {
+    "description": "Logout button text"
+  },
+  "phone": "Phone",
+  "@phone": {
+    "description": "Phone label"
+  },
+  "role": "Role",
+  "@role": {
+    "description": "Role label"
+  },
+  "notAvailable": "Not available",
+  "@notAvailable": {
+    "description": "Not available text"
+  },
+  "noUserDataFound": "No user data found.",
+  "@noUserDataFound": {
+    "description": "Message when no user data is found"
+  },
+  "error": "Error",
+  "@error": {
+    "description": "Error label"
+  },
+  "modifyMission": "Modify Mission",
+  "@modifyMission": {
+    "description": "Title for mission modification modal"
+  },
+  "chooseOptionToModifyMission": "Choose an option to modify the mission",
+  "@chooseOptionToModifyMission": {
+    "description": "Description for mission modification modal"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel action"
+  },
+  "postpone": "Postpone",
+  "@postpone": {
+    "description": "Postpone action"
+  },
+  "confirm": "Confirm",
+  "@confirm": {
+    "description": "Confirm action"
+  },
+  "areYouSureToCancelMission": "Are you sure you want to cancel the mission?",
+  "@areYouSureToCancelMission": {
+    "description": "Confirmation message for canceling mission"
+  },
+  "areYouSureToPostponeMission": "Are you sure you want to postpone the mission?",
+  "@areYouSureToPostponeMission": {
+    "description": "Confirmation message for postponing mission"
+  },
+  "failedToUpdateMission": "Failed to update mission",
+  "@failedToUpdateMission": {
+    "description": "Error message when mission update fails"
+  },
+  "boutiqueInfo": "Boutique Info",
+  "@boutiqueInfo": {
+    "description": "Title for boutique information dialog"
+  },
+  "code": "Code",
+  "@code": {
+    "description": "Code label"
+  },
+  "libelle": "Label",
+  "@libelle": {
+    "description": "Label field"
+  },
+  "city": "City",
+  "@city": {
+    "description": "City label"
+  },
+  "region": "Region",
+  "@region": {
+    "description": "Region label"
+  },
+  "country": "Country",
+  "@country": {
+    "description": "Country label"
+  },
+  "address": "Address",
+  "@address": {
+    "description": "Address label"
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Close button"
+  },
+  "noCode": "No Code",
+  "@noCode": {
+    "description": "Default text when no code is available"
+  },
+  "noLibelle": "No Label",
+  "@noLibelle": {
+    "description": "Default text when no label is available"
+  },
+  "noCity": "No City",
+  "@noCity": {
+    "description": "Default text when no city is available"
+  },
+  "noRegion": "No Region",
+  "@noRegion": {
+    "description": "Default text when no region is available"
+  },
+  "noCountry": "No Country",
+  "@noCountry": {
+    "description": "Default text when no country is available"
+  },
+  "noAddress": "No Address",
+  "@noAddress": {
+    "description": "Default text when no address is available"
+  },
+  "noBoutique": "No Boutique",
+  "@noBoutique": {
+    "description": "Default text when no boutique is available"
+  },
+  "noDescription": "No Description",
+  "@noDescription": {
+    "description": "Default text when no description is available"
+  },
+  "refreshMissions": "Refresh Missions",
+  "@refreshMissions": {
+    "description": "Tooltip for refresh missions button"
+  },
+  "youHaveZeroMissionsForThisDay": "You have 0 missions for this day",
+  "@youHaveZeroMissionsForThisDay": {
+    "description": "Message when no missions are available for selected day"
+  },
+  "clickToAddMissionForPlanning": "Click on add mission to make a planning",
+  "@clickToAddMissionForPlanning": {
+    "description": "Instruction text for adding missions"
+  },
+  "addMission": "Add Mission",
+  "@addMission": {
+    "description": "Add mission button text"
+  },
+  "allMissionsCompleted": "All missions completed ✔️",
+  "@allMissionsCompleted": {
+    "description": "Message when all missions are completed"
+  },
+  "youHaveMissionsPlanned": "You have {count} mission planned",
+  "@youHaveMissionsPlanned": {
+    "description": "Message showing number of planned missions",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allMissionsGroupedByBoutique": "All missions are grouped by boutique",
+  "@allMissionsGroupedByBoutique": {
+    "description": "Information about mission grouping"
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading text"
+  },
+  "loadMoreMissions": "Load more missions",
+  "@loadMoreMissions": {
+    "description": "Load more missions button text"
+  },
+  "totalMissions": "Total: {count} missions",
+  "@totalMissions": {
+    "description": "Total missions count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cannotManageThisMission": "You cannot view or manage this mission",
+  "@cannotManageThisMission": {
+    "description": "Error message when trying to manage mission on wrong day"
+  },
+  "missed": "Missed",
+  "@missed": {
+    "description": "Missed mission indicator"
+  },
+  "lateStart": "Late Start",
+  "@lateStart": {
+    "description": "Late start mission indicator"
+  },
+  "unknown": "Unknown",
+  "@unknown": {
+    "description": "Unknown status"
+  },
+  "planned": "Planned",
+  "@planned": {
+    "description": "Planned status"
+  },
+  "inProgress": "In Progress",
+  "@inProgress": {
+    "description": "In Progress status"
+  },
+  "postponed": "Postponed",
+  "@postponed": {
+    "description": "Postponed status"
+  },
+  "confirmed": "Confirmed",
+  "@confirmed": {
+    "description": "Confirmed status"
+  },
+  "cancelled": "Cancelled",
+  "@cancelled": {
+    "description": "Cancelled status"
+  },
+  "completed": "Completed",
+  "@completed": {
+    "description": "Completed status"
+  },
+  "month": "Month",
+  "@month": {
+    "description": "Month calendar format"
+  },
+  "twoWeeks": "2 Weeks",
+  "@twoWeeks": {
+    "description": "Two weeks calendar format"
+  },
+  "week": "Week",
+  "@week": {
+    "description": "Week calendar format"
+  },
+  "description": "Description",
+  "@description": {
+    "description": "Description label"
+  },
+  "addMission": "Add Mission",
+  "@addMission": {
+    "description": "Add mission button text"
+  },
+  "selectBoutique": "Select a boutique",
+  "@selectBoutique": {
+    "description": "Boutique selection label"
+  },
+  "selectMission": "Select a mission",
+  "@selectMission": {
+    "description": "Mission selection label"
+  },
+  "refreshData": "Refresh data",
+  "@refreshData": {
+    "description": "Refresh data tooltip"
+  },
+  "missionInfo": "Mission Info",
+  "@missionInfo": {
+    "description": "Mission information title"
+  },
+  "pleaseSelectBothBoutiqueAndMission": "Please select both boutique and mission.",
+  "@pleaseSelectBothBoutiqueAndMission": {
+    "description": "Error message when boutique or mission not selected"
+  },
+  "noName": "No Name",
+  "@noName": {
+    "description": "Default text when no name is available"
+  },
+  "nA": "N/A",
+  "@nA": {
+    "description": "Not available text"
+  },
+  "add": "Add",
+  "@add": {
+    "description": "Add button text"
+  },
+  "welcome": "Welcome",
+  "@welcome": {
+    "description": "Welcome greeting text"
+  },
+  "noTokenFound": "No token found",
+  "@noTokenFound": {
+    "description": "Default text when no token is found"
+  },
+  "captureImage": "Capture Image",
+  "@captureImage": {
+    "description": "Capture image screen title"
+  },
+  "zoomOut": "Zoom Out",
+  "@zoomOut": {
+    "description": "Zoom out button text"
+  },
+  "capture": "Capture",
+  "@capture": {
+    "description": "Capture button text"
+  },
+  "zoomIn": "Zoom In",
+  "@zoomIn": {
+    "description": "Zoom in button text"
+  },
+  "failedToSaveEditedImage": "Failed to save edited image",
+  "@failedToSaveEditedImage": {
+    "description": "Error message when image editing fails"
+  },
+  "errorUpdatingQuestionResponse": "Error updating question response",
+  "@errorUpdatingQuestionResponse": {
+    "description": "Error message when updating question response fails"
+  },
+  "modifyResponse": "Modify Response",
+  "@modifyResponse": {
+    "description": "Edit question response screen title"
+  },
+  "success": "Success!",
+  "@success": {
+    "description": "Success message title"
+  },
+  "questionUpdatedSuccessfully": "Question updated successfully.",
+  "@questionUpdatedSuccessfully": {
+    "description": "Success message when question is updated"
+  },
+  "error": "Error!",
+  "@error": {
+    "description": "Error message title"
+  },
+  "failedToUpdateQuestion": "Failed to update question",
+  "@failedToUpdateQuestion": {
+    "description": "Error message when question update fails"
+  },
+  "description": "Description:",
+  "@description": {
+    "description": "Description label"
+  },
+  "noDescription": "No Description",
+  "@noDescription": {
+    "description": "Default text when no description is available"
+  },
+  "response": "Response:",
+  "@response": {
+    "description": "Response label"
+  },
+  "noResponse": "No Response",
+  "@noResponse": {
+    "description": "Default text when no response is available"
+  },
+  "chooseResponse": "Choose Response",
+  "@chooseResponse": {
+    "description": "Dialog title for choosing response"
+  },
+  "noLabel": "No Label",
+  "@noLabel": {
+    "description": "Default text when no label is available"
+  },
+  "comment": "Comment:",
+  "@comment": {
+    "description": "Comment label"
+  },
+  "noComment": "No Comment",
+  "@noComment": {
+    "description": "Default text when no comment is available"
+  },
+  "editComment": "Edit comment",
+  "@editComment": {
+    "description": "Hint text for comment editing"
+  },
+  "incidentType": "Incident Type",
+  "@incidentType": {
+    "description": "Incident type dropdown label"
+  },
+  "pleaseSelectCategory": "Please select a category",
+  "@pleaseSelectCategory": {
+    "description": "Validation message for category selection"
+  },
+  "action": "Action:",
+  "@action": {
+    "description": "Action label"
+  },
+  "noAction": "No Action",
+  "@noAction": {
+    "description": "Default text when no action is available"
+  },
+  "selectedAction": "Selected Action:",
+  "@selectedAction": {
+    "description": "Selected action label"
+  },
+  "noActionDescription": "No Action Description",
+  "@noActionDescription": {
+    "description": "Default text when no action description is available"
+  },
+  "selectAction": "Select Action",
+  "@selectAction": {
+    "description": "Action dropdown hint text"
+  },
+  "searchActions": "Search Actions",
+  "@searchActions": {
+    "description": "Action search hint text"
+  },
+  "noActionsFound": "No actions found",
+  "@noActionsFound": {
+    "description": "Message when no actions are found in search"
+  },
+  "pleaseSelectAction": "Please select an action",
+  "@pleaseSelectAction": {
+    "description": "Validation message for action selection"
+  },
+  "noActionsAvailable": "No actions available",
+  "@noActionsAvailable": {
+    "description": "Message when no actions are available"
+  },
+  "thisResponseContainsFile": "This response contains an attached file:",
+  "@thisResponseContainsFile": {
+    "description": "Message when response has attached file"
+  },
+  "downloadFile": "Download File",
+  "@downloadFile": {
+    "description": "Download file button text"
+  },
+  "deleteFile": "Delete File",
+  "@deleteFile": {
+    "description": "Delete file button text"
+  },
+  "attachedFile": "Attached File:",
+  "@attachedFile": {
+    "description": "Attached file label"
+  },
+  "name": "Name:",
+  "@name": {
+    "description": "Name label"
+  },
+  "size": "Size:",
+  "@size": {
+    "description": "Size label"
+  },
+  "type": "Type:",
+  "@type": {
+    "description": "Type label"
+  },
+  "unknown": "Unknown",
+  "@unknown": {
+    "description": "Default text for unknown type"
+  },
+  "addFile": "Add File",
+  "@addFile": {
+    "description": "Add file button text"
+  },
+  "thisResponseContainsImage": "This response contains an image:",
+  "@thisResponseContainsImage": {
+    "description": "Message when response has image"
+  },
+  "attachImages": "Attach Images",
+  "@attachImages": {
+    "description": "Attach images label"
+  },
+  "image": "Image",
+  "@image": {
+    "description": "Image button text"
+  },
+  "openCamera": "Open Camera",
+  "@openCamera": {
+    "description": "Open camera button text"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Save button text"
+  },
+  "fileDeletedSuccessfully": "File deleted successfully.",
+  "@fileDeletedSuccessfully": {
+    "description": "Success message when file is deleted"
+  },
+  "failedToDeleteFile": "Failed to delete file",
+  "@failedToDeleteFile": {
+    "description": "Error message when file deletion fails"
+  },
+  "storagePermissionDenied": "Storage permission denied.",
+  "@storagePermissionDenied": {
+    "description": "Error message when storage permission is denied"
+  },
+  "downloadsDirectoryNotFound": "Downloads directory not found.",
+  "@downloadsDirectoryNotFound": {
+    "description": "Error message when downloads directory is not found"
+  },
+  "fileDownloadedSuccessfully": "File downloaded successfully:",
+  "@fileDownloadedSuccessfully": {
+    "description": "Success message when file is downloaded"
+  },
+  "errorDownloadingFile": "Error downloading file:",
+  "@errorDownloadingFile": {
+    "description": "Error message when file download fails"
+  },
+  "noDataFound": "No data found",
+  "@noDataFound": {
+    "description": "Message when no data is found"
+  },
+  "failedToFetchQuestionDetails": "Failed to fetch question details",
+  "@failedToFetchQuestionDetails": {
+    "description": "Error message when question details fetch fails"
+  },
+  "failedToFetchImage": "Failed to fetch image",
+  "@failedToFetchImage": {
+    "description": "Error message when image fetch fails"
+  },
+  "selectedFileTooLarge": "Selected file is too large. Maximum allowed size is 5MB.",
+  "@selectedFileTooLarge": {
+    "description": "Error message when selected file is too large"
+  },
+  "noValidFilePath": "No valid file path.",
+  "@noValidFilePath": {
+    "description": "Error message when file path is invalid"
+  },
+  "filePickingCancelled": "File picking cancelled",
+  "@filePickingCancelled": {
+    "description": "Message when file picking is cancelled"
+  },
+  "imageTooLarge": "Image is too large. Skipped.",
+  "@imageTooLarge": {
+    "description": "Error message when image is too large"
+  },
+  "unsupportedImageFormat": "Image has unsupported format. Skipped.",
+  "@unsupportedImageFormat": {
+    "description": "Error message when image format is unsupported"
+  },
+  "noValidImagesSelected": "No valid images selected. Only JPG, JPEG, PNG under 5MB are allowed.",
+  "@noValidImagesSelected": {
+    "description": "Error message when no valid images are selected"
+  },
+  "noImagesSelected": "No images selected.",
+  "@noImagesSelected": {
+    "description": "Message when no images are selected"
+  },
+  "selectedValidImages": "Selected valid image(s).",
+  "@selectedValidImages": {
+    "description": "Success message when valid images are selected"
+  },
+  "imageSavedToGallerySuccessfully": "Image saved to gallery successfully",
+  "@imageSavedToGallerySuccessfully": {
+    "description": "Success message when image is saved to gallery"
+  },
+  "failedToSaveImageToGallery": "Failed to save image to gallery",
+  "@failedToSaveImageToGallery": {
+    "description": "Error message when image save to gallery fails"
+  },
+  "errorSavingImageToFile": "Error saving image to file:",
+  "@errorSavingImageToFile": {
+    "description": "Error message when saving image to file fails"
+  },
+  "errorDuringFileUpload": "Error during file upload:",
+  "@errorDuringFileUpload": {
+    "description": "Error message when file upload fails"
+  },
+  "editImage": "Edit Image",
+  "@editImage": {
+    "description": "Image editor screen title"
+  },
+  "questionsList": "Questions List",
+  "@questionsList": {
+    "description": "Questions list screen title"
+  },
+  "noDescription": "No Description",
+  "@noDescription": {
+    "description": "Default text when no description is available"
+  },
+  "answer": "Answer",
+  "@answer": {
+    "description": "Answer button text"
+  },
+  "checklistValidatedCannotChange": "Checklist validated, you cannot change your response.",
+  "@checklistValidatedCannotChange": {
+    "description": "Message when checklist is validated and response cannot be changed"
+  },
+  "value": "Value:",
+  "@value": {
+    "description": "Value label"
+  },
+  "response": "Response",
+  "@response": {
+    "description": "Response label"
+  },
+  "imageSavedToGallerySuccessfully": "Image saved to gallery successfully",
+  "@imageSavedToGallerySuccessfully": {
+    "description": "Success message when image is saved to gallery"
+  },
+  "failedToSaveImageToGallery": "Failed to save image to gallery",
+  "@failedToSaveImageToGallery": {
+    "description": "Error message when image save to gallery fails"
+  },
+  "errorSavingImageToFile": "Error saving image to file:",
+  "@errorSavingImageToFile": {
+    "description": "Error message when saving image to file fails"
+  },
+  "errorFetchingQuestions": "Error fetching questions:",
+  "@errorFetchingQuestions": {
+    "description": "Error message when fetching questions fails"
+  },
+  "imageViewerDismissed": "Image viewer dismissed",
+  "@imageViewerDismissed": {
+    "description": "Message when image viewer is dismissed"
+  },
+  "missionDetails": "Mission Details",
+  "@missionDetails": {
+    "description": "Mission details screen title"
+  },
+  "noTitle": "No Title",
+  "@noTitle": {
+    "description": "Default text when no title is available"
+  },
+  "conformityRate": "CR",
+  "@conformityRate": {
+    "description": "Conformity rate label"
+  },
+  "category": "Category:",
+  "@category": {
+    "description": "Category label"
+  },
+  "validate": "Validate",
+  "@validate": {
+    "description": "Validate button text"
+  },
+  "postponed": "Postponed",
+  "@postponed": {
+    "description": "Postponed status text"
+  },
+  "cancelled": "Cancelled",
+  "@cancelled": {
+    "description": "Cancelled status text"
+  },
+  "completed": "Completed",
+  "@completed": {
+    "description": "Completed status text"
+  },
+  "missionValidatedSuccessfully": "Mission validated successfully.",
+  "@missionValidatedSuccessfully": {
+    "description": "Success message when mission is validated"
+  },
+  "answerQuestion": "Answer Question",
+  "@answerQuestion": {
+    "description": "Answer question screen title"
+  },
+  "question": "Question:",
+  "@question": {
+    "description": "Question label"
+  },
+  "selectResponse": "Select Response",
+  "@selectResponse": {
+    "description": "Select response dropdown hint"
+  },
+  "noLabel": "No Label",
+  "@noLabel": {
+    "description": "Default text when no label is available"
+  },
+  "noValue": "No Value",
+  "@noValue": {
+    "description": "Default text when no value is available"
+  },
+  "pleaseSelectResponse": "Please select a response",
+  "@pleaseSelectResponse": {
+    "description": "Validation message for response selection"
+  },
+  "noChoicesAvailable": "No choices available",
+  "@noChoicesAvailable": {
+    "description": "Message when no choices are available"
+  },
+  "selectAction": "Select Action",
+  "@selectAction": {
+    "description": "Select action dropdown hint"
+  },
+  "noActionsAvailable": "No actions available",
+  "@noActionsAvailable": {
+    "description": "Message when no actions are available"
+  },
+  "pleaseSelectAction": "Please select an action",
+  "@pleaseSelectAction": {
+    "description": "Validation message for action selection"
+  },
+  "noAction": "No Action",
+  "@noAction": {
+    "description": "Default text when no action is available"
+  },
+  "action": "Action:",
+  "@action": {
+    "description": "Action label"
+  },
+  "incidentType": "Incident Type",
+  "@incidentType": {
+    "description": "Incident type dropdown label"
+  },
+  "pleaseSelectCategory": "Please select a category",
+  "@pleaseSelectCategory": {
+    "description": "Validation message for category selection"
+  },
+  "comment": "Comment",
+  "@comment": {
+    "description": "Comment label"
+  },
+  "pleaseEnterComment": "Please enter a comment",
+  "@pleaseEnterComment": {
+    "description": "Validation message for comment"
+  },
+  "attachImages": "Attach Images",
+  "@attachImages": {
+    "description": "Attach images label"
+  },
+  "image": "Image",
+  "@image": {
+    "description": "Image button text"
+  },
+  "file": "File",
+  "@file": {
+    "description": "File button text"
+  },
+  "openCamera": "Open Camera",
+  "@openCamera": {
+    "description": "Open camera button text"
+  },
+  "attachedFile": "Attached File:",
+  "@attachedFile": {
+    "description": "Attached file label"
+  },
+  "name": "Name:",
+  "@name": {
+    "description": "Name label"
+  },
+  "size": "Size:",
+  "@size": {
+    "description": "Size label"
+  },
+  "type": "Type:",
+  "@type": {
+    "description": "Type label"
+  },
+  "unknown": "Unknown",
+  "@unknown": {
+    "description": "Default text for unknown type"
+  },
+  "validate": "Validate",
+  "@validate": {
+    "description": "Validate button text"
+  },
+  "failedToUploadImageFile": "Failed to upload image file",
+  "@failedToUploadImageFile": {
+    "description": "Error message when image upload fails"
+  },
+  "failedToUploadJointureFile": "Failed to upload jointure file",
+  "@failedToUploadJointureFile": {
+    "description": "Error message when jointure file upload fails"
+  },
+  "questionUpdatedSuccessfully": "Question updated successfully",
+  "@questionUpdatedSuccessfully": {
+    "description": "Success message when question is updated"
+  },
+  "failedToUpdateQuestion": "Failed to update question",
+  "@failedToUpdateQuestion": {
+    "description": "Error message when question update fails"
+  },
+  "selectResponse": "Select a response",
+  "@selectResponse": {
+    "description": "Validation message for response selection"
+  },
+  "selectedFileTooLarge": "Selected file is too large. Maximum allowed size is 5MB.",
+  "@selectedFileTooLarge": {
+    "description": "Error message when selected file is too large"
+  },
+  "noValidFilePath": "No valid file path.",
+  "@noValidFilePath": {
+    "description": "Error message when file path is invalid"
+  },
+  "filePickingCancelled": "File picking cancelled",
+  "@filePickingCancelled": {
+    "description": "Message when file picking is cancelled"
+  },
+  "errorDuringFileUpload": "Error during file upload:",
+  "@errorDuringFileUpload": {
+    "description": "Error message when file upload fails"
+  },
+  "imageTooLarge": "Image is too large. Skipped.",
+  "@imageTooLarge": {
+    "description": "Error message when image is too large"
+  },
+  "unsupportedImageFormat": "Image has unsupported format. Skipped.",
+  "@unsupportedImageFormat": {
+    "description": "Error message when image format is unsupported"
+  },
+  "noValidImagesSelected": "No valid images selected. Only JPG, JPEG, PNG under 5MB are allowed.",
+  "@noValidImagesSelected": {
+    "description": "Error message when no valid images are selected"
+  },
+  "noImagesSelected": "No images selected.",
+  "@noImagesSelected": {
+    "description": "Message when no images are selected"
+  },
+  "selectedValidImages": "Selected valid image(s).",
+  "@selectedValidImages": {
+    "description": "Success message when valid images are selected"
+  },
+  "imageViewerDismissed": "Image viewer dismissed",
+  "@imageViewerDismissed": {
+    "description": "Message when image viewer is dismissed"
+  },
+  "imageSavedToGallerySuccessfully": "Image saved to gallery successfully",
+  "@imageSavedToGallerySuccessfully": {
+    "description": "Success message when image is saved to gallery"
+  },
+  "failedToSaveImageToGallery": "Failed to save image to gallery",
+  "@failedToSaveImageToGallery": {
+    "description": "Error message when image save to gallery fails"
+  },
+  "errorSavingImageToFile": "Error saving image to file:",
+  "@errorSavingImageToFile": {
+    "description": "Error message when saving image to file fails"
+  }
+  ,
+  "reportMission": "Postpone Mission",
+  "@reportMission": {"description": "Title for postponing a mission"},
+  "planningDate": "Planning date:",
+  "@planningDate": {"description": "Label for planning date"},
+  "chooseDateToReportMission": "Choose the date to postpone the mission",
+  "@chooseDateToReportMission": {"description": "Instruction to choose date for postponement"},
+  "selectedDate": "Selected date:",
+  "@selectedDate": {"description": "Label for selected date"},
+  "selectDate": "Date",
+  "@selectDate": {"description": "Date field label"},
+  "selectADate": "Select a date",
+  "@selectADate": {"description": "Hint to select a date"},
+  "report": "Postpone",
+  "@report": {"description": "Button label for postpone/report"},
+  "pleaseSelectDate": "Please select a date.",
+  "@pleaseSelectDate": {"description": "Validation asking user to select a date"},
+  "missionUpdatedSuccessfully": "Mission updated successfully.",
+  "@missionUpdatedSuccessfully": {"description": "Success message after mission update"},
+  "noDate": "No Date",
+  "@noDate": {"description": "Fallback when no date is available"}
+  ,
+  "statusCount": "{status}: {count}",
+  "@statusCount": {"description": "Template for status with count", "placeholders": {"status": {"type": "String"}, "count": {"type": "int"}}}
+  ,
+  "filters": "Filters",
+  "applyFilters": "Apply Filters",
+  "chooseBoutique": "Choose a boutique",
+  "all": "All",
+  "priority": "Priority",
+  "origin": "Origin",
+  "manual": "Manual",
+  "checklist": "Checklist",
+  "status": "Status",
+  "unknown": "Unknown",
+  "consultIncident": "Incident Consultation",
+  "chooseOptionToModifyIncident": "Choose an option to modify the incident",
+  "consult": "Consult",
+  "close": "Close",
+  "unclose": "Unclose",
+  "confirmClosure": "Confirm Closure",
+  "areYouSureChangeClosureState": "Are you sure you want to change the closure state \"{label}\"?",
+  "invalidQuestionId": "Invalid question ID.",
+  "success": "Success!",
+  "incidentClosedSuccessfully": "Incident closed successfully.",
+  "error": "Error",
+  "errorClosingIncident": "Error closing incident.",
+  "description": "Description:",
+  "commentaire": "Comment:",
+  "declarationDate": "Declaration date:",
+  "noComment": "No comment",
+  "noDescription": "No description",
+  "noDateLower": "No date",
+  "statusLabel": "Status: {label}",
+  "noPriority": "No priority"
+  ,
+  "consultProblem": "Consult Problem",
+  "errorLoadingProblem": "Error loading problem",
+  "problemNotFound": "Problem not found",
+  "declaredOn": "Declared on: {date}",
+  "closedOn": "Closed on: {date}",
+  "statusColon": "Status: {label}",
+  "commentColon": "Comment: {comment}",
+  "photoBeforeAvailable": "Photo before available",
+  "photoBeforeNotAvailable": "Photo before not available",
+  "photoAfterAvailable": "Photo after available",
+  "photoAfterNotAvailable": "Photo after not available",
+  "fileBeforeAvailable": "File before available",
+  "fileBeforeNotAvailable": "File before not available",
+  "fileAfterAvailable": "File after available",
+  "fileAfterNotAvailable": "File after not available",
+  "coefficient": "Coefficient: {value}",
+  "cluster": "Cluster: {value}",
+  "originColon": "Origin: {value}",
+  "retail": "Retail",
+  "hospitality": "Hospitality",
+  "production": "Production",
+  "office": "Office",
+  "free": "Libre",
+  "cost": "Cost: ${value}"
+  ,
+  "addIncident": "Add Incident",
+  "incidentCategory": "Incident Category",
+  "pleaseSelectCategory": "Please select a category",
+  "boutique": "Boutique",
+  "pleaseSelectBoutique": "Please select a boutique",
+  "descriptionLabel": "Description",
+  "pleaseProvideDescription": "Please provide an incident description",
+  "commentLabel": "Comment",
+  "pleaseProvideComment": "Please provide a comment",
+  "attachImages": "Attach Images",
+  "image": "Image",
+  "file": "File",
+  "openCamera": "Open Camera",
+  "attachedFile": "Attached File:",
+  "name": "Name:",
+  "size": "Size:",
+  "type": "Type:",
+  "unknown": "Unknown",
+  "priorityLabel": "Priority",
+  "pleaseSelectPriority": "Please select a priority",
+  "submit": "Submit",
+  "failedToUploadImageFile": "Failed to upload image file",
+  "failedToUploadJointureFile": "Failed to upload jointure file",
+  "incidentAddedSuccessfully": "Incident added successfully.",
+  "failedToSubmitIncident": "Unable to submit the incident. Please try again.",
+  "allFieldsAreRequired": "All fields are required.",
+  "imageViewerDismissed": "Image viewer dismissed"
+  ,
+  "imageViewer": "Image Viewer",
+  "failedToLoadImage": "Failed to load image"
+  ,
+  "editProfilePhoto": "Edit profile photo",
+  "noImage": "No Image",
+  "noImageSelected": "No image selected.",
+  "success": "Success!",
+  "profileImageUpdatedSuccessfully": "Profile image updated successfully.",
+  "failure": "Failure",
+  "failedToUpdateProfileImage": "Failed to update profile image.",
+  "error": "Error",
+  "anErrorOccurred": "An error occurred:",
+  "save": "Save"
+  ,
+  "editUserInfo": "Edit user information",
+  "name": "Name",
+  "pleaseEnterName": "Please enter a name",
+  "username": "Username",
+  "pleaseEnterUsername": "Please enter a username",
+  "fax": "Fax",
+  "pleaseEnterFax": "Please enter a fax",
+  "phoneNumber": "Phone Number",
+  "pleaseEnterPhoneNumber": "Please enter a phone number",
+  "postalCode": "Postal Code",
+  "pleaseEnterPostalCode": "Please enter a postal code",
+  "userInfoUpdatedSuccessfully": "User information updated successfully",
+  "failedToUpdateUserInfo": "Failed to update user information",
+  "anErrorOccurred": "An error occurred:"
+  ,
+  "missionAddedSuccessfully": "Mission added successfully.",
+  "failedToAddMission": "Failed to add mission.",
+  "serverErrorWithCode": "Server error: {code}",
+  "unexpectedErrorOccurred": "An unexpected error occurred: {message}"
+}

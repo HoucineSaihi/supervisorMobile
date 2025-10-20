@@ -9,6 +9,7 @@ import 'package:supervisormobile/utils/constants/TImages.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:supervisormobile/utils/constants/sizes.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 
 
@@ -57,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Username and password cannot be empty')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.usernamePasswordEmpty)),
       );
       return;
     }
@@ -75,13 +76,13 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         // Handle login failure
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? 'Login failed. Please try again.')),
+          SnackBar(content: Text(result['message'] ?? AppLocalizations.of(context)!.loginFailed)),
         );
       }
     } catch (e) {
       // Provide a generic error message to the user
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred. Please try again later.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorOccurred)),
       );
     } finally {
       setState(() {
@@ -113,12 +114,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     image: AssetImage(dark ? TImages.lightAppLogo : TImages.darkAppLogo),
                   ),
                   Text(
-                    "SuperVisor",
+                    AppLocalizations.of(context)!.appTitle,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 16.0),
                   Text(
-                    "Organisez et suivez vos missions en toute simplicité avec notre application dédiée.",
+                    AppLocalizations.of(context)!.appDescription,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -132,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _usernameController,
                         decoration: InputDecoration(
                           prefixIcon: Icon(Iconsax.direct_right),
-                          labelText: "Saisir votre username",
+                          labelText: AppLocalizations.of(context)!.enterUsername,
                         ),
                       ),
                       const SizedBox(height: 16.0),
@@ -141,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: _isPasswordObscured,
                         decoration: InputDecoration(
                           prefixIcon: Icon(Iconsax.password_check),
-                          labelText: "Saisir votre mot de passe",
+                          labelText: AppLocalizations.of(context)!.enterPassword,
                           suffixIcon: IconButton(
                             icon: Icon(
                               _isPasswordObscured
@@ -159,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: _isLoading ? null : _login,
                           child: _isLoading
                               ? const CircularProgressIndicator()
-                              : const Text("Se Connecter"),
+                              : Text(AppLocalizations.of(context)!.login),
                         ),
                       ),
 

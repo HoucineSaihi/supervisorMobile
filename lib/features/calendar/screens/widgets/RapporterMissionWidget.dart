@@ -1,6 +1,7 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 
@@ -38,8 +39,8 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Error!',
-            message: 'Please select a date.',
+            title: AppLocalizations.of(context)!.error,
+            message: AppLocalizations.of(context)!.pleaseSelectDate,
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,
@@ -61,8 +62,8 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Success!',
-            message: 'Mission updated successfully.',
+            title: AppLocalizations.of(context)!.success,
+            message: AppLocalizations.of(context)!.missionUpdatedSuccessfully,
             contentType: ContentType.success,
           ),
           behavior: SnackBarBehavior.floating,
@@ -78,8 +79,8 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Error!',
-            message: 'Failed to update mission: $e',
+            title: AppLocalizations.of(context)!.error,
+            message: '${AppLocalizations.of(context)!.failedToUpdateMission}: $e',
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,
@@ -95,15 +96,15 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
   Widget build(BuildContext context) {
     // Get boutique information
     final boutique = widget.mission.boutique;
-    final boutiqueLibelle = boutique?.libelle ?? 'No Boutique Name';
-    final boutiqueCode = boutique?.code ?? 'No Boutique Code';
+    final boutiqueLibelle = boutique?.libelle ?? AppLocalizations.of(context)!.noName;
+    final boutiqueCode = boutique?.code ?? AppLocalizations.of(context)!.noCode;
     final planifiedAt = widget.mission.planifiedAt != null
         ? _dateFormat.format(widget.mission.planifiedAt!)
-        : 'No Date';
+        : AppLocalizations.of(context)!.noDate;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Rapporter Mission'),
+        title: Text(AppLocalizations.of(context)!.reportMission),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -111,36 +112,36 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Mission Info:',
+              '${AppLocalizations.of(context)!.missionInfo}:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            Text('Code: ${widget.mission.missionCode ?? 'No Code'}'),
-            Text('Libelle: ${widget.mission.libelle ?? 'No Title'}'),
-            Text('Description: ${widget.mission.description ?? 'No Description'}'),
+            Text('${AppLocalizations.of(context)!.code}: ${widget.mission.missionCode ?? AppLocalizations.of(context)!.noCode}'),
+            Text('${AppLocalizations.of(context)!.libelle}: ${widget.mission.libelle ?? AppLocalizations.of(context)!.noTitle}'),
+            Text('${AppLocalizations.of(context)!.description}: ${widget.mission.description ?? AppLocalizations.of(context)!.noDescription}'),
             SizedBox(height: 16),
             Text(
-              'Date de planification:',
+              AppLocalizations.of(context)!.planningDate,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(planifiedAt),
             SizedBox(height: 16),
             Text(
-              'Information Boutique:',
+              '${AppLocalizations.of(context)!.boutiqueInfo}:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            Text('Boutique Code: $boutiqueCode'),
-            Text('Boutique Libelle: $boutiqueLibelle'),
+            Text('${AppLocalizations.of(context)!.code}: $boutiqueCode'),
+            Text('${AppLocalizations.of(context)!.libelle}: $boutiqueLibelle'),
             SizedBox(height: 25),
             Text(
-              'Choisir la date pour rapporter la mission',
+              AppLocalizations.of(context)!.chooseDateToReportMission,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             // Display the selected date
             if (_selectedDate != null)
               Text(
-                'Date sélectionner: ${_dateFormat.format(_selectedDate!)}',
+                '${AppLocalizations.of(context)!.selectedDate} ${_dateFormat.format(_selectedDate!)}',
                 style: TextStyle(fontSize: 16,),
               ),
             SizedBox(height: 8),
@@ -149,9 +150,9 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
               child: AbsorbPointer(
                 child: TextFormField(
                   decoration: InputDecoration(
-                    labelText: 'Date',
+                    labelText: AppLocalizations.of(context)!.selectDate,
                     hintText: _selectedDate == null
-                        ? 'Select a date'
+                        ? AppLocalizations.of(context)!.selectADate
                         : _dateFormat.format(_selectedDate!),
                     border: OutlineInputBorder(),
                   ),
@@ -163,7 +164,7 @@ class _RapporterMissionWidgetState extends State<RapporterMissionWidget> {
               width: double.infinity, // Make button take full width
               child: ElevatedButton(
                 onPressed: _reportMission,
-                child: Text('Reporter'),
+                child: Text(AppLocalizations.of(context)!.report),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 16.0),
                   textStyle: TextStyle(fontSize: 16),

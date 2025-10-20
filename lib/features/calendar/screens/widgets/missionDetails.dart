@@ -10,6 +10,7 @@ import 'package:supervisormobile/features/calendar/services/missionService.dart'
 import 'package:supervisormobile/features/calendar/screens/widgets/mission_question.dart';
 import 'package:supervisormobile/features/incidents/models/IncidentCategory.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class MissionDetailsWidget extends StatefulWidget {
   final int missionId;
@@ -70,8 +71,8 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Success',
-            message: 'Mission validated successfully.',
+            title: AppLocalizations.of(context)!.success,
+            message: AppLocalizations.of(context)!.missionValidatedSuccessfully,
             contentType: ContentType.success,
           ),
           backgroundColor: Colors.transparent,
@@ -85,7 +86,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Error',
+            title: AppLocalizations.of(context)!.error,
             message: e.toString(),
             contentType: ContentType.failure,
           ),
@@ -108,7 +109,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Detail de la mission '),
+          title: Text(AppLocalizations.of(context)!.missionDetails),
           leading: IconButton(
             icon: Icon(Iconsax.arrow_left), // Back arrow icon
             onPressed: () {
@@ -127,9 +128,9 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
               } else if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
+                return Center(child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
               } else if (!snapshot.hasData) {
-                return Center(child: Text('No data found'));
+                return Center(child: Text(AppLocalizations.of(context)!.noDataFound));
               }
 
               final mission = snapshot.data!;
@@ -147,13 +148,13 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Mission: ${mission.libelle ?? 'No Title'}',
+                                  'Mission: ${mission.libelle ?? AppLocalizations.of(context)!.noTitle}',
                                   style: TextStyle(
                                       fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
                               ),
                               if (widget.mode == 1) // Show icon based on mode
-                                Text('TC : ${(conformity ?? 0).toStringAsFixed(2)} %'),
+                                Text('${AppLocalizations.of(context)!.conformityRate} : ${(conformity ?? 0).toStringAsFixed(2)} %'),
                             ],
                           ),
                           SizedBox(height: 16),
@@ -203,7 +204,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              'Categorie: ${sousMission.libelle ?? 'No Title'}',
+                                              '${AppLocalizations.of(context)!.category} ${sousMission.libelle ?? AppLocalizations.of(context)!.noTitle}',
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
@@ -289,7 +290,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                       if (mission.status == 1) ...[
                         ElevatedButton(
                           onPressed: () => _handleValidation(mission),
-                          child: Text('Valider'),
+                          child: Text(AppLocalizations.of(context)!.validate),
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(double.infinity, 50),
                           ),
@@ -297,7 +298,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                       ]else if (mission.status == 2) ...[
                         ElevatedButton(
                           onPressed: () => _handleValidation(mission),
-                          child: Text('Valider'),
+                          child: Text(AppLocalizations.of(context)!.validate),
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(double.infinity, 50),
                           ),
@@ -316,7 +317,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Reporté',
+                                AppLocalizations.of(context)!.postponed,
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -339,7 +340,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Annulé',
+                                AppLocalizations.of(context)!.cancelled,
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -362,7 +363,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Terminé',
+                                AppLocalizations.of(context)!.completed,
                                 style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,

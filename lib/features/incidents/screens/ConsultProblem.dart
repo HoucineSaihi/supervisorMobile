@@ -9,6 +9,7 @@ import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/features/incidents/screens/ShowImageViewer.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class ConsultProblem extends StatefulWidget {
   final int problemId; // Accept problem ID to fetch the problem data
@@ -89,7 +90,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
       if (!status.isGranted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Storage permission denied.'),
+            content: Text(AppLocalizations.of(context)!.storagePermissionDenied),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 3),
           ),
@@ -105,7 +106,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
       Directory downloadsDir = Directory('/storage/emulated/0/Download');
 
       if (!downloadsDir.existsSync()) {
-        throw Exception('Downloads directory not found.');
+        throw Exception(AppLocalizations.of(context)!.downloadsDirectoryNotFound);
       }
 
       // Move the file to the Downloads directory
@@ -115,24 +116,24 @@ class _ConsultProblemState extends State<ConsultProblem> {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('File downloaded successfully: $destinationPath'),
+          content: Text('${AppLocalizations.of(context)!.fileDownloadedSuccessfully} $destinationPath'),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 3),
         ),
       );
 
-      print('File downloaded successfully at: $destinationPath');
+      print('${AppLocalizations.of(context)!.fileDownloadedSuccessfully} $destinationPath');
     } catch (e) {
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error downloading file: $e'),
+          content: Text('${AppLocalizations.of(context)!.errorDownloadingFile} $e'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
         ),
       );
 
-      print('Error downloading file: $e');
+      print('${AppLocalizations.of(context)!.errorDownloadingFile} $e');
     }
   }
 
@@ -162,7 +163,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Consult Problem'),
+        title: Text(AppLocalizations.of(context)!.consultProblem),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -174,11 +175,11 @@ class _ConsultProblemState extends State<ConsultProblem> {
             }
 
             if (_hasError) {
-              return const Center(child: Text('Error loading problem'));
+              return Center(child: Text(AppLocalizations.of(context)!.errorLoadingProblem));
             }
 
             if (!snapshot.hasData) {
-              return const Center(child: Text('Problem not found'));
+              return Center(child: Text(AppLocalizations.of(context)!.problemNotFound));
             }
 
             final problem = snapshot.data!;
@@ -201,7 +202,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Declared on: $formattedDeclarationDate',
+                          AppLocalizations.of(context)!.declaredOn(formattedDeclarationDate),
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -209,7 +210,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Closed on: $formattedClosedDate',
+                          AppLocalizations.of(context)!.closedOn(formattedClosedDate ?? 'N/A'),
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -242,7 +243,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              'Statut: $label',
+                              AppLocalizations.of(context)!.statusColon(label),
                               style: TextStyle(
                                 fontSize: 16,
                                 color: textColor,
@@ -263,7 +264,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        problem.description ?? 'N/A',
+                        problem.description ?? AppLocalizations.of(context)!.nA,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -278,7 +279,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Commentaire: ${problem.commentaire ?? 'N/A'}',
+                        AppLocalizations.of(context)!.commentColon(problem.commentaire ?? AppLocalizations.of(context)!.nA),
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
@@ -294,7 +295,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Photo avant disponible',
+                          AppLocalizations.of(context)!.photoBeforeAvailable,
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -321,7 +322,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Photo avant non disponible',
+                          AppLocalizations.of(context)!.photoBeforeNotAvailable,
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -337,7 +338,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Photo apres disponible',
+                          AppLocalizations.of(context)!.photoAfterAvailable,
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -363,7 +364,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Photo apres non disponible',
+                          AppLocalizations.of(context)!.photoAfterNotAvailable,
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -380,7 +381,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Fichier avant disponible',
+                          AppLocalizations.of(context)!.fileBeforeAvailable,
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -400,7 +401,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Fichier avant non disponible',
+                          AppLocalizations.of(context)!.fileBeforeNotAvailable,
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -416,7 +417,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Fichier apres disponible',
+                          AppLocalizations.of(context)!.fileAfterAvailable,
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -437,7 +438,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Fichier apres non disponible',
+                          AppLocalizations.of(context)!.fileAfterNotAvailable,
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -454,7 +455,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Coefficient: ${problem.coefficient?.libelle ?? 'N/A'}',
+                          AppLocalizations.of(context)!.coefficient(problem.coefficient?.libelle ?? AppLocalizations.of(context)!.nA),
                           style: const TextStyle(fontSize: 16),
                         ),
                       ),
@@ -484,7 +485,9 @@ class _ConsultProblemState extends State<ConsultProblem> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Cluster: ${problem.cluster == 0 ? 'Retail' : problem.cluster == 1 ? 'Hospitality' : problem.cluster == 2 ? 'Production' : 'Office'}',
+                        AppLocalizations.of(context)!.cluster(
+                          problem.cluster == 0 ? AppLocalizations.of(context)!.retail : problem.cluster == 1 ? AppLocalizations.of(context)!.hospitality : problem.cluster == 2 ? AppLocalizations.of(context)!.production : AppLocalizations.of(context)!.office
+                        ),
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
@@ -499,7 +502,9 @@ class _ConsultProblemState extends State<ConsultProblem> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Origin: ${problem.origin == 0 ? 'Checklist' : 'Libre'}',
+                        AppLocalizations.of(context)!.originColon(
+                          problem.origin == 0 ? AppLocalizations.of(context)!.checklist : AppLocalizations.of(context)!.free
+                        ),
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
@@ -514,7 +519,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Cost: \$${problem.cost?.toStringAsFixed(2) ?? 'N/A'}',
+                        AppLocalizations.of(context)!.cost(problem.cost?.toStringAsFixed(2) ?? AppLocalizations.of(context)!.nA),
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),

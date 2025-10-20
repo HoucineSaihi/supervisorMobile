@@ -8,6 +8,7 @@ import 'package:supervisormobile/features/incidents/screens/all_incidents_widget
 import 'package:supervisormobile/features/notifications/screens/notifications.dart';
 import 'package:supervisormobile/utils/Helpers/helper_functions.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class NavigationMenu extends StatelessWidget {
   const NavigationMenu({super.key});
@@ -28,10 +29,10 @@ class NavigationMenu extends StatelessWidget {
           backgroundColor: darkMode ? TColors.black : TColors.white,
           indicatorColor: darkMode ? TColors.white.withOpacity(0.1) : TColors.black.withOpacity(0.1),
 
-          destinations: const [
-            NavigationDestination(icon: Icon(Iconsax.calendar), label: 'Calendrier'),
-            NavigationDestination(icon: Icon(Iconsax.task), label: 'Incidents'),
-            NavigationDestination(icon: Icon(Iconsax.user), label: 'Profile'),
+          destinations: [
+            NavigationDestination(icon: Icon(Iconsax.calendar), label: AppLocalizations.of(context)!.calendar),
+            NavigationDestination(icon: Icon(Iconsax.task), label: AppLocalizations.of(context)!.incidents),
+            NavigationDestination(icon: Icon(Iconsax.user), label: AppLocalizations.of(context)!.profile),
           ],
         ),
       ),

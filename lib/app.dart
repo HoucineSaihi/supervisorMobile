@@ -3,13 +3,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
 import 'package:supervisormobile/features/authentification/screens/onBoarding/onboarding.dart';
-import 'package:supervisormobile/features/calendar/screens/calendar.dart';
 import 'package:supervisormobile/navigation_menu.dart';
 import 'package:supervisormobile/utils/Keys/navigation_key.dart';
 import 'package:supervisormobile/utils/theme/theme.dart';
+import 'package:supervisormobile/controllers/language_controller.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -27,6 +28,8 @@ class _AppState extends State<App> {
   @override
   void initState() {
     super.initState();
+    // Initialize language controller
+    Get.put(LanguageController());
     _checkLaunchStatus();
   }
 
@@ -49,22 +52,24 @@ class _AppState extends State<App> {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      navigatorKey: navigatorKey,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en', ''),
-        Locale('ar', ''),
-        Locale('fr', ''),
-      ],
-      debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
-      theme: TAppTheme.lightTheme,
-      darkTheme: TAppTheme.darkTheme,
+    return GetBuilder<LanguageController>(
+      builder: (languageController) => GetMaterialApp(
+        navigatorKey: navigatorKey,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en', ''),
+          Locale('fr', ''),
+        ],
+        locale: languageController.currentLocale,
+        debugShowCheckedModeBanner: false,
+        themeMode: ThemeMode.system,
+        theme: TAppTheme.lightTheme,
+        darkTheme: TAppTheme.darkTheme,
       home: Builder(
         builder: (context) {
           // Set up overlay state as soon as the context is available
@@ -89,6 +94,7 @@ class _AppState extends State<App> {
                 : const LoginScreen(),
           );
         },
+      ),
       ),
     );
   }

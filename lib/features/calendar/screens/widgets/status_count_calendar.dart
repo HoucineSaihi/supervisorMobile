@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class StatusCountCard extends StatelessWidget {
   final String status;
@@ -31,7 +32,7 @@ class StatusCountCard extends StatelessWidget {
           ],
         ),
         child: Text(
-          '$status: $count',
+          AppLocalizations.of(context)!.statusCount(status, count),
           style: TextStyle(
             color: Colors.white,
             fontSize: 16,

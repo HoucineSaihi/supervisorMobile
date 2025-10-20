@@ -16,6 +16,7 @@ import 'package:supervisormobile/features/calendar/screens/widgets/captureImageS
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/incidents/models/IncidentCategory.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../dtos/questions/questionAnswerDto.dart'; // For accessing the temp directory
 
@@ -84,7 +85,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           print("\n File Name ----------------------------------------------- \n" + imageName);
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload image file')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.failedToUploadImageFile)),
           );
           return; // Stop execution if image upload fails
         }
@@ -97,7 +98,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           print("\n Jointure Fichier ----------------------------------------- \n" + fileName);
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload jointure fichier')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.failedToUploadJointureFile)),
           );
           return; // Stop execution if jointure fichier upload fails
         }
@@ -125,12 +126,12 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       try {
         await MissionService().updateMissionQuestion(widget.questionId, updatedQuestion,context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Question updated successfully')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.questionUpdatedSuccessfully)),
         );
         Navigator.pop(context, true); // Navigate back
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update question')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.failedToUpdateQuestion)),
         );
         setState(() => _isLoading = false);
       }
@@ -139,7 +140,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Séléctionner une réponse.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.selectResponse)),
       );
     }
   }
@@ -157,7 +158,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       // ✅ Size check: max 10MB
       const int maxSizeInBytes = 5 * 1024 * 1024; // 5MB
       if (infoFichier!.size > maxSizeInBytes) {
-        print("❌ Selected file is too large (${infoFichier!.size} bytes). Maximum allowed size is 5MB.");
+        print("❌ ${AppLocalizations.of(context)!.selectedFileTooLarge}");
         return;
       }
 
@@ -168,13 +169,13 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         print("Extension: ${infoFichier!.extension}");
         print("Path: ${infoFichier!.path}");
       } else {
-        print("❌ No valid file path.");
+        print("❌ ${AppLocalizations.of(context)!.noValidFilePath}");
         return;
       }
 
       setState(() {});
     } else {
-      print("❌ File picking cancelled");
+      print("❌ ${AppLocalizations.of(context)!.filePickingCancelled}");
     }
   }
 
@@ -194,7 +195,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
       return uploadedFileName; // No need to access as a Map, just return the file name
     } catch (e) {
       // Handle errors, e.g., if the upload fails
-      print('Error during file upload: $e');
+      print('${AppLocalizations.of(context)!.errorDuringFileUpload} $e');
       return ''; // Return an empty string or a custom error message if needed
     }
   }
@@ -217,15 +218,15 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           if (fileSize <= maxImageSizeInBytes) {
             filteredImages.add(image);
           } else {
-            print("❌ Image ${image.name} is too large (${fileSize} bytes). Skipped.");
+            print("❌ ${AppLocalizations.of(context)!.imageTooLarge}");
           }
         } else {
-          print("❌ Image ${image.name} has unsupported format. Skipped.");
+          print("❌ ${AppLocalizations.of(context)!.unsupportedImageFormat}");
         }
       }
 
       if (filteredImages.isEmpty) {
-        print("❌ No valid images selected. Only JPG, JPEG, PNG under 5MB are allowed.");
+        print("❌ ${AppLocalizations.of(context)!.noValidImagesSelected}");
         return;
       }
 
@@ -233,9 +234,9 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         _imageFiles = filteredImages;
       });
 
-      print("📷 Selected ${filteredImages.length} valid image(s).");
+      print("📷 ${AppLocalizations.of(context)!.selectedValidImages}");
     } else {
-      print("❌ No images selected.");
+      print("❌ ${AppLocalizations.of(context)!.noImagesSelected}");
     }
   }
 
@@ -249,7 +250,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         imageProvider,
         immersive: false,
         onViewerDismissed: () {
-          print("Image viewer dismissed");
+          print(AppLocalizations.of(context)!.imageViewerDismissed);
         },
       );
     }
@@ -279,9 +280,9 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         final result = await ImageGallerySaver.saveImage(imageBytes);
 
         if (result != null && result['isSuccess'] == true) {
-          print('Image saved to gallery successfully');
+          print(AppLocalizations.of(context)!.imageSavedToGallerySuccessfully);
         } else {
-          print('Failed to save image to gallery');
+          print(AppLocalizations.of(context)!.failedToSaveImageToGallery);
         }
 
         // Create an XFile from the file path
@@ -295,7 +296,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           });
         }
       } catch (e) {
-        print('Error saving image to file: $e');
+        print('${AppLocalizations.of(context)!.errorSavingImageToFile} $e');
       }
     }
   }
@@ -315,7 +316,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     return SafeArea(
         child: Scaffold(
       appBar: AppBar(
-        title: Text('Répondre au question'),
+        title: Text(AppLocalizations.of(context)!.answerQuestion),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
@@ -337,9 +338,9 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
+                      return Center(child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
                     } else if (!snapshot.hasData) {
-                      return Center(child: Text('No data found'));
+                      return Center(child: Text(AppLocalizations.of(context)!.noDataFound));
                     }
 
                     final question = snapshot.data!;
@@ -348,7 +349,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Question: ${question.description ?? 'No Description'}",
+                          "${AppLocalizations.of(context)!.question} ${question.description ?? AppLocalizations.of(context)!.noDescription}",
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
@@ -362,23 +363,23 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               return Center(child: CircularProgressIndicator());
                             } else if (snapshot.hasError) {
                               return Center(
-                                  child: Text('Error: ${snapshot.error}'));
+                                  child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
                             } else if (!snapshot.hasData ||
                                 snapshot.data!.isEmpty) {
                               return Center(
-                                  child: Text('No choices available'));
+                                  child: Text(AppLocalizations.of(context)!.noChoicesAvailable));
                             }
 
                             final choices = snapshot.data!;
 
                             return DropdownButtonFormField<
                                 ChoixReponseQuestion>(
-                              hint: Text('Select Response'),
+                              hint: Text(AppLocalizations.of(context)!.selectResponse),
                               items: choices.map((ChoixReponseQuestion choice) {
                                 return DropdownMenuItem<ChoixReponseQuestion>(
                                   value: choice,
                                   child: Text(
-                                      '${choice.libelle ?? 'No Label'} = ${choice.valeur ?? 'No Value'}'), // Show libelle and valeur
+                                      '${choice.libelle ?? AppLocalizations.of(context)!.noLabel} = ${choice.valeur ?? AppLocalizations.of(context)!.noValue}'), // Show libelle and valeur
                                 );
                               }).toList(),
                               onChanged: (ChoixReponseQuestion? newValue) {
@@ -391,7 +392,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               },
                               validator: (value) {
                                 if (value == null) {
-                                  return 'Please select a response';
+                                  return AppLocalizations.of(context)!.pleaseSelectResponse;
                                 }
                                 return null;
                               },
@@ -409,22 +410,22 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               return Center(child: CircularProgressIndicator());
                             } else if (snapshot.hasError) {
                               return Center(
-                                  child: Text('Error: ${snapshot.error}'));
+                                  child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
                             } else if (!snapshot.hasData ||
                                 snapshot.data!.isEmpty) {
                               return Center(
-                                  child: Text('No actions available'));
+                                  child: Text(AppLocalizations.of(context)!.noActionsAvailable));
                             }
 
                             final actions = snapshot.data!;
 
                             // Add the "None" option at the start of the list
                             final noneAction =
-                                ActionM(id: 0, description: 'Aucune action');
+                                ActionM(id: 0, description: AppLocalizations.of(context)!.noAction);
                             final allActions = [noneAction, ...actions];
 
                             return CustomDropdown<ActionM>.search(
-                              hintText: 'Select Action',
+                              hintText: AppLocalizations.of(context)!.selectAction,
                               items: allActions,
                               excludeSelected: false,
                               onChanged: (value) {
@@ -458,7 +459,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               ),
                               validator: (value) {
                                 if (value == null || value.id == -1) {
-                                  return 'Please select an action';
+                                  return AppLocalizations.of(context)!.pleaseSelectAction;
                                 }
                                 return null;
                               },
@@ -472,7 +473,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                   Flexible(
                                     // Use Flexible to allow the Text to wrap
                                     child: Text(
-                                      'Action: ${_selectedAction?.description ?? ''}',
+                                      '${AppLocalizations.of(context)!.action} ${_selectedAction?.description ?? ''}',
                                       softWrap: true,
                                       // Allows text to break into multiple lines
                                       overflow: TextOverflow
@@ -487,7 +488,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         SizedBox(height: 16),
                         DropdownButtonFormField<IncidentCategory>(
                           decoration: InputDecoration(
-                            labelText: "Type d'incident",
+                            labelText: AppLocalizations.of(context)!.incidentType,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
                           ),
                           value: _selectedCategory ?? widget.preSelectedType, // ✅ Use the preselected if nothing chosen yet
@@ -503,11 +504,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                             });
                           },
                           validator: (value) =>
-                          value == null ? "Veuillez sélectionner une catégorie" : null,
+                          value == null ? AppLocalizations.of(context)!.pleaseSelectCategory : null,
                         ),
                         SizedBox(height: 16),
 
-                        Text('Commentaire',
+                        Text(AppLocalizations.of(context)!.comment,
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
                         SizedBox(height: 8),
@@ -515,25 +516,25 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                           controller: _commentController,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(),
-                            labelText: 'Commentaire',
+                            labelText: AppLocalizations.of(context)!.comment,
                           ),
                           maxLines: 4,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter a comment';
+                              return AppLocalizations.of(context)!.pleaseEnterComment;
                             }
                             return null;
                           },
                         ),
                         SizedBox(height: 16),
-                        Text('Joindre des images',
+                        Text(AppLocalizations.of(context)!.attachImages,
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
                         SizedBox(height: 8),
                         OutlinedButton.icon(
                           onPressed: _pickImages,
                           icon: Icon(Icons.add, size: 24),
-                          label: Text('Image'),
+                          label: Text(AppLocalizations.of(context)!.image),
                           style: OutlinedButton.styleFrom(
                             minimumSize: Size(double.infinity, 48),
                           ),
@@ -542,7 +543,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         OutlinedButton.icon(
                           onPressed: selectFile,
                           icon: Icon(Icons.add, size: 24),
-                          label: Text('Fichier'),
+                          label: Text(AppLocalizations.of(context)!.file),
                           style: OutlinedButton.styleFrom(
                             minimumSize: Size(double.infinity, 48),
                           ),
@@ -552,7 +553,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         OutlinedButton.icon(
                           onPressed: _openCamera,
                           icon: Icon(Icons.camera_alt, size: 24),
-                          label: Text('Ouvrir Camera'),
+                          label: Text(AppLocalizations.of(context)!.openCamera),
                           style: OutlinedButton.styleFrom(
                             minimumSize: Size(double.infinity, 48),
                           ),
@@ -578,7 +579,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                       SizedBox(width: 8),
                                       // Bold text for the "Fichier joint" label
                                       Text(
-                                        "Fichier joint :",
+                                        AppLocalizations.of(context)!.attachedFile,
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           // Bolder text
@@ -601,11 +602,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                                     ],
                                   ),
                                   SizedBox(height: 8),
-                                  Text("Nom: ${infoFichier?.name}"),
+                                  Text("${AppLocalizations.of(context)!.name} ${infoFichier?.name}"),
                                   Text(
-                                      "Taille: ${(infoFichier!.size / 1024).toStringAsFixed(2)} KB"),
+                                      "${AppLocalizations.of(context)!.size} ${(infoFichier!.size / 1024).toStringAsFixed(2)} KB"),
                                   Text(
-                                      "Type: ${infoFichier?.extension ?? 'Inconnu'}"),
+                                      "${AppLocalizations.of(context)!.type} ${infoFichier?.extension ?? AppLocalizations.of(context)!.unknown}"),
                                 ],
                               ),
                             ),
@@ -666,7 +667,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               ? CircularProgressIndicator(
                             color: Colors.white,
                           )
-                              : Text('Valider'),
+                              : Text(AppLocalizations.of(context)!.validate),
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(double.infinity, 48),
                           ),

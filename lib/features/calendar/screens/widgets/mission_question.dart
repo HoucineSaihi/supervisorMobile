@@ -15,6 +15,7 @@ import 'package:supervisormobile/features/calendar/screens/widgets/edit_question
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../incidents/models/IncidentCategory.dart';
 
@@ -89,7 +90,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
         imageProvider,
         immersive: false,
         onViewerDismissed: () {
-          print("Image viewer dismissed");
+          print(AppLocalizations.of(context)!.imageViewerDismissed);
         },
       );
     }
@@ -118,9 +119,9 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
         final result = await ImageGallerySaver.saveImage(imageBytes);
 
         if (result != null && result['isSuccess'] == true) {
-          print('Image saved to gallery successfully');
+          print(AppLocalizations.of(context)!.imageSavedToGallerySuccessfully);
         } else {
-          print('Failed to save image to gallery');
+          print(AppLocalizations.of(context)!.failedToSaveImageToGallery);
         }
 
         // Create an XFile from the file path
@@ -134,7 +135,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
           });
         }
       } catch (e) {
-        print('Error saving image to file: $e');
+        print('${AppLocalizations.of(context)!.errorSavingImageToFile} $e');
       }
     }
   }
@@ -152,7 +153,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
       });
     } catch (e) {
       // Handle errors here
-      print('Error fetching questions: $e');
+      print('${AppLocalizations.of(context)!.errorFetchingQuestions} $e');
     }
   }
 
@@ -168,7 +169,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Liste des questions'),
+          title: Text(AppLocalizations.of(context)!.questionsList),
           leading: IconButton(
             icon: Icon(Iconsax.arrow_left), // Back arrow icon
             onPressed: () {
@@ -202,7 +203,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                       children: [
                         Expanded(
                           child: Text(
-                            'Q: ${question.description ?? 'No Description'}',
+                            'Q: ${question.description ?? AppLocalizations.of(context)!.noDescription}',
                             style: TextStyle(fontSize: 18), // Slightly larger font size
                           ),
                         ),
@@ -220,7 +221,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                           child: ElevatedButton(
                             onPressed: () async {
                               if(widget.status != 1 && widget.status != 2 ) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')));
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.checklistValidatedCannotChange)));
                               }else {
                                 final shouldRefresh = await Navigator.push(
                                   context,
@@ -239,7 +240,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                               }
 
                             },
-                            child: Text('Repondre'),
+                            child: Text(AppLocalizations.of(context)!.answer),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue, // Modern color for the button
                               padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -284,7 +285,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                     ),
                                     SizedBox(height: 4),
                                     Text(
-                                      'Valeur: ${question.choixReponseQuestion?.valeur ?? 0}',
+                                      '${AppLocalizations.of(context)!.value} ${question.choixReponseQuestion?.valeur ?? 0}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Colors.black54,
@@ -296,7 +297,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                               ElevatedButton.icon(
                                 onPressed: () async {
                                       if(widget.status != 1 && widget.status != 2 ) {
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Checklist validée, vous ne pouvez pas changer votre réponse.')));
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.checklistValidatedCannotChange)));
                                       }else {
                                         final shouldRefresh = await Navigator.push(
                                           context,
@@ -362,7 +363,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                   : Icons.cancel,
                               color: Colors.white,
                             ),
-                            label: Text(question.reponse ?? 'Response'),
+                            label: Text(question.reponse ?? AppLocalizations.of(context)!.response),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isResponseYes ? Colors.green : Colors.red,
                               padding: EdgeInsets.symmetric(horizontal: 16.0), // Adjust padding as needed

@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_icons/cart_notif_icon.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class THomeAppBar extends StatefulWidget {
   const THomeAppBar({super.key});
@@ -25,7 +26,7 @@ class _THomeAppBarState extends State<THomeAppBar> {
     // Retrieve the token from secure storage
     String? token = await _storage.read(key: 'currentName');
     setState(() {
-      _currentUserName = token ?? 'No token found';
+      _currentUserName = token ?? AppLocalizations.of(context)!.noTokenFound;
     });
   }
 
@@ -36,7 +37,7 @@ class _THomeAppBarState extends State<THomeAppBar> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Bienvenue",
+            AppLocalizations.of(context)!.welcome,
             style: Theme.of(context).textTheme.labelMedium!.apply(color: TColors.grey),
           ),
           Text(

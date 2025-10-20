@@ -12,6 +12,7 @@ import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:supervisormobile/utils/constants/sizes.dart';
 import 'package:supervisormobile/utils/device/device_utility.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class OnBoardingScreen extends StatelessWidget {
   const OnBoardingScreen({super.key});
@@ -26,17 +27,17 @@ class OnBoardingScreen extends StatelessWidget {
           PageView(
             controller: controller.pageController,
             onPageChanged: controller.updatePageIndicator,
-            children:  const [
+            children: [
                  OnBoardingWidget(
                   image : "lib/assets/on_boarding_images/welcomeImage.png",
-                  title : "Bienvenue Dans SuperVisor",
-                  subTitle: "Optimisez vos performances avec des fonctionnalités conçues pour les Area Managers.",
+                  title : AppLocalizations.of(context)!.welcomeTitle,
+                  subTitle: AppLocalizations.of(context)!.welcomeSubtitle,
 
                 ),
               OnBoardingWidget(
                 image : "lib/assets/on_boarding_images/secondOnBoarding.png",
-                title : "Gérer Vos Missions",
-                subTitle: "Organisez et suivez vos missions en toute simplicité avec notre application dédiée.",
+                title : AppLocalizations.of(context)!.manageMissionsTitle,
+                subTitle: AppLocalizations.of(context)!.manageMissionsSubtitle,
 
               )
 

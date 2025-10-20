@@ -18,6 +18,7 @@ import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; //
 import 'package:mime/mime.dart';
 import 'package:supervisormobile/services/DioService.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../dtos/questions/questionAnswerDto.dart';
 
@@ -534,8 +535,8 @@ class MissionService {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: AwesomeSnackbarContent(
-                title: 'Succès!',
-                message: responseBody['message'] ?? 'Mission ajoutée avec succès.',
+                title: AppLocalizations.of(context)!.success,
+                message: AppLocalizations.of(context)!.missionAddedSuccessfully,
                 contentType: ContentType.success,
               ),
               behavior: SnackBarBehavior.floating,
@@ -548,8 +549,8 @@ class MissionService {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: AwesomeSnackbarContent(
-                title: 'Erreur!',
-                message: responseBody['message'] ?? 'Échec de l\'ajout de la mission.',
+                title: AppLocalizations.of(context)!.error,
+                message: AppLocalizations.of(context)!.failedToAddMission,
                 contentType: ContentType.failure,
               ),
               behavior: SnackBarBehavior.floating,
@@ -563,8 +564,8 @@ class MissionService {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: AwesomeSnackbarContent(
-              title: 'Erreur!',
-              message: 'Erreur serveur: ${response.statusCode}',
+              title: AppLocalizations.of(context)!.error,
+              message: AppLocalizations.of(context)!.serverErrorWithCode(response.statusCode ?? 0),
               contentType: ContentType.failure,
             ),
             behavior: SnackBarBehavior.floating,
@@ -578,8 +579,8 @@ class MissionService {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Erreur!',
-            message: 'Une erreur inattendue s\'est produite: $e',
+            title: AppLocalizations.of(context)!.error,
+            message: AppLocalizations.of(context)!.unexpectedErrorOccurred(e.toString()),
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,

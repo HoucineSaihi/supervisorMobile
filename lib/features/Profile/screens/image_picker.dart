@@ -6,6 +6,7 @@ import 'dart:io'; // Import this to use File
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:supervisormobile/features/Profile/services/user_service.dart'; // Import the UserService
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class ImagePickerScreen extends StatefulWidget {
   final UserModel user; // Added user parameter
@@ -34,8 +35,8 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'No Image',
-            message: 'No image selected.',
+            title: AppLocalizations.of(context)!.noImage,
+            message: AppLocalizations.of(context)!.noImageSelected,
             contentType: ContentType.warning, // Adjust this based on your needs (e.g., success, failure, help)
           ),
           behavior: SnackBarBehavior.floating,
@@ -56,8 +57,8 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: AwesomeSnackbarContent(
-              title: 'Success!',
-              message: 'Profile image updated successfully.',
+              title: AppLocalizations.of(context)!.success,
+              message: AppLocalizations.of(context)!.profileImageUpdatedSuccessfully,
               contentType: ContentType.success,
             ),
             behavior: SnackBarBehavior.floating,
@@ -70,8 +71,8 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: AwesomeSnackbarContent(
-              title: 'Failure',
-              message: 'Failed to update profile image.',
+              title: AppLocalizations.of(context)!.failure,
+              message: AppLocalizations.of(context)!.failedToUpdateProfileImage,
               contentType: ContentType.failure,
             ),
             behavior: SnackBarBehavior.floating,
@@ -84,8 +85,8 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Error',
-            message: 'An error occurred: $e',
+            title: AppLocalizations.of(context)!.error,
+            message: '${AppLocalizations.of(context)!.anErrorOccurred} $e',
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,
@@ -100,7 +101,7 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Modifier photo de profile')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.editProfilePhoto)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -146,10 +147,10 @@ class _ImagePickerScreenState extends State<ImagePickerScreen> {
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.save, size: 20, color: TColors.accent),
-                  SizedBox(width: 8),
-                  Text('Enregistrer'),
+              children: [
+                const Icon(Icons.save, size: 20, color: TColors.accent),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(context)!.save),
                 ],
               ),
             ),

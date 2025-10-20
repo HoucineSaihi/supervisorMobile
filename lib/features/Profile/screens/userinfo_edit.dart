@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
 import 'package:supervisormobile/features/Profile/services/user_service.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class EditUserInfoScreen extends StatefulWidget {
   final UserModel user; // Added user parameter
@@ -47,17 +48,17 @@ class _EditUserInfoScreenState extends State<EditUserInfoScreen> {
 
       if (updateSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User information updated successfully')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.userInfoUpdatedSuccessfully)),
         );
         Navigator.of(context).pop(); // Navigate back to the previous screen
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update user information')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.failedToUpdateUserInfo)),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: $e')),
+        SnackBar(content: Text('${AppLocalizations.of(context)!.anErrorOccurred} $e')),
       );
     }
   }
@@ -65,7 +66,7 @@ class _EditUserInfoScreenState extends State<EditUserInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Modifier information utilisateur')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.editUserInfo)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -74,34 +75,34 @@ class _EditUserInfoScreenState extends State<EditUserInfoScreen> {
             children: [
               TextFormField(
                 initialValue: _nom,
-                decoration: const InputDecoration(labelText: 'Name'),
+                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.name),
                 onChanged: (value) => setState(() => _nom = value),
-                validator: (value) => value!.isEmpty ? 'Please enter a name' : null,
+                validator: (value) => value!.isEmpty ? AppLocalizations.of(context)!.pleaseEnterName : null,
               ),SizedBox(height: 24.0),
               TextFormField(
                 initialValue: _username,
-                decoration: const InputDecoration(labelText: 'Username'),
+                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.username),
                 onChanged: (value) => setState(() => _username = value),
-                validator: (value) => value!.isEmpty ? 'Please enter a username' : null,
+                validator: (value) => value!.isEmpty ? AppLocalizations.of(context)!.pleaseEnterUsername : null,
               ),SizedBox(height: 24.0),
               TextFormField(
                 initialValue: _fax,
-                decoration: const InputDecoration(labelText: 'Fax'),
+                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fax),
                 onChanged: (value) => setState(() => _fax = value),
-                validator: (value) => value!.isEmpty ? 'Please enter a fax' : null,
+                validator: (value) => value!.isEmpty ? AppLocalizations.of(context)!.pleaseEnterFax : null,
               ),SizedBox(height: 24.0),
               TextFormField(
                 initialValue: _tel,
-                decoration: const InputDecoration(labelText: 'Phone Number'),
+                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.phoneNumber),
                 onChanged: (value) => setState(() => _tel = value),
-                validator: (value) => value!.isEmpty ? 'Please enter a phone number' : null,
+                validator: (value) => value!.isEmpty ? AppLocalizations.of(context)!.pleaseEnterPhoneNumber : null,
               ),SizedBox(height: 24.0),
               TextFormField(
                 initialValue: _codePostal.toString(),
-                decoration: const InputDecoration(labelText: 'Postal Code'),
+                decoration: InputDecoration(labelText: AppLocalizations.of(context)!.postalCode),
                 keyboardType: TextInputType.number,
                 onChanged: (value) => setState(() => _codePostal = int.tryParse(value) ?? 0),
-                validator: (value) => value!.isEmpty ? 'Please enter a postal code' : null,
+                validator: (value) => value!.isEmpty ? AppLocalizations.of(context)!.pleaseEnterPostalCode : null,
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -118,7 +119,7 @@ class _EditUserInfoScreenState extends State<EditUserInfoScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('Enregistrer'),
+                  child: Text(AppLocalizations.of(context)!.save),
                 ),
               )
 

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_editor_plus/image_editor_plus.dart';
 import 'package:image_editor_plus/options.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class ImageEditorScreen extends StatelessWidget {
   final Uint8List image;
@@ -31,7 +32,7 @@ class ImageEditorScreen extends StatelessWidget {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Modifier Image'),
+          title: Text(AppLocalizations.of(context)!.editImage),
         ),
         body: Center(
           child: ImageEditor(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_editor_plus/image_editor_plus.dart';
 import 'package:image_editor_plus/options.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class CaptureImageScreen extends StatefulWidget {
   @override
@@ -76,7 +77,7 @@ class _CaptureImageScreenState extends State<CaptureImageScreen> {
       if (editedImage != null) {
         Navigator.pop(context, editedImage);
       } else {
-        print('Failed to save edited image');
+        print(AppLocalizations.of(context)!.failedToSaveEditedImage);
       }
     }
   }
@@ -88,7 +89,7 @@ class _CaptureImageScreenState extends State<CaptureImageScreen> {
       image = XFile(tempFile.path);
       return true;
     } catch (e) {
-      print('Error updating question response: $e');
+      print('${AppLocalizations.of(context)!.errorUpdatingQuestionResponse}: $e');
       return false;
     }
   }
@@ -112,7 +113,7 @@ class _CaptureImageScreenState extends State<CaptureImageScreen> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Capture Image'),
+          title: Text(AppLocalizations.of(context)!.captureImage),
         ),
         body: FutureBuilder<void>(
           future: _initializeControllerFuture,
@@ -133,7 +134,7 @@ class _CaptureImageScreenState extends State<CaptureImageScreen> {
                             OutlinedButton.icon(
                               onPressed: _zoomOut,
                               icon: Icon(Icons.zoom_out, size: 20),
-                              label: Text('Zoom Out', style: TextStyle(fontSize: 14)),
+                              label: Text(AppLocalizations.of(context)!.zoomOut, style: TextStyle(fontSize: 14)),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: Size(80, 40),
                                 padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -142,7 +143,7 @@ class _CaptureImageScreenState extends State<CaptureImageScreen> {
                             OutlinedButton.icon(
                               onPressed: _captureImage,
                               icon: Icon(Icons.camera_alt, size: 20),
-                              label: Text('Capture', style: TextStyle(fontSize: 14)),
+                              label: Text(AppLocalizations.of(context)!.capture, style: TextStyle(fontSize: 14)),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: Size(80, 40),
                                 padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -151,7 +152,7 @@ class _CaptureImageScreenState extends State<CaptureImageScreen> {
                             OutlinedButton.icon(
                               onPressed: _zoomIn,
                               icon: Icon(Icons.zoom_in, size: 20),
-                              label: Text('Zoom In', style: TextStyle(fontSize: 14)),
+                              label: Text(AppLocalizations.of(context)!.zoomIn, style: TextStyle(fontSize: 14)),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: Size(80, 40),
                                 padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -167,7 +168,7 @@ class _CaptureImageScreenState extends State<CaptureImageScreen> {
                               onPressed: () {
                                 Navigator.pop(context, image?.path);
                               },
-                              child: Text('Cancel', style: TextStyle(fontSize: 14)),
+                              child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(fontSize: 14)),
                               style: OutlinedButton.styleFrom(
                                 minimumSize: Size(80, 40),
                                 padding: EdgeInsets.symmetric(horizontal: 8.0),

@@ -6,12 +6,9 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
-import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/models/missionModel.dart';
-import 'package:supervisormobile/features/calendar/models/missionResponseModel.dart';
 import 'package:supervisormobile/features/calendar/models/paginationModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/RapporterMissionWidget.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/addMissionForm.dart';
@@ -20,13 +17,11 @@ import 'package:supervisormobile/features/calendar/screens/widgets/missionDetail
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/utils/Helpers/helper_functions.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:sticky_float_button/sticky_float_button.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import '../../../utils/Helpers/secure_storage_data.dart';
 
 class CalendarPlanning extends StatefulWidget {
   const CalendarPlanning({super.key});
@@ -68,37 +63,38 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
     super.dispose();
   }
 
-  Map<String, String> getStatusColors(int? status) {
+  Map<String, String> getStatusColors(int? status, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final statusColors = {
       1: {
         'primary': '0xFF00008b',
         'secondary': '0xFF00008b',
-        'status': 'Planifié'
+        'status': l10n.planned
       },
       2: {
         'primary': '0xFF9932CC',
         'secondary': '0xFF9932CC',
-        'status': 'En Cours'
+        'status': l10n.inProgress
       },
       3: {
         'primary': '0xFFB8860B',
         'secondary': '0xFFB8860B',
-        'status': ' Reporté'
+        'status': l10n.postponed
       },
       4: {
         'primary': '0xFF008B8B',
         'secondary': '0xFF008B8B',
-        'status': 'Confirmé'
+        'status': l10n.confirmed
       },
       5: {
         'primary': '0xFF8B0000',
         'secondary': '0xFF8B0000',
-        'status': 'Annulé'
+        'status': l10n.cancelled
       },
       6: {
         'primary': '0xFF006400',
         'secondary': '0xFF006400',
-        'status': 'Terminé'
+        'status': l10n.completed
       },
     };
 
@@ -106,7 +102,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
         {
           'primary': '0xFF808080',
           'secondary': '0xFF808080',
-          'status': 'unknown'
+          'status': l10n.unknown
         };
 
     return {
@@ -271,8 +267,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
 
     _awesomeBottomSheet.show(
       context: context,
-      title: const Text("Modifier la mission"),
-      description: const Text("Choisissez une option pour modifier la mission"),
+      title: Text(AppLocalizations.of(context)!.modifyMission),
+      description: Text(AppLocalizations.of(context)!.chooseOptionToModifyMission),
       color: CustomSheetColor(
         mainColor: TColors.primary,
         accentColor: TColors.secondary,
@@ -283,8 +279,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
           Navigator.of(context).pop(); // Close the bottom sheet
           await _showConfirmationBottomSheet(
             context: context,
-            title: 'Annuler',
-            content: 'Êtes-vous sûr de vouloir annuler la mission?',
+            title: AppLocalizations.of(context)!.cancel,
+            content: AppLocalizations.of(context)!.areYouSureToCancelMission,
             color: CustomSheetColor(
               mainColor: const Color(0xE88B0000),
               accentColor: const Color(0xFF8B0000),
@@ -297,13 +293,13 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                 setState(() {}); // Refresh state
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to update mission: $e')),
+                  SnackBar(content: Text('${AppLocalizations.of(context)!.failedToUpdateMission}: $e')),
                 );
               }
             },
           );
         },
-        title: 'Annuler',
+        title: AppLocalizations.of(context)!.cancel,
         icon: Icons.cancel,
       ),
       negative: AwesomeSheetAction(
@@ -311,8 +307,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
           Navigator.of(context).pop(); // Close the bottom sheet
           await _showConfirmationBottomSheet(
             context: context,
-            title: 'Reporter',
-            content: 'Êtes-vous sûr de vouloir reporter la mission?',
+            title: AppLocalizations.of(context)!.postpone,
+            content: AppLocalizations.of(context)!.areYouSureToPostponeMission,
             color: CustomSheetColor(
               mainColor: const Color(0xE8B8860B),
               accentColor: const Color(0xFFB8860B),
@@ -330,7 +326,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
             },
           );
         },
-        title: 'Reporter',
+        title: AppLocalizations.of(context)!.postpone,
       ),
     );
   }
@@ -355,14 +351,14 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
           Navigator.of(context).pop(); // Close the bottom sheet
           await onConfirm(); // Execute the confirm action
         },
-        title: 'Confirmer',
+        title: AppLocalizations.of(context)!.confirm,
         icon: Icons.check,
       ),
       negative: AwesomeSheetAction(
         onPressed: () {
           Navigator.of(context).pop(); // Close the bottom sheet
         },
-        title: 'Annuler',
+        title: AppLocalizations.of(context)!.cancel,
       ),
     );
   }
@@ -393,7 +389,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            'Boutique Info',
+            AppLocalizations.of(context)!.boutiqueInfo,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20, // Increase title font size
@@ -406,7 +402,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Code: ${boutique.code ?? 'No Code'}',
+                  '${AppLocalizations.of(context)!.code}: ${boutique.code ?? AppLocalizations.of(context)!.noCode}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -416,7 +412,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Libelle: ${boutique.libelle ?? 'No Libelle'}',
+                  '${AppLocalizations.of(context)!.libelle}: ${boutique.libelle ?? AppLocalizations.of(context)!.noLibelle}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -426,7 +422,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'City: ${boutique.city ?? 'No City'}',
+                  '${AppLocalizations.of(context)!.city}: ${boutique.city ?? AppLocalizations.of(context)!.noCity}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -436,7 +432,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Region: ${boutique.region ?? 'No Region'}',
+                  '${AppLocalizations.of(context)!.region}: ${boutique.region ?? AppLocalizations.of(context)!.noRegion}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -446,7 +442,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Country: ${boutique.country ?? 'No Country'}',
+                  '${AppLocalizations.of(context)!.country}: ${boutique.country ?? AppLocalizations.of(context)!.noCountry}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -456,7 +452,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  'Address: ${boutique.adress ?? 'No Address'}',
+                  '${AppLocalizations.of(context)!.address}: ${boutique.adress ?? AppLocalizations.of(context)!.noAddress}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16, // Increase font size
@@ -470,7 +466,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Close'),
+              child: Text(AppLocalizations.of(context)!.close),
             ),
           ],
         );
@@ -563,10 +559,10 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         calendarFormat: _calendarFormat,
                         daysOfWeekHeight: 30,
                         startingDayOfWeek: StartingDayOfWeek.monday,
-                        availableCalendarFormats: const {
-                          CalendarFormat.month: 'Mois',
-                          CalendarFormat.twoWeeks: '2 Semaine',
-                          CalendarFormat.week: 'Semaine'
+                        availableCalendarFormats: {
+                          CalendarFormat.month: AppLocalizations.of(context)!.month,
+                          CalendarFormat.twoWeeks: AppLocalizations.of(context)!.twoWeeks,
+                          CalendarFormat.week: AppLocalizations.of(context)!.week
                         },
                         selectedDayPredicate: (day) {
                           return isSameDay(_selectedDay, day);
@@ -630,12 +626,12 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                               IconButton(
                                 icon: Icon(Iconsax.refresh),
                                 onPressed: () => loadMissions(resetPagination: true),
-                                tooltip: 'Refresh Missions',
+                                tooltip: AppLocalizations.of(context)!.refreshMissions,
                               ),
                             ],
                           ),
                           Text(
-                            'Vous avez 0 missions pour ce jour',
+                            AppLocalizations.of(context)!.youHaveZeroMissionsForThisDay,
                             style: TextStyle(
                               color: isDarkMode
                                   ? TColors.textWhite
@@ -646,7 +642,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Cliquer sur ajouter une mission, pour faire un planning',
+                            AppLocalizations.of(context)!.clickToAddMissionForPlanning,
                             style: TextStyle(
                               color: TColors.darkGrey,
                               fontSize: 14,
@@ -671,7 +667,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                             }
                           },
                           icon: Icon(Iconsax.add, color: TColors.buttonPrimary),
-                          label: Text('Ajouter une mission'),
+                          label: Text(AppLocalizations.of(context)!.addMission),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: TColors.buttonPrimary,
                             side: BorderSide(color: TColors.buttonPrimary, width: 2),
@@ -702,7 +698,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                 }
                               },
                               icon: Icon(Iconsax.add),
-                              label: Text('Ajouter une mission'),
+                              label: Text(AppLocalizations.of(context)!.addMission),
                               style: OutlinedButton.styleFrom(
                                 padding: EdgeInsets.symmetric(vertical: 16.0),
                                 textStyle: TextStyle(fontSize: 16),
@@ -720,7 +716,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                               IconButton(
                                 icon: Icon(Iconsax.refresh),
                                 onPressed: () => loadMissions(resetPagination: true),
-                                tooltip: 'Refresh Missions',
+                                tooltip: AppLocalizations.of(context)!.refreshMissions,
                               ),
                             ],
                           ),
@@ -728,8 +724,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                             child: Text(
                               countMissionsByStatus(_allMissions)[1] == 0 &&
                                   countMissionsByStatus(_allMissions)[6]! > 0
-                                  ? 'Tous les missions terminées ✔️'
-                                  : 'Vous avez ${countMissionsByStatus(_allMissions)[1] ?? 0} mission Planifié',
+                                  ? AppLocalizations.of(context)!.allMissionsCompleted
+                                  : AppLocalizations.of(context)!.youHaveMissionsPlanned(countMissionsByStatus(_allMissions)[1] ?? 0),
                               style: TextStyle(
                                 color: isDarkMode
                                     ? TColors.textWhite
@@ -742,7 +738,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                           SizedBox(height: 8),
                           Center(
                             child: Text(
-                              'Tous les missions sont regroupés par boutique',
+                              AppLocalizations.of(context)!.allMissionsGroupedByBoutique,
                               style: TextStyle(
                                 color: TColors.darkGrey,
                                 fontSize: 14,
@@ -757,7 +753,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                         shrinkWrap: true,
                         elements: _allMissions,
                         groupBy: (Mission mission) =>
-                        mission.boutique?.libelle ?? 'No Boutique',
+                        mission.boutique?.libelle ?? AppLocalizations.of(context)!.noBoutique,
                         groupSeparatorBuilder: (String boutiqueLibelle) {
                           final sampleMission = _allMissions.firstWhere(
                                 (mission) =>
@@ -793,8 +789,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                           );
                         },
                         itemBuilder: (context, Mission mission) {
-                          final statusData = getStatusColors(mission.status);
-                          final colors = getStatusColors(mission.status);
+                          final statusData = getStatusColors(mission.status, context);
+                          final colors = getStatusColors(mission.status, context);
                           final percentage = calculateAnsweredPercentage(mission);
                           return GestureDetector(
                             onTap: () async {
@@ -804,8 +800,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
 
                               if (today != missionDate) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Vous ne pouvez pas consulter ou gérer cette mission'),
+                                  SnackBar(
+                                    content: Text(AppLocalizations.of(context)!.cannotManageThisMission),
                                     duration: Duration(seconds: 2),
                                   ),
                                 );
@@ -829,8 +825,8 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
 
                               if (today != missionDate) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Vous ne pouvez pas consulter ou gérer cette mission'),
+                                  SnackBar(
+                                    content: Text(AppLocalizations.of(context)!.cannotManageThisMission),
                                     duration: Duration(seconds: 2),
                                   ),
                                 );
@@ -874,7 +870,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                 children: [
                                                   Expanded(
                                                     child: Text(
-                                                      'Code: ${mission.missionCode ?? 'No Code'}',
+                                                      '${AppLocalizations.of(context)!.code}: ${mission.missionCode ?? AppLocalizations.of(context)!.noCode}',
                                                       style: TextStyle(
                                                         color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
                                                         fontWeight: FontWeight.bold,
@@ -901,7 +897,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                             ),
                                                             SizedBox(width: 3),
                                                             Text(
-                                                              'Manquée',
+                                                              AppLocalizations.of(context)!.missed,
                                                               style: TextStyle(
                                                                 color: Colors.white,
                                                                 fontSize: 10,
@@ -929,7 +925,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                             ),
                                                             SizedBox(width: 3),
                                                             Text(
-                                                              'Démarrage tardif',
+                                                              AppLocalizations.of(context)!.lateStart,
                                                               style: TextStyle(
                                                                 color: Colors.white,
                                                                 fontSize: 10,
@@ -951,7 +947,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                               ),
                                               SizedBox(height: 8),
                                               Text(
-                                                'Libelle: ${mission.libelle ?? 'No Libelle'}',
+                                                '${AppLocalizations.of(context)!.libelle}: ${mission.libelle ?? AppLocalizations.of(context)!.noLibelle}',
                                                 style: TextStyle(
                                                   color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
                                                   fontWeight: FontWeight.bold,
@@ -959,7 +955,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                               ),
                                               SizedBox(height: 8),
                                               Text(
-                                                'Description: ${mission.description ?? 'No Description'}',
+                                                '${AppLocalizations.of(context)!.description}: ${mission.description ?? AppLocalizations.of(context)!.noDescription}',
                                                 style: TextStyle(
                                                   color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
                                                   fontWeight: FontWeight.bold,
@@ -1010,7 +1006,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                             )
                                 : Icon(Icons.keyboard_arrow_down),
                             label: Text(
-                              _isLoadingMore ? 'Chargement...' : 'Charger plus de missions',
+                              _isLoadingMore ? AppLocalizations.of(context)!.loading : AppLocalizations.of(context)!.loadMoreMissions,
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: TColors.primary,
@@ -1027,7 +1023,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                       if (_pagination != null) ...[
                         Center(
                           child: Text(
-                            'Total: ${_pagination!.totalCount} missions',
+                            AppLocalizations.of(context)!.totalMissions(_pagination!.totalCount),
                             style: TextStyle(
                               color: TColors.darkGrey,
                               fontSize: 12,

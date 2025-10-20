@@ -9,6 +9,7 @@ import 'package:supervisormobile/features/calendar/screens/widgets/missionDetail
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class AddMissionForm extends StatefulWidget {
   final DateTime? Date; // Add this parameter
@@ -77,8 +78,8 @@ class _AddMissionFormState extends State<AddMissionForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: AwesomeSnackbarContent(
-            title: 'Error!',
-            message: 'Please select both boutique and mission.',
+            title: AppLocalizations.of(context)!.error,
+            message: AppLocalizations.of(context)!.pleaseSelectBothBoutiqueAndMission,
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,
@@ -169,7 +170,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Ajouter une mission'),
+          title: Text(AppLocalizations.of(context)!.addMission),
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -183,20 +184,20 @@ class _AddMissionFormState extends State<AddMissionForm> {
                     onPressed: () => {
                       _initializeData()
                     },
-                    tooltip: 'Refresh data',
+                    tooltip: AppLocalizations.of(context)!.refreshData,
                   ),
                 ],
               ),
               // Boutique Selection
               DropdownButtonFormField<int>(
                 decoration: InputDecoration(
-                  labelText: 'Choisir une boutique',
+                  labelText: AppLocalizations.of(context)!.selectBoutique,
                   border: OutlineInputBorder(),
                 ),
                 items: _boutiques.map((boutique) {
                   return DropdownMenuItem<int>(
                     value: boutique.id,
-                    child: Text(boutique.libelle ?? 'No Name'),
+                    child: Text(boutique.libelle ?? AppLocalizations.of(context)!.noName),
                   );
                 }).toList(),
                 onChanged: (int? newValue) {
@@ -212,16 +213,16 @@ class _AddMissionFormState extends State<AddMissionForm> {
               if (_selectedBoutiqueId != null)
                 Card(
                   child: ListTile(
-                    title: Text('Boutique Info'),
+                    title: Text(AppLocalizations.of(context)!.boutiqueInfo),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                            'Code: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).code ?? 'N/A'}'),
+                            '${AppLocalizations.of(context)!.code}: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).code ?? AppLocalizations.of(context)!.nA}'),
                         Text(
-                            'Libelle: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).libelle ?? 'N/A'}'),
+                            '${AppLocalizations.of(context)!.libelle}: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).libelle ?? AppLocalizations.of(context)!.nA}'),
                         Text(
-                            'Adresse: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).adress ?? 'N/A'}'),
+                            '${AppLocalizations.of(context)!.address}: ${_boutiques.firstWhere((b) => b.id == _selectedBoutiqueId).adress ?? AppLocalizations.of(context)!.nA}'),
                       ],
                     ),
                   ),
@@ -231,14 +232,14 @@ class _AddMissionFormState extends State<AddMissionForm> {
               // Mission Selection
               DropdownButtonFormField<int>(
                 decoration: InputDecoration(
-                  labelText: 'Choisir une mission',
+                  labelText: AppLocalizations.of(context)!.selectMission,
                   border: OutlineInputBorder(),
                 ),
                 items: _notPlanifiedMissions.map((mission) {
                   return DropdownMenuItem<int>(
                     value: mission.id,
                     child: Text(
-                        '${mission.libelle ?? 'No Name'} -- ${mission.missionCode ?? 'No Code'}'),
+                        '${mission.libelle ?? AppLocalizations.of(context)!.noName} -- ${mission.missionCode ?? AppLocalizations.of(context)!.noCode}'),
                   );
                 }).toList(),
                 onChanged: (int? newValue) {
@@ -256,17 +257,17 @@ class _AddMissionFormState extends State<AddMissionForm> {
                   onTap: () => _navigateToMissionDetails(_selectedMissionId!),
                   child: Card(
                     child: ListTile(
-                      title: Text('Mission Info'),
+                      title: Text(AppLocalizations.of(context)!.missionInfo),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                              'Code: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).missionCode ?? 'N/A'}'),
+                              '${AppLocalizations.of(context)!.code}: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).missionCode ?? AppLocalizations.of(context)!.nA}'),
                           Text(
-                              'Libelle: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).libelle ?? 'N/A'}'),
+                              '${AppLocalizations.of(context)!.libelle}: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).libelle ?? AppLocalizations.of(context)!.nA}'),
 
                           Text(
-                              'Description: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).description ?? 'N/A'}'),
+                              '${AppLocalizations.of(context)!.description}: ${_notPlanifiedMissions.firstWhere((m) => m.id == _selectedMissionId).description ?? AppLocalizations.of(context)!.nA}'),
                         ],
                       ),
                     ),
@@ -281,7 +282,7 @@ class _AddMissionFormState extends State<AddMissionForm> {
               // Add Mission Button
               ElevatedButton(
                 onPressed: _handleAddMission,
-                child: Text('Ajouter'),
+                child: Text(AppLocalizations.of(context)!.add),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
                   backgroundColor: TColors.buttonSecondary,

@@ -17,6 +17,7 @@ import 'package:supervisormobile/features/calendar/services/missionService.dart'
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../models/IncidentCategory.dart';
 
@@ -88,13 +89,13 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
         print("Extension: ${infoFichier!.extension}");
         print("Path: ${infoFichier!.path}");
       } else {
-        print("❌ No valid file path found.");
+        print("❌ ${AppLocalizations.of(context)!.noValidFilePath}");
         return;
       }
 
       setState(() {});
     } else {
-      print("❌ File picking cancelled");
+      print("❌ ${AppLocalizations.of(context)!.filePickingCancelled}");
     }
   }
 
@@ -109,7 +110,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       return uploadedFileName; // No need to access as a Map, just return the file name
     } catch (e) {
       // Handle errors, e.g., if the upload fails
-      print('Error during file upload: $e');
+      print('${AppLocalizations.of(context)!.errorDuringFileUpload} $e');
       return ''; // Return an empty string or a custom error message if needed
     }
   }
@@ -165,7 +166,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
         imageProvider,
         immersive: false,
         onViewerDismissed: () {
-          print("Image viewer dismissed");
+          print(AppLocalizations.of(context)!.imageViewerDismissed);
         },
       );
     }
@@ -195,9 +196,9 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
         final result = await ImageGallerySaver.saveImage(imageBytes);
 
         if (result != null && result['isSuccess'] == true) {
-          print('Image saved to gallery successfully');
+          print(AppLocalizations.of(context)!.imageSavedToGallerySuccessfully);
         } else {
-          print('Failed to save image to gallery');
+          print(AppLocalizations.of(context)!.failedToSaveImageToGallery);
         }
 
         // Create an XFile from the file path
@@ -211,7 +212,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
           });
         }
       } catch (e) {
-        print('Error saving image to file: $e');
+        print('${AppLocalizations.of(context)!.errorSavingImageToFile} $e');
       }
     }
   }
@@ -242,7 +243,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
           print("\n File Name ----------------------------------------------- \n" + imageName);
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload image file')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.failedToUploadImageFile)),
           );
           return; // Stop execution if image upload fails
         }
@@ -255,7 +256,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
           print("\n Jointure Fichier ----------------------------------------- \n" + fileName);
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload jointure fichier')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.failedToUploadJointureFile)),
           );
           return; // Stop execution if jointure fichier upload fails
         }
@@ -282,13 +283,13 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
      await IncidentService().addProblem(declaredProblem);
      ScaffoldMessenger.of(context).showSnackBar(
-       SnackBar(content: Text('Incident ajoutée avec succés.')),
+       SnackBar(content: Text(AppLocalizations.of(context)!.incidentAddedSuccessfully)),
      );
      Navigator.pop(context, true); // Navigate back
       }catch (e) {
         print(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Impossible de soumettre l’incident. Veuillez réessayer.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.failedToSubmitIncident)),
         );
         setState(() => _isLoading = false);
       }
@@ -298,7 +299,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
     }
     else {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Tous les champs sont obligatoires.'))) ;
+          SnackBar(content: Text(AppLocalizations.of(context)!.allFieldsAreRequired))) ;
     }
 
   }
@@ -309,7 +310,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Ajouter un incident",),
+        title: Text(AppLocalizations.of(context)!.addIncident,),
 
       ),
       body: Padding(
@@ -323,7 +324,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                 const SizedBox(height: 16.0),
                 DropdownButtonFormField<IncidentCategory>(
                   decoration: InputDecoration(
-                    labelText: "Catégorie d'incident",
+                    labelText: AppLocalizations.of(context)!.incidentCategory,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
                   ),
                   value: _selectedCategory,
@@ -339,12 +340,12 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                     });
                   },
                   validator: (value) =>
-                  value == null ? "Veuillez sélectionner une catégorie" : null,
+                  value == null ? AppLocalizations.of(context)!.pleaseSelectCategory : null,
                 ),
                 const SizedBox(height: 16.0),
                 DropdownButtonFormField<BoutiqueModel>(
                   decoration: InputDecoration(
-                    labelText: "Boutique",
+                    labelText: AppLocalizations.of(context)!.boutique,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
@@ -360,7 +361,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                       _selectedBoutique = value; // Store selected boutique name or any unique identifier
                     });
                   },
-                  validator: (value) => value == null ? "Veuillez sélectionner une boutique" : null,
+                  validator: (value) => value == null ? AppLocalizations.of(context)!.pleaseSelectBoutique : null,
                 ),
 
                 const SizedBox(height: 16.0),
@@ -370,13 +371,13 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                   controller: _descriptionController,
                   maxLines: 4,
                   decoration: InputDecoration(
-                    labelText: "Description",
+                    labelText: AppLocalizations.of(context)!.descriptionLabel,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
                   validator: (value) => value!.isEmpty
-                      ? "Veuillez fournir une description de l’incident"
+                      ? AppLocalizations.of(context)!.pleaseProvideDescription
                       : null,
                 ),
                 const SizedBox(height: 16.0),
@@ -386,25 +387,25 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                   controller: _commentController,
                   maxLines: 3,
                   decoration: InputDecoration(
-                    labelText: "Commentaire",
+                    labelText: AppLocalizations.of(context)!.commentLabel,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
                   validator: (value) =>
-                  value!.isEmpty ? "Veuillez fournir un commentaire" : null,
+                  value!.isEmpty ? AppLocalizations.of(context)!.pleaseProvideComment : null,
                 ),
                 const SizedBox(height: 16.0),
 
 
-                Text('Joindre des images',
+                Text(AppLocalizations.of(context)!.attachImages,
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold)),
                 SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: _pickImages,
                   icon: Icon(Icons.add, size: 24),
-                  label: Text('Image'),
+                  label: Text(AppLocalizations.of(context)!.image),
                   style: OutlinedButton.styleFrom(
                     minimumSize: Size(double.infinity, 48),
                   ),
@@ -413,7 +414,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                 OutlinedButton.icon(
                   onPressed: selectFile,
                   icon: Icon(Icons.add, size: 24),
-                  label: Text('Fichier'),
+                  label: Text(AppLocalizations.of(context)!.file),
                   style: OutlinedButton.styleFrom(
                     minimumSize: Size(double.infinity, 48),
                   ),
@@ -423,7 +424,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                 OutlinedButton.icon(
                   onPressed: _openCamera,
                   icon: Icon(Icons.camera_alt, size: 24),
-                  label: Text('Ouvrir Camera'),
+                  label: Text(AppLocalizations.of(context)!.openCamera),
                   style: OutlinedButton.styleFrom(
                     minimumSize: Size(double.infinity, 48),
                   ),
@@ -449,7 +450,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                               SizedBox(width: 8),
                               // Bold text for the "Fichier joint" label
                               Text(
-                                "Fichier joint :",
+                                AppLocalizations.of(context)!.attachedFile,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   // Bolder text
@@ -472,11 +473,11 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                             ],
                           ),
                           SizedBox(height: 8),
-                          Text("Nom: ${infoFichier?.name}"),
+                          Text("${AppLocalizations.of(context)!.name} ${infoFichier?.name}"),
                           Text(
-                              "Taille: ${(infoFichier!.size / 1024).toStringAsFixed(2)} KB"),
+                              "${AppLocalizations.of(context)!.size} ${(infoFichier!.size / 1024).toStringAsFixed(2)} KB"),
                           Text(
-                              "Type: ${infoFichier?.extension ?? 'Inconnu'}"),
+                              "${AppLocalizations.of(context)!.type} ${infoFichier?.extension ?? AppLocalizations.of(context)!.unknown}"),
                         ],
                       ),
                     ),
@@ -535,7 +536,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                 // Priority Dropdown
                 DropdownButtonFormField<Coefficient>(
                   decoration: InputDecoration(
-                    labelText: "Priorité",
+                    labelText: AppLocalizations.of(context)!.priorityLabel,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
@@ -551,7 +552,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                       _selectedPriority = value; // Store selected priority name or any unique identifier
                     });
                   },
-                  validator: (value) => value == null ? "Veuillez sélectionner une priorité" : null,
+                  validator: (value) => value == null ? AppLocalizations.of(context)!.pleaseSelectPriority : null,
                 ),
 
                 const SizedBox(height: 24.0),
@@ -566,7 +567,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                         ? CircularProgressIndicator(
                       color: Colors.white,
                     )
-                        : Text('Soumettre'),
+                        : Text(AppLocalizations.of(context)!.submit),
                     style: ElevatedButton.styleFrom(
                       minimumSize: Size(double.infinity, 48),
                     ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_awesome_bottom_sheet/flutter_awesome_bottom_sheet.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/edit_question_response.dart';
@@ -276,19 +277,19 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         // Boutique Dropdown
         DropdownButtonFormField<int>(
           decoration: InputDecoration(
-            labelText: 'Choisir une boutique',
+            labelText: AppLocalizations.of(context)!.chooseBoutique,
             border: OutlineInputBorder(),
           ),
           items: [
             DropdownMenuItem<int>(
               value: null,
-              child: Text('Tous'),
+              child: Text(AppLocalizations.of(context)!.all),
             ),
             ..._boutiques.map((boutique) {
               return DropdownMenuItem<int>(
                 value: boutique.id, // Store the boutique ID
                 child: Text(
-                    boutique.libelle ?? 'No Name'), // Display boutique name
+                    boutique.libelle ?? AppLocalizations.of(context)!.noName), // Display boutique name
               );
             }).toList(),
           ],
@@ -304,11 +305,11 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         // Priorities Dropdown
         DropdownButtonFormField<int>(
           decoration: InputDecoration(
-            labelText: 'Priorité',
+            labelText: AppLocalizations.of(context)!.priority,
             border: OutlineInputBorder(),
           ),
           items: [
-            DropdownMenuItem<int>(value: null, child: Text('Tous')),
+            DropdownMenuItem<int>(value: null, child: Text(AppLocalizations.of(context)!.all)),
             ..._priorities.map((priority) {
               return DropdownMenuItem<int>(
                 value: priority.coefId, // Store priority ID
@@ -348,13 +349,13 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         // Origin Dropdown
         DropdownButtonFormField<int>(
           decoration: InputDecoration(
-            labelText: 'Origine',
+            labelText: AppLocalizations.of(context)!.origin,
             border: OutlineInputBorder(),
           ),
           items: [
-            DropdownMenuItem<int>(value: null, child: Text('Tous')),
-            DropdownMenuItem<int>(value: 1, child: Text('Manuelle')),
-            DropdownMenuItem<int>(value: 0, child: Text('Checklist')),
+            DropdownMenuItem<int>(value: null, child: Text(AppLocalizations.of(context)!.all)),
+            DropdownMenuItem<int>(value: 1, child: Text(AppLocalizations.of(context)!.manual)),
+            DropdownMenuItem<int>(value: 0, child: Text(AppLocalizations.of(context)!.checklist)),
           ],
           onChanged: (int? newValue) {
             setState(() {
@@ -371,17 +372,17 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         // Status Dropdown
         DropdownButtonFormField<int>(
           decoration: InputDecoration(
-            labelText: 'Statut',
+            labelText: AppLocalizations.of(context)!.status,
             border: OutlineInputBorder(),
           ),
           items: [
             DropdownMenuItem<int>(
               value: null,
-              child: Text('Tous'),
+              child: Text(AppLocalizations.of(context)!.all),
             ),
             ..._alowedStatus.map((status) {
               int statusId = status['identifier'];
-              String statusName = status['name'] ?? 'Unknown';
+              String statusName = status['name'] ?? AppLocalizations.of(context)!.unknown;
 
               // Use 'color' from statusColors instead of 'background'
               final String? hexColor = statusColors[statusName]?['color'];
@@ -425,7 +426,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           child: ElevatedButton.icon(
             onPressed: _applyFilters,
             icon: Icon(Iconsax.filter, size: 20), // Replace with desired icon
-            label: Text('Appliquer Filtre'),
+            label: Text(AppLocalizations.of(context)!.applyFilters),
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.symmetric(vertical: 16), // Adjust padding
             ),
@@ -467,7 +468,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     // Format the date (display only the date part)
     final String formattedDate = problem.declaration_date != null
         ? DateFormat('yyyy-MM-dd').format(problem.declaration_date!)
-        : 'No date';
+        : AppLocalizations.of(context)!.noDateLower;
 
     return Stack(
       children: [
@@ -495,7 +496,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Statut: ${statusLabel ?? 'N/A'}',
+                        AppLocalizations.of(context)!.statusLabel(statusLabel ?? 'N/A'),
                         style: TextStyle(
                           color: TColors.black,
                           fontWeight: FontWeight.bold, // Make the text bold
@@ -503,7 +504,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                       ),
                     ),
                     Text(
-                      problem.coefficient?.libelle ?? 'No priority',
+                      problem.coefficient?.libelle ?? AppLocalizations.of(context)!.noPriority,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -517,8 +518,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Description:',
+                    Text(
+                      AppLocalizations.of(context)!.description,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -529,7 +530,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                 ),
                 const SizedBox(height: 4.0),
                 Text(
-                  problem.description ?? 'No description',
+                  problem.description ?? AppLocalizations.of(context)!.noDescription,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey[600],
@@ -538,12 +539,12 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                 const SizedBox(height: 8.0),
 
                 // Commentaire
-                const Text(
-                  'Commentaire:',
+                Text(
+                  AppLocalizations.of(context)!.commentaire,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 Text(
-                  problem.commentaire ?? 'No comment',
+                  problem.commentaire ?? AppLocalizations.of(context)!.noComment,
                   style: TextStyle(
                     color: Colors.grey[600],
                   ),
@@ -552,8 +553,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
 
                 // Date déclaration
-                const Text(
-                  'Date déclaration:',
+                Text(
+                  AppLocalizations.of(context)!.declarationDate,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 Text(
@@ -590,8 +591,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   void _showModal(BuildContext context, Map<String, dynamic> item) {
     AwesomeBottomSheet().show(
       context: context,
-      title: const Text("Consultation de l'incident"),
-      description: const Text("Choisissez une option pour modifier l'incident"),
+      title: Text(AppLocalizations.of(context)!.consultIncident),
+      description: Text(AppLocalizations.of(context)!.chooseOptionToModifyIncident),
       color: CustomSheetColor(
         mainColor: TColors.primary,
         accentColor: TColors.secondary,
@@ -600,7 +601,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
       // Adjusted padding for SafeArea
       positive: AwesomeSheetAction(
-        title: 'Consulter',
+        title: AppLocalizations.of(context)!.consult,
         onPressed: () => {},
         /*onPressed: () {
           Navigator.of(context).pop();
@@ -618,7 +619,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           Navigator.of(context).pop(); // Close the bottom sheet
           _showConfirmationDialog(item);
         },
-        title: item["clouture"] != null ? 'UnCloturer' : "Cloturer",
+        title: item["clouture"] != null ? AppLocalizations.of(context)!.unclose : AppLocalizations.of(context)!.close,
         icon: item["clouture"] != null
             ? Iconsax.close_circle
             : Iconsax.tick_circle,
@@ -629,9 +630,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   void _showConfirmationDialog(Map<String, dynamic> item) {
     AwesomeBottomSheet().show(
       context: context,
-      title: Text('Confirmer Clôture'),
-      description: Text(
-          'Êtes-vous sûr de vouloir changer l état de cloture "${item['questionLibelle'] ?? 'No question'}"?'),
+      title: Text(AppLocalizations.of(context)!.confirmClosure),
+      description: Text(AppLocalizations.of(context)!.areYouSureChangeClosureState(item['questionLibelle'] ?? '')),
       color: CustomSheetColor(
         mainColor: const Color(0xAD0BB819),
         accentColor: const Color(0xFF0BB819),
@@ -656,8 +656,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: AwesomeSnackbarContent(
-                    title: 'Succès!',
-                    message: 'Incident clôturé avec succès.',
+                    title: AppLocalizations.of(context)!.success,
+                    message: AppLocalizations.of(context)!.incidentClosedSuccessfully,
                     contentType: ContentType.success,
                   ),
                   behavior: SnackBarBehavior.floating,
@@ -670,8 +670,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: AwesomeSnackbarContent(
-                    title: 'Erreur!',
-                    message: 'Erreur lors de la clôture de l\'incident.',
+                    title: AppLocalizations.of(context)!.error,
+                    message: AppLocalizations.of(context)!.errorClosingIncident,
                     contentType: ContentType.failure,
                   ),
                   behavior: SnackBarBehavior.floating,
@@ -685,8 +685,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: AwesomeSnackbarContent(
-                  title: 'Erreur!',
-                  message: 'ID de la question invalide.',
+                  title: AppLocalizations.of(context)!.error,
+                  message: AppLocalizations.of(context)!.invalidQuestionId,
                   contentType: ContentType.failure,
                 ),
                 behavior: SnackBarBehavior.floating,
@@ -696,14 +696,14 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
             );
           }
         },
-        title: 'Confirmer',
+        title: AppLocalizations.of(context)!.confirm,
         icon: Icons.check,
       ),
       negative: AwesomeSheetAction(
         onPressed: () {
           Navigator.of(context).pop(); // Close the bottom sheet
         },
-        title: 'Annuler',
+        title: AppLocalizations.of(context)!.cancel,
       ),
     );
   }

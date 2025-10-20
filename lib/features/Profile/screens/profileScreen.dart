@@ -10,6 +10,8 @@ import 'package:supervisormobile/features/Profile/services/user_service.dart';
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:supervisormobile/common/widgets/language_selector.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 
 class ProfileInfo extends StatefulWidget {
@@ -87,9 +89,9 @@ class _ProfileInfoState extends State<ProfileInfo> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    return Center(child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
                   } else if (!snapshot.hasData || snapshot.data == null) {
-                    return const Center(child: Text('No user data found.'));
+                    return Center(child: Text(AppLocalizations.of(context)!.noUserDataFound));
                   }
 
                   final user = snapshot.data!;
@@ -171,7 +173,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                             children: [
                               const Icon(Iconsax.edit, size: 20, color: TColors.accent),
                               const SizedBox(width: 8),
-                              Text('Info Profile'),
+                              Text(AppLocalizations.of(context)!.editProfile),
                             ],
                           ),
                         ),
@@ -191,9 +193,9 @@ class _ProfileInfoState extends State<ProfileInfo> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
+                      return Center(child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
                     } else if (!snapshot.hasData || snapshot.data == null) {
-                      return const Center(child: Text('No user data found.'));
+                      return Center(child: Text(AppLocalizations.of(context)!.noUserDataFound));
                     }
 
                     final user = snapshot.data!;
@@ -216,7 +218,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                                   child: Padding(
                                     padding: const EdgeInsets.all(16.0),
                                     child: Text(
-                                      'Tel: ${user.tel ?? 'Not available'}',
+                                      '${AppLocalizations.of(context)!.phone}: ${user.tel ?? AppLocalizations.of(context)!.notAvailable}',
                                       style: TextStyle(fontSize: 18),
                                     ),
                                   ),
@@ -241,7 +243,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                                   child: Padding(
                                     padding: const EdgeInsets.all(16.0),
                                     child: Text(
-                                      'Role: ${user.role?.libelle ?? 'Not available'}',
+                                      '${AppLocalizations.of(context)!.role}: ${user.role?.libelle ?? AppLocalizations.of(context)!.notAvailable}',
                                       style: TextStyle(fontSize: 18),
                                     ),
                                   ),
@@ -283,8 +285,11 @@ class _ProfileInfoState extends State<ProfileInfo> {
                     );
                   },
                 ),
+                // Language selector
+                const LanguageSelector(),
+                const SizedBox(height: 20),
                 // Logout button placed separately below the FutureBuilder
-                const SizedBox(height: 30),
+                const SizedBox(height: 10),
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16.0), // Margin on the left and right
                   child: ElevatedButton(
@@ -305,7 +310,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                       children: [
                         Icon(Iconsax.logout, color: Colors.white),
                         SizedBox(width: 8),
-                        Text('Se Déconnecter', style: TextStyle(color: Colors.white)),
+                        Text(AppLocalizations.of(context)!.logout, style: TextStyle(color: Colors.white)),
                       ],
                     ),
                   ),
