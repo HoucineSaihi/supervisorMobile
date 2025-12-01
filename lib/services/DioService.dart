@@ -12,7 +12,7 @@ class DioService {
   
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.1.12:7000'
+      baseUrl: 'http://localhost:7000'
           '/api', // ⚡ Replace with your real API URL http://shopconnect.exoticgroup.net:8080/api
       headers: {
         'Accept': 'application/json',

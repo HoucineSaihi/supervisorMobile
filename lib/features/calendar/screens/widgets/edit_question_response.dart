@@ -13,6 +13,7 @@ import 'package:mime/mime.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
+import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
@@ -30,10 +31,10 @@ import '../../models/Problem.dart';
 class EditQuestionResponse extends StatefulWidget {
   final int questionId;
   final int modeleReponseId;
-  final IncidentCategory preSelectedType;
+  final int? preSelectedTypeId;
 
   const EditQuestionResponse(
-      {Key? key, required this.questionId, required this.modeleReponseId, required this.preSelectedType})
+      {Key? key, required this.questionId, required this.modeleReponseId, this.preSelectedTypeId})
       : super(key: key);
 
   @override
@@ -43,6 +44,7 @@ class EditQuestionResponse extends StatefulWidget {
 class _EditQuestionResponseState extends State<EditQuestionResponse> {
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
+  late Future<List<IncidentType>> _incidentTypesFuture;
   final TextEditingController _commentController = TextEditingController();
   ActionM? _selectedAction;
   bool _isEditingComment = false;
@@ -64,7 +66,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
 
   bool hasDeletedFile = false;
   bool _isLoading = false;
-  IncidentCategory? _selectedCategory;
+  IncidentType? _selectedIncidentType;
 
   void updateQuestion() async {
     setState(() => _isLoading = true);
@@ -132,7 +134,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           reponseID: question.reponseID,
           selectedResponseValue: question.selectedResponseValue,
           jointureFichier: question.jointureFichier,
-          typeIncident: _selectedCategory ?? widget.preSelectedType
+          IncidentTypeId: _selectedIncidentType?.id ?? widget.preSelectedTypeId
 
       );
       // ✅ Update the question
@@ -184,6 +186,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     super.initState();
     _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
+    _incidentTypesFuture = MissionService().getIncidentTypes();
 
     _questionFuture.then((questionDetails) async {
       // Initialize comment controller
@@ -200,11 +203,35 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
         _existingFileNames.add(questionDetails.jointureFichier!);
       }
 
-      if(questionDetails.incident == true){
-        // Start the fetching of problem data and update _isLoading state when done
+      // Initialize incident type from question data or preSelectedTypeId
+      final incidentTypeId = questionDetails.incidentTypeId ?? widget.preSelectedTypeId;
+      if (incidentTypeId != null) {
+        final incidentTypes = await _incidentTypesFuture;
+        final matchingType = incidentTypes.firstWhere(
+          (type) => type.id == incidentTypeId,
+          orElse: () => incidentTypes.isNotEmpty ? incidentTypes.first : throw Exception('No incident types available'),
+        );
+        if (mounted) {
+          setState(() {
+            _selectedIncidentType = matchingType;
+          });
+        }
+      } else if(questionDetails.incident == true){
+        // Fallback: try to get from problem if no incidentTypeId
         var prb = await IncidentService().getProblemById(questionDetails.problemId!);
-        _selectedCategory = prb?.type;
-
+        if (prb?.type != null) {
+          // Try to find matching incident type by label (since Problem still uses IncidentCategory)
+          final incidentTypes = await _incidentTypesFuture;
+          final matchingType = incidentTypes.firstWhere(
+            (type) => type.libelle?.toLowerCase() == prb!.type!.label.toLowerCase(),
+            orElse: () => incidentTypes.isNotEmpty ? incidentTypes.first : throw Exception('No incident types available'),
+          );
+          if (mounted) {
+            setState(() {
+              _selectedIncidentType = matchingType;
+            });
+          }
+        }
       }
 
         setState(() {});
@@ -535,25 +562,51 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                       ],
                     ),
                     SizedBox(height: 16),
-                    DropdownButtonFormField<IncidentCategory>(
-                      decoration: InputDecoration(
-                        labelText: "Type d'incident",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                      ),
-                      value: _selectedCategory ?? widget.preSelectedType, // ✅ Use the preselected if nothing chosen yet
-                      items: IncidentCategory.values
-                          .map((category) => DropdownMenuItem(
-                        value: category,
-                        child: Text(category.label),
-                      ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCategory = value!;
-                        });
+                    FutureBuilder<List<IncidentType>>(
+                      future: _incidentTypesFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(
+                              child: Text('Error: ${snapshot.error}'));
+                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return Center(
+                              child: Text('No data found'));
+                        }
+
+                        final incidentTypes = snapshot.data!;
+                        
+                        // Find the preselected incident type if preSelectedTypeId is provided
+                        IncidentType? preselectedType;
+                        if (widget.preSelectedTypeId != null) {
+                          preselectedType = incidentTypes.firstWhere(
+                            (type) => type.id == widget.preSelectedTypeId,
+                            orElse: () => incidentTypes.first,
+                          );
+                        }
+
+                        return DropdownButtonFormField<IncidentType>(
+                          decoration: InputDecoration(
+                            labelText: "Type d'incident",
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                          ),
+                          value: _selectedIncidentType ?? preselectedType,
+                          items: incidentTypes.map((incidentType) {
+                            return DropdownMenuItem<IncidentType>(
+                              value: incidentType,
+                              child: Text(incidentType.libelle ?? '${incidentType.id}'),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedIncidentType = value;
+                            });
+                          },
+                          validator: (value) =>
+                          value == null ? "Veuillez sélectionner un type" : null,
+                        );
                       },
-                      validator: (value) =>
-                      value == null ? "Veuillez sélectionner un type" : null,
                     ),
                     SizedBox(height: 20),
                     Column(

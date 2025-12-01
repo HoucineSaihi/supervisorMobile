@@ -19,6 +19,7 @@ class SousMission {
   int? coefficient_ID;
   double? selectedCoefficient;
   IncidentCategory? typeIncident;
+  int? incidentTypeId;
 
   SousMission({
     this.id,
@@ -35,7 +36,8 @@ class SousMission {
     this.nombreQuestion,
     this.coefficient_ID,
     this.selectedCoefficient,
-    this.typeIncident
+    this.typeIncident,
+    this.incidentTypeId
   });
 
   factory SousMission.fromJson(Map<String, dynamic> json) {
@@ -59,6 +61,7 @@ class SousMission {
       if (json['coefficient_ID'] == null) nullFields.add('coefficient_ID');
       if (json['selectedCoefficient'] == null) nullFields.add('selectedCoefficient');
       if (json['typeIncident'] == null) nullFields.add('typeIncident');
+      if (json['incidentTypeId'] == null) nullFields.add('incidentTypeId');
       
       if (nullFields.isNotEmpty) {
         print('⚠️ SousMission.fromJson: Null fields detected: ${nullFields.join(', ')}');
@@ -160,6 +163,9 @@ class SousMission {
         typeIncident = IncidentCategory.all;
       }
       
+      final incidentTypeId = json['incidentTypeId'] as int?;
+      print('✅ SousMission.fromJson: incidentTypeId = $incidentTypeId');
+      
       print('🎉 SousMission.fromJson: All fields parsed successfully, creating SousMission object...');
       
       return SousMission(
@@ -178,6 +184,7 @@ class SousMission {
         coefficient_ID: coefficient_ID,
         selectedCoefficient: selectedCoefficient,
         typeIncident: typeIncident,
+        incidentTypeId: incidentTypeId,
       );
     } catch (e) {
       print('❌ SousMission.fromJson: Error parsing sous-mission: $e');
@@ -203,6 +210,7 @@ class SousMission {
       'coefficient_ID':coefficient_ID,
       'selectedCoefficient':selectedCoefficient,
       'typeIncident': typeIncident?.value,
+      'incidentTypeId': incidentTypeId,
 
     };
   }

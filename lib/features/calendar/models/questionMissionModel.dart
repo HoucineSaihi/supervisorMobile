@@ -1,5 +1,6 @@
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
+import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
 
 class QuestionMission {
   int id;
@@ -18,7 +19,9 @@ class QuestionMission {
   bool? incident;
   String? jointureFichier;
   int? coef_ID;
-  int? problemId ;
+  int? problemId;
+  int? incidentTypeId;
+  IncidentType? incidentType;
 
   QuestionMission({
     required this.id,
@@ -35,9 +38,11 @@ class QuestionMission {
     this.selectedResponseValue,
     this.questionCoefficient,
     this.incident,
-    this.jointureFichier
-    ,this.coef_ID,
-    this.problemId
+    this.jointureFichier,
+    this.coef_ID,
+    this.problemId,
+    this.incidentTypeId,
+    this.incidentType
   });
 
   factory QuestionMission.fromJson(Map<String, dynamic> json) {
@@ -149,6 +154,18 @@ class QuestionMission {
       final problemId = json['problemId'] as int?;
       print('✅ QuestionMission.fromJson: problemId = $problemId');
       
+      final incidentTypeId = json['incidentTypeId'] as int?;
+      print('✅ QuestionMission.fromJson: incidentTypeId = $incidentTypeId');
+      
+      IncidentType? incidentType;
+      try {
+        incidentType = json['incidentType'] != null ? IncidentType.fromJson(json['incidentType']) : null;
+        print('✅ QuestionMission.fromJson: incidentType = ${incidentType != null ? 'parsed successfully' : 'null'}');
+      } catch (e) {
+        print('❌ QuestionMission.fromJson: Error parsing incidentType: $e');
+        incidentType = null;
+      }
+      
       print('🎉 QuestionMission.fromJson: All fields parsed successfully, creating QuestionMission object...');
       
       return QuestionMission(
@@ -169,6 +186,8 @@ class QuestionMission {
         jointureFichier: jointureFichier,
         coef_ID: coef_ID,
         problemId: problemId,
+        incidentTypeId: incidentTypeId,
+        incidentType: incidentType,
       );
     } catch (e) {
       print('❌ QuestionMission.fromJson: Error parsing question: $e');
@@ -195,7 +214,9 @@ class QuestionMission {
       'incident': incident,
       'jointureFichier':jointureFichier,
       'coef_ID':coef_ID,
-      'problemId':problemId
+      'problemId':problemId,
+      'incidentTypeId': incidentTypeId,
+      'incidentType': incidentType?.toJson(),
 
     };
   }

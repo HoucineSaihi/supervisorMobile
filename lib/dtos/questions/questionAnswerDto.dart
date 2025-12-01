@@ -1,5 +1,3 @@
-import '../../features/incidents/models/IncidentCategory.dart';
-
 class questionAnswerDto {
   int? id;
   String? commentaire;
@@ -8,10 +6,12 @@ class questionAnswerDto {
   int? reponseID;
   int? selectedResponseValue;
   String? jointureFichier;
-  IncidentCategory? typeIncident;
+  int? IncidentTypeId;
+  double? latitude;
+  double? longitude;
 
   questionAnswerDto({this.id,this.commentaire,this.fileName,this.actionId
-    ,this.reponseID,this.selectedResponseValue,this.jointureFichier,this.typeIncident});
+    ,this.reponseID,this.selectedResponseValue,this.jointureFichier,this.IncidentTypeId,this.latitude,this.longitude});
 
   Map<String, dynamic> toJson() {
     return {
@@ -22,9 +22,9 @@ class questionAnswerDto {
       'reponseID':reponseID,
       'selectedResponseValue':selectedResponseValue,
       'jointureFichier':jointureFichier,
-      'typeIncident': typeIncident?.value,
-
-
+      'IncidentTypeId': IncidentTypeId,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 

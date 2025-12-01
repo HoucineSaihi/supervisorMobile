@@ -190,7 +190,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                         sousMissionID: sousMission.id!,
                                         modelResponseID: mission.modelReponseQuestionId!,
                                         status:widget.status,
-                                        preSelectedType: sousMission.typeIncident ?? IncidentCategory.all,
+                                        incidentTypeId: sousMission.incidentTypeId,
                                       ),
                                     ),
                                   );
