@@ -15,6 +15,7 @@ import 'package:supervisormobile/features/calendar/models/missionResponseModel.d
 import 'package:supervisormobile/features/calendar/models/paginationModel.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
+import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
 import 'package:mime/mime.dart';
 import 'package:supervisormobile/services/DioService.dart';
 import 'package:geolocator/geolocator.dart';
@@ -708,6 +709,30 @@ class MissionService {
     } catch (e) {
       print('Error fetching choix reponse: $e');
       throw Exception('Error fetching choix reponse: $e');
+    }
+  }
+
+  Future<List<IncidentType>> getIncidentTypes() async {
+    try {
+      final response = await _dio.get(
+        '/IncidentTypes', // ✅ Only relative path
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = response.data; // ✅ Already parsed
+        List<IncidentType> incidentTypes = body.map((dynamic item) => IncidentType.fromJson(item)).toList();
+        return incidentTypes;
+      } else {
+        throw Exception('Failed to load incident types. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching incident types: $e');
+      throw Exception('Error fetching incident types: $e');
     }
   }
 

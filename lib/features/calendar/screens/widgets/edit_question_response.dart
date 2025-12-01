@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
+import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
@@ -27,9 +28,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 class EditQuestionResponse extends StatefulWidget {
   final int questionId;
   final int modeleReponseId;
-  final IncidentCategory preSelectedType;
+  final int? preSelectedTypeId;
 
-  const EditQuestionResponse({Key? key, required this.questionId,required this.modeleReponseId,required this.preSelectedType})
+  const EditQuestionResponse({Key? key, required this.questionId,required this.modeleReponseId, this.preSelectedTypeId})
       : super(key: key);
 
   @override
@@ -39,6 +40,7 @@ class EditQuestionResponse extends StatefulWidget {
 class _EditQuestionResponseState extends State<EditQuestionResponse> {
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
+  late Future<List<IncidentType>> _incidentTypesFuture;
   final TextEditingController _commentController = TextEditingController();
   ActionM? _selectedAction;
   bool _isEditingComment = false;
@@ -54,7 +56,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   PlatformFile? infoFichier;
   bool hasDeletedFile = false;
   bool _isLoading = false;
-  IncidentCategory? _selectedCategory;
+  IncidentType? _selectedIncidentType;
 
   void updateQuestion() async {
     setState(() => _isLoading = true);
@@ -92,7 +94,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           reponseID: question.reponseID,
           selectedResponseValue: question.selectedResponseValue,
           jointureFichier: question.jointureFichier,
-          typeIncident: _selectedCategory ?? widget.preSelectedType
+          IncidentTypeId: _selectedIncidentType?.id ?? widget.preSelectedTypeId
 
       );
 
@@ -142,6 +144,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     super.initState();
     _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
+    _incidentTypesFuture = MissionService().getIncidentTypes();
     _questionFuture.then((questionDetails) {
       _commentController.text = questionDetails.commentaire ?? ''; // Initialize the controller
     }).catchError((error) {
@@ -154,11 +157,19 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       if(questionDetails.incident == true){
         // Start the fetching of problem data and update _isLoading state when done
         var prb =   IncidentService().getProblemById(questionDetails.problemId!);
-        prb.then((res){
-          setState(() {
-            _selectedCategory = res!.type ;
-
-          });
+        prb.then((res) async {
+          // Fetch incident types and find matching one
+          final incidentTypes = await _incidentTypesFuture;
+          if (res?.type != null) {
+            // Try to find matching incident type by label (since Problem still uses IncidentCategory)
+            final matchingType = incidentTypes.firstWhere(
+              (type) => type.libelle?.toLowerCase() == res!.type!.label.toLowerCase(),
+              orElse: () => incidentTypes.isNotEmpty ? incidentTypes.first : throw Exception('No incident types available'),
+            );
+            setState(() {
+              _selectedIncidentType = matchingType;
+            });
+          }
         });
 
       }
@@ -460,26 +471,51 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                       ],
                     ),
                     SizedBox(height: 20),
+                    FutureBuilder<List<IncidentType>>(
+                      future: _incidentTypesFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(
+                              child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
+                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return Center(
+                              child: Text(AppLocalizations.of(context)!.noDataFound));
+                        }
 
-                    DropdownButtonFormField<IncidentCategory>(
-                      decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.incidentType,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                      ),
-                      value: _selectedCategory ?? widget.preSelectedType, // ✅ Use the preselected if nothing chosen yet
-                      items: IncidentCategory.values
-                          .map((category) => DropdownMenuItem(
-                        value: category,
-                        child: Text(category.label),
-                      ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCategory = value!;
-                        });
+                        final incidentTypes = snapshot.data!;
+                        
+                        // Find the preselected incident type if preSelectedTypeId is provided
+                        IncidentType? preselectedType;
+                        if (widget.preSelectedTypeId != null) {
+                          preselectedType = incidentTypes.firstWhere(
+                            (type) => type.id == widget.preSelectedTypeId,
+                            orElse: () => incidentTypes.first,
+                          );
+                        }
+
+                        return DropdownButtonFormField<IncidentType>(
+                          decoration: InputDecoration(
+                            labelText: AppLocalizations.of(context)!.incidentType,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                          ),
+                          value: _selectedIncidentType ?? preselectedType,
+                          items: incidentTypes.map((incidentType) {
+                            return DropdownMenuItem<IncidentType>(
+                              value: incidentType,
+                              child: Text(incidentType.libelle ?? '${incidentType.id}'),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedIncidentType = value;
+                            });
+                          },
+                          validator: (value) =>
+                          value == null ? AppLocalizations.of(context)!.pleaseSelectCategory : null,
+                        );
                       },
-                      validator: (value) =>
-                      value == null ? AppLocalizations.of(context)!.pleaseSelectCategory : null,
                     ),
                     SizedBox(height: 20),
                     Column(

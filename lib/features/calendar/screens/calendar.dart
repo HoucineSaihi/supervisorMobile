@@ -805,7 +805,7 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                     duration: Duration(seconds: 2),
                                   ),
                                 );
-                                //return; // stop here
+                                return; // stop here
                               }
                               final shouldRefresh = await Navigator.push(
                                 context,

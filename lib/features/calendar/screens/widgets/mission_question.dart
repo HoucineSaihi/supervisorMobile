@@ -26,7 +26,7 @@ class QuestionsListWidget extends StatefulWidget {
   final int sousMissionID;
   final int modelResponseID;
   final int status;
-  final IncidentCategory preSelectedType;
+  final int? incidentTypeId;
 
   const QuestionsListWidget({
     Key? key,
@@ -36,7 +36,7 @@ class QuestionsListWidget extends StatefulWidget {
     required this.sousMissionID,
     required this.modelResponseID,
     required this.status,
-    required this.preSelectedType
+    this.incidentTypeId
   }) : super(key: key);
 
   @override
@@ -229,7 +229,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                     builder: (context) => QuestionResponseWidget(
                                       questionId: question.id ?? 0,
                                       modelResponseID: widget.modelResponseID,
-                                      preSelectedType: widget.preSelectedType,
+                                      preSelectedTypeId: question.incidentTypeId ?? widget.incidentTypeId,
                                     ),
                                   ),
                                 );
@@ -305,7 +305,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                             builder: (context) => EditQuestionResponse(
                                               questionId: question.id ?? 0,
                                               modeleReponseId: widget.modelResponseID,
-                                              preSelectedType: widget.preSelectedType,
+                                              preSelectedTypeId: question.incidentTypeId ?? widget.incidentTypeId,
                                             ),
                                           ),
                                         );
@@ -348,7 +348,7 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                   builder: (context) => EditQuestionResponse(
                                     questionId: question.id ?? 0,
                                     modeleReponseId: widget.modelResponseID,
-                                    preSelectedType: widget.preSelectedType,
+                                    preSelectedTypeId: question.incidentTypeId ?? widget.incidentTypeId,
 
                                   ),
                                 ),

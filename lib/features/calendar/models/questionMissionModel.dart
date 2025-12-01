@@ -1,5 +1,6 @@
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
+import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
 
 class QuestionMission {
   int id;
@@ -18,7 +19,9 @@ class QuestionMission {
   bool? incident;
   String? jointureFichier;
   int? coef_ID;
-  int? problemId ;
+  int? problemId;
+  int? incidentTypeId;
+  IncidentType? incidentType;
 
 
   QuestionMission({
@@ -36,10 +39,11 @@ class QuestionMission {
     this.selectedResponseValue,
     this.questionCoefficient,
     this.incident,
-    this.jointureFichier
-    ,this.coef_ID,
-    this.problemId
-
+    this.jointureFichier,
+    this.coef_ID,
+    this.problemId,
+    this.incidentTypeId,
+    this.incidentType
   });
 
   factory QuestionMission.fromJson(Map<String, dynamic> json) {
@@ -58,9 +62,11 @@ class QuestionMission {
       selectedResponseValue: json['selectedResponseValue'] as int?,
       questionCoefficient: (json['questionCoefficient'] as num?)?.toDouble(),
       incident: json['incident'] as bool?,
-        jointureFichier : json['jointureFichier'] as String ?,
-      coef_ID: json['coef_ID'] as int ?,
-        problemId: json['problemId'] as int ?
+      jointureFichier: json['jointureFichier'] as String?,
+      coef_ID: json['coef_ID'] as int?,
+      problemId: json['problemId'] as int?,
+      incidentTypeId: json['incidentTypeId'] as int?,
+      incidentType: json['incidentType'] != null ? IncidentType.fromJson(json['incidentType']) : null,
 
     );
   }
@@ -83,7 +89,9 @@ class QuestionMission {
       'incident': incident,
       'jointureFichier':jointureFichier,
       'coef_ID':coef_ID,
-      'problemId':problemId
+      'problemId':problemId,
+      'incidentTypeId': incidentTypeId,
+      'incidentType': incidentType?.toJson(),
 
     };
   }

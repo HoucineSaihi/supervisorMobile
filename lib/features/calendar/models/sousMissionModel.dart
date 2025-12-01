@@ -19,6 +19,7 @@ class SousMission {
   int? coefficient_ID;
   double? selectedCoefficient;
   IncidentCategory? typeIncident;
+  int? incidentTypeId;
 
   SousMission({
     this.id,
@@ -35,7 +36,8 @@ class SousMission {
     this.nombreQuestion,
     this.coefficient_ID,
     this.selectedCoefficient,
-    this.typeIncident
+    this.typeIncident,
+    this.incidentTypeId
   });
 
   factory SousMission.fromJson(Map<String, dynamic> json) {
@@ -57,6 +59,7 @@ class SousMission {
         coefficient_ID : (json['coefficient_ID'] as int?),
         selectedCoefficient : (json['selectedCoefficient'] as num?)?.toDouble(),
       typeIncident: json['typeIncident'] != null ? IncidentCategoryExtension.fromString(json['typeIncident']) : null,
+      incidentTypeId: json['incidentTypeId'] as int?,
 
     );
   }
@@ -78,6 +81,7 @@ class SousMission {
       'coefficient_ID':coefficient_ID,
       'selectedCoefficient':selectedCoefficient,
       'typeIncident': typeIncident?.value,
+      'incidentTypeId': incidentTypeId,
 
     };
   }
