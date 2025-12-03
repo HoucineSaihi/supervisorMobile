@@ -229,6 +229,8 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                       questionId: question.id ?? 0,
                                       modelResponseID: widget.modelResponseID,
                                       preSelectedType: widget.preSelectedType,
+                                      originalType: widget.preSelectedType,
+
                                     ),
                                   ),
                                 );

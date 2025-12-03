@@ -91,7 +91,8 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           reponseID: question.reponseID,
           selectedResponseValue: question.selectedResponseValue,
           jointureFichier: question.jointureFichier,
-          typeIncident: _selectedCategory ?? widget.preSelectedType
+          typeIncident: _selectedCategory ?? widget.preSelectedType,
+
 
       );
 
