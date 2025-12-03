@@ -24,9 +24,10 @@ class QuestionResponseWidget extends StatefulWidget {
   final int questionId;
   final int modelResponseID;
   final IncidentCategory preSelectedType;
+  final IncidentCategory originalType;
 
   const QuestionResponseWidget(
-      {Key? key, required this.questionId, required this.modelResponseID, required this.preSelectedType})
+      {Key? key, required this.questionId, required this.modelResponseID, required this.preSelectedType,required this.originalType})
       : super(key: key);
 
   @override
@@ -138,7 +139,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         reponseID: selectedResponseID,
         selectedResponseValue: selectedResponseVallue,
         jointureFichier: fileName,
-        typeIncident: _selectedCategory ?? widget.preSelectedType
+        typeIncident: _selectedCategory ?? widget.preSelectedType,
+        originalType: widget.originalType
 
     );
 
