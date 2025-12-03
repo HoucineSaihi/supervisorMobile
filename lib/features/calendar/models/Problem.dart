@@ -37,6 +37,7 @@ class Problem {
   int? StatusType;  // Renamed to match C# field 'StatusType'
   int? Status;  // Renamed to match C# field 'Status'
   IncidentCategory? type;
+  int? IncidentTypeId;
 
 
   Problem({
@@ -67,7 +68,8 @@ class Problem {
     this.departement,
     this.StatusType,
     this.Status,
-    this.type
+    this.type,
+    this.IncidentTypeId
   });
 
   // Adjust the factory constructor to reflect the C# names.
@@ -101,6 +103,7 @@ class Problem {
       StatusType: json['statusType'] as int?,
       Status: json['status'] as int?,
       type: json['type'] != null ? IncidentCategoryExtension.fromString(json['type']) : null,
+      IncidentTypeId: json['IncidentTypeId'] as int?,
 
     );
   }
@@ -135,6 +138,7 @@ class Problem {
       'StatusType': StatusType,
       'Status': Status,
       'type': type?.value,
+      'IncidentTypeId': IncidentTypeId,
 
     };
   }
