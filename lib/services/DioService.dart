@@ -8,7 +8,7 @@ import '../utils/Helpers/secure_storage_data.dart'; // ✅ Correct SecureStorage
 class DioService {
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://localhost:7000'
+      baseUrl: 'http://shopconnect.exoticgroup.net:7070'
           '/api', // ⚡ Replace with your real API URL http://shopconnect.exoticgroup.net:8080/api
       headers: {
         'Accept': 'application/json',

@@ -459,7 +459,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         SizedBox(height: 16),
                         DropdownButtonFormField<IncidentCategory>(
                           decoration: InputDecoration(
-                            labelText: "Type d'incident",
+                            labelText: "Incident Affecté à",
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
                           ),
                           value: _selectedCategory ?? widget.preSelectedType, // ✅ Use the preselected if nothing chosen yet
