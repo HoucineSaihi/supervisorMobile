@@ -16,6 +16,7 @@ import 'package:supervisormobile/features/calendar/models/missionResponseModel.d
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
 import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
+import 'package:supervisormobile/features/calendar/models/departement.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:dio/dio.dart' as dio;
@@ -797,6 +798,30 @@ class MissionService {
     } catch (e) {
       print('Error fetching incident types: $e');
       throw Exception('Error fetching incident types: $e');
+    }
+  }
+
+  Future<List<Departement>> getDepartements() async {
+    try {
+      final response = await _dio.get(
+        '/Departements', // ✅ Only relative path
+        options: dio.Options(
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = response.data; // ✅ Already parsed
+        List<Departement> departements = body.map((dynamic item) => Departement.fromJson(item)).toList();
+        return departements;
+      } else {
+        throw Exception('Failed to load departements. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching departements: $e');
+      throw Exception('Error fetching departements: $e');
     }
   }
 

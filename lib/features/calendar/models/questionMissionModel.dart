@@ -22,6 +22,7 @@ class QuestionMission {
   int? problemId;
   int? incidentTypeId;
   IncidentType? incidentType;
+  int? departement_id;
 
   QuestionMission({
     required this.id,
@@ -42,7 +43,8 @@ class QuestionMission {
     this.coef_ID,
     this.problemId,
     this.incidentTypeId,
-    this.incidentType
+    this.incidentType,
+    this.departement_id
   });
 
   factory QuestionMission.fromJson(Map<String, dynamic> json) {
@@ -157,6 +159,9 @@ class QuestionMission {
       final incidentTypeId = json['incidentTypeId'] as int?;
       print('✅ QuestionMission.fromJson: incidentTypeId = $incidentTypeId');
       
+      final departement_id = json['departement_id'] as int?;
+      print('✅ QuestionMission.fromJson: departement_id = $departement_id');
+      
       IncidentType? incidentType;
       try {
         incidentType = json['incidentType'] != null ? IncidentType.fromJson(json['incidentType']) : null;
@@ -188,6 +193,7 @@ class QuestionMission {
         problemId: problemId,
         incidentTypeId: incidentTypeId,
         incidentType: incidentType,
+        departement_id: departement_id,
       );
     } catch (e) {
       print('❌ QuestionMission.fromJson: Error parsing question: $e');
@@ -217,6 +223,7 @@ class QuestionMission {
       'problemId':problemId,
       'incidentTypeId': incidentTypeId,
       'incidentType': incidentType?.toJson(),
+      'departement_id': departement_id,
 
     };
   }

@@ -14,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/authentification/services/login_service.dart';
 import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
+import 'package:supervisormobile/features/calendar/models/departement.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
@@ -34,14 +35,15 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
   List<BoutiqueModel> _boutiques = [];
   List<Coefficient> _priorities = [];
+  List<Departement> _departements = [];
 
   final ImagePicker _picker = ImagePicker();
   List<XFile>? _imageFiles;
   dynamic jointureFichier;
   PlatformFile? infoFichier;
-  IncidentCategory? _selectedCategory = IncidentCategory.maintenance;
 
   BoutiqueModel? _selectedBoutique;
+  Departement? _selectedDepartement;
 
   Coefficient? _selectedPriority;
 
@@ -60,6 +62,12 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
     IncidentService().getAllCoefficients().then((coefficients) {
       setState(() {
         _priorities = coefficients; // Update the priorities list
+      });
+    });
+
+    MissionService().getDepartements().then((departements) {
+      setState(() {
+        _departements = departements; // Update the departements list
       });
     });
   }
@@ -110,6 +118,12 @@ Future<void> refreshData() async {
   IncidentService().getAllCoefficients().then((coefficients) {
     setState(() {
       _priorities = coefficients; // Update the priorities list
+    });
+  });
+
+  MissionService().getDepartements().then((departements) {
+    setState(() {
+      _departements = departements; // Update the departements list
     });
   });
 }
@@ -186,6 +200,7 @@ Future<void> refreshData() async {
   void _submitForm() async {
     if (_selectedBoutique != null &&
         _selectedPriority != null &&
+        _selectedDepartement != null &&
         _commentController.text.isNotEmpty &&
         _descriptionController.text.isNotEmpty) {
       setState(() => _isLoading = true);
@@ -257,7 +272,8 @@ Future<void> refreshData() async {
           commentaire: _commentController.text,
           description: _descriptionController.text,
           cluster: _selectedBoutique!.cluster,
-          type: _selectedCategory
+          type: IncidentCategory.all, // Initialize to "none" (all = Non Applicable)
+          departement_id: _selectedDepartement?.id
         );
 
         print("📦 Problem submitted: ${declaredProblem.toJson()}");
@@ -311,26 +327,6 @@ Future<void> refreshData() async {
                       tooltip: 'Refresh data',
                     ),
                   ],
-                ),
-                DropdownButtonFormField<IncidentCategory>(
-                  decoration: InputDecoration(
-                    labelText: "Type d'incident",
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                  ),
-                  value: _selectedCategory,
-                  items: IncidentCategory.values
-                      .map((category) => DropdownMenuItem(
-                    value: category,
-                    child: Text(category.label),
-                  ))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategory = value;
-                    });
-                  },
-                  validator: (value) =>
-                  value == null ? "Veuillez sélectionner un type" : null,
                 ),
 
                 const SizedBox(height: 16.0),
@@ -538,6 +534,32 @@ Future<void> refreshData() async {
                     }).toList(),
                   ),
                 ],
+
+                const SizedBox(height: 16.0),
+
+                // Department Dropdown
+                DropdownButtonFormField<Departement>(
+                  decoration: InputDecoration(
+                    labelText: "Département",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  items: _departements
+                      .map((departement) => DropdownMenuItem<Departement>(
+                            value: departement,
+                            child: Text('${departement.code ?? ''} - ${departement.libelle ?? ''}'),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDepartement = value;
+                    });
+                  },
+                  validator: (value) => value == null
+                      ? "Veuillez sélectionner un département"
+                      : null,
+                ),
 
                 const SizedBox(height: 16.0),
 

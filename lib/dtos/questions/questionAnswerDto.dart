@@ -9,9 +9,10 @@ class questionAnswerDto {
   int? IncidentTypeId;
   double? latitude;
   double? longitude;
+  int? departementId;
 
   questionAnswerDto({this.id,this.commentaire,this.fileName,this.actionId
-    ,this.reponseID,this.selectedResponseValue,this.jointureFichier,this.IncidentTypeId,this.latitude,this.longitude});
+    ,this.reponseID,this.selectedResponseValue,this.jointureFichier,this.IncidentTypeId,this.latitude,this.longitude,this.departementId});
 
   Map<String, dynamic> toJson() {
     return {
@@ -25,6 +26,7 @@ class questionAnswerDto {
       'IncidentTypeId': IncidentTypeId,
       'latitude': latitude,
       'longitude': longitude,
+      'departementId': departementId,
     };
   }
 
