@@ -1,5 +1,6 @@
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
+import 'package:supervisormobile/features/calendar/models/departement.dart';
 
 import '../../Profile/models/group_model.dart';
 import '../../incidents/models/Coefficient.dart';
@@ -33,7 +34,7 @@ class Problem {
   String? closing_comment;  // Renamed to match C# field 'closing_comment'
   double? cost;  // Changed to `double?` for C# compatibility
   int? departement_id;  // Renamed to match C# field 'departement_id'
-  Group? departement;  // Renamed to match C# field 'departement'
+  Departement? departement;  // Renamed to match C# field 'departement'
   int? StatusType;  // Renamed to match C# field 'StatusType'
   int? Status;  // Renamed to match C# field 'Status'
   IncidentCategory? type;
@@ -96,7 +97,7 @@ class Problem {
       closing_comment: json['closing_comment'] as String?,
       cost: json['cost'] != null ? (json['cost'] as num?)?.toDouble() : null,
       departement_id: json['departement_id'] != null ? (json['departement_id'] as num?)?.toInt() : null,
-      departement: json['departement'] != null ? Group.fromJson(json['departement']) : null,
+      departement: json['departement'] != null ? Departement.fromJson(json['departement']) : null,
       StatusType: json['statusType'] != null ? (json['statusType'] as num?)?.toInt() : null,
       Status: json['status'] != null ? (json['status'] as num?)?.toInt() : null,
       type: json['type'] != null ? IncidentCategoryExtension.fromString(json['type']) : null,
