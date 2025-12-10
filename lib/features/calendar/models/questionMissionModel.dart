@@ -22,7 +22,7 @@ class QuestionMission {
   int? problemId;
   int? incidentTypeId;
   IncidentType? incidentType;
-
+  int? departement_id;
 
   QuestionMission({
     required this.id,
@@ -43,7 +43,8 @@ class QuestionMission {
     this.coef_ID,
     this.problemId,
     this.incidentTypeId,
-    this.incidentType
+    this.incidentType,
+    this.departement_id
   });
 
   factory QuestionMission.fromJson(Map<String, dynamic> json) {
@@ -67,6 +68,7 @@ class QuestionMission {
       problemId: json['problemId'] as int?,
       incidentTypeId: json['incidentTypeId'] as int?,
       incidentType: json['incidentType'] != null ? IncidentType.fromJson(json['incidentType']) : null,
+      departement_id: json['departement_id'] as int?,
 
     );
   }
@@ -92,6 +94,7 @@ class QuestionMission {
       'problemId':problemId,
       'incidentTypeId': incidentTypeId,
       'incidentType': incidentType?.toJson(),
+      'departement_id': departement_id,
 
     };
   }

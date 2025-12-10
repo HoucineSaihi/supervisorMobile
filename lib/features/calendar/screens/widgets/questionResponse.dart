@@ -13,10 +13,12 @@ import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.d
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
+import 'package:supervisormobile/features/calendar/models/departement.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/incidents/models/IncidentCategory.dart';
+import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../dtos/questions/questionAnswerDto.dart'; // For accessing the temp directory
@@ -39,6 +41,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   late Future<List<ActionM>> _actionsFuture;
   late Future<List<ChoixReponseQuestion>> _listChoixReponse;
   late Future<List<IncidentType>> _incidentTypesFuture;
+  late Future<List<Departement>> _departementsFuture;
   final TextEditingController _commentController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -54,6 +57,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   PlatformFile? infoFichier;
   bool _isLoading = false;
   IncidentType? _selectedIncidentType;
+  Departement? _selectedDepartement;
   @override
   void initState() {
     super.initState();
@@ -62,9 +66,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
     _listChoixReponse =
         MissionService().getAllChoixReponse(widget.modelResponseID);
     _incidentTypesFuture = MissionService().getIncidentTypes();
+    _departementsFuture = MissionService().getDepartements();
     
-    // Initialize incident type from question data or preSelectedTypeId
-    _questionFuture.then((question) {
+    // Initialize incident type and department from question data
+    _questionFuture.then((question) async {
+      // Initialize incident type
       final incidentTypeId = question.incidentTypeId ?? widget.preSelectedTypeId;
       if (incidentTypeId != null) {
         _incidentTypesFuture.then((incidentTypes) {
@@ -78,6 +84,40 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
             });
           }
         });
+      }
+      
+      // Initialize department from question data or problem
+      int? departementId = question.departement_id;
+      
+      // If no departement_id in question, try to get from problem
+      if (departementId == null && question.incident == true && question.problemId != null) {
+        try {
+          var prb = await IncidentService().getProblemById(question.problemId!);
+          departementId = prb?.departement_id;
+          print('📋 Department from problem: $departementId');
+        } catch (e) {
+          print('❌ Error fetching problem for department: $e');
+        }
+      }
+      
+      if (departementId != null) {
+        try {
+          final departements = await _departementsFuture;
+          final matchingDepartement = departements.firstWhere(
+            (dept) => dept.id == departementId,
+            orElse: () => throw Exception('Department with id $departementId not found'),
+          );
+          if (mounted) {
+            setState(() {
+              _selectedDepartement = matchingDepartement;
+              print('✅ Department pre-selected: ${matchingDepartement.libelle} (id: ${matchingDepartement.id})');
+            });
+          }
+        } catch (e) {
+          print('❌ Error finding department: $e');
+        }
+      } else {
+        print('⚠️ No department ID found for question ${question.id}');
       }
     });
     
@@ -135,7 +175,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
         reponseID: selectedResponseID,
         selectedResponseValue: selectedResponseVallue,
         jointureFichier: fileName,
-        IncidentTypeId: _selectedIncidentType?.id ?? widget.preSelectedTypeId
+        IncidentTypeId: _selectedIncidentType?.id ?? widget.preSelectedTypeId,
+        departementId: _selectedDepartement?.id
 
       );
 
@@ -555,7 +596,40 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                           },
                         ),
                         SizedBox(height: 16),
+                        FutureBuilder<List<Departement>>(
+                          future: _departementsFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return Center(child: CircularProgressIndicator());
+                            } else if (snapshot.hasError) {
+                              return Center(child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
+                            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return Center(child: Text(AppLocalizations.of(context)!.noDataFound));
+                            }
 
+                            final departements = snapshot.data!;
+
+                            return DropdownButtonFormField<Departement>(
+                              decoration: InputDecoration(
+                                labelText: "Département",
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                              ),
+                              value: _selectedDepartement,
+                              items: departements.map((departement) => DropdownMenuItem(
+                                value: departement,
+                                child: Text('${departement.code ?? ''} - ${departement.libelle ?? ''}'),
+                              )).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedDepartement = value;
+                                });
+                              },
+                              validator: (value) =>
+                              value == null ? "Veuillez sélectionner un département" : null,
+                            );
+                          },
+                        ),
+                        SizedBox(height: 16),
                         Text(AppLocalizations.of(context)!.comment,
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),

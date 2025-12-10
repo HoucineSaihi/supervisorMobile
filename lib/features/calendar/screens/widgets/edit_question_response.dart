@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/models/questionMissionModel.dart';
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
+import 'package:supervisormobile/features/calendar/models/departement.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
@@ -41,6 +42,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   late Future<QuestionMission> _questionFuture;
   late Future<List<ActionM>> _actionsFuture;
   late Future<List<IncidentType>> _incidentTypesFuture;
+  late Future<List<Departement>> _departementsFuture;
   final TextEditingController _commentController = TextEditingController();
   ActionM? _selectedAction;
   bool _isEditingComment = false;
@@ -57,6 +59,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   bool hasDeletedFile = false;
   bool _isLoading = false;
   IncidentType? _selectedIncidentType;
+  Departement? _selectedDepartement;
 
   void updateQuestion() async {
     setState(() => _isLoading = true);
@@ -94,7 +97,8 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
           reponseID: question.reponseID,
           selectedResponseValue: question.selectedResponseValue,
           jointureFichier: question.jointureFichier,
-          IncidentTypeId: _selectedIncidentType?.id ?? widget.preSelectedTypeId
+          IncidentTypeId: _selectedIncidentType?.id ?? widget.preSelectedTypeId,
+          departementId: _selectedDepartement?.id
 
       );
 
@@ -145,33 +149,80 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
     _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
     _incidentTypesFuture = MissionService().getIncidentTypes();
+    _departementsFuture = MissionService().getDepartements();
     _questionFuture.then((questionDetails) {
       _commentController.text = questionDetails.commentaire ?? ''; // Initialize the controller
     }).catchError((error) {
       print('${AppLocalizations.of(context)!.failedToFetchQuestionDetails}: $error');
     });
-    _questionFuture.then((questionDetails)  {
+    _questionFuture.then((questionDetails) async {
       if (questionDetails.fileName != null && questionDetails.fileName!.isNotEmpty) {
         _fetchImage(questionDetails.fileName!);
       }
-      if(questionDetails.incident == true){
-        // Start the fetching of problem data and update _isLoading state when done
-        var prb =   IncidentService().getProblemById(questionDetails.problemId!);
-        prb.then((res) async {
-          // Fetch incident types and find matching one
+      
+      // Initialize incident type from question data or preSelectedTypeId
+      final incidentTypeId = questionDetails.incidentTypeId ?? widget.preSelectedTypeId;
+      if (incidentTypeId != null) {
+        final incidentTypes = await _incidentTypesFuture;
+        final matchingType = incidentTypes.firstWhere(
+          (type) => type.id == incidentTypeId,
+          orElse: () => incidentTypes.isNotEmpty ? incidentTypes.first : throw Exception('No incident types available'),
+        );
+        if (mounted) {
+          setState(() {
+            _selectedIncidentType = matchingType;
+          });
+        }
+      } else if(questionDetails.incident == true){
+        // Fallback: try to get from problem if no incidentTypeId
+        var prb = await IncidentService().getProblemById(questionDetails.problemId!);
+        if (prb?.type != null) {
+          // Try to find matching incident type by label (since Problem still uses IncidentCategory)
           final incidentTypes = await _incidentTypesFuture;
-          if (res?.type != null) {
-            // Try to find matching incident type by label (since Problem still uses IncidentCategory)
-            final matchingType = incidentTypes.firstWhere(
-              (type) => type.libelle?.toLowerCase() == res!.type!.label.toLowerCase(),
-              orElse: () => incidentTypes.isNotEmpty ? incidentTypes.first : throw Exception('No incident types available'),
-            );
+          final matchingType = incidentTypes.firstWhere(
+            (type) => type.libelle?.toLowerCase() == prb!.type!.label.toLowerCase(),
+            orElse: () => incidentTypes.isNotEmpty ? incidentTypes.first : throw Exception('No incident types available'),
+          );
+          if (mounted) {
             setState(() {
               _selectedIncidentType = matchingType;
             });
           }
-        });
+        }
+      }
 
+      // Initialize department from question data or problem
+      int? departementId = questionDetails.departement_id;
+      
+      // If no departement_id in question, try to get from problem
+      if (departementId == null && questionDetails.incident == true && questionDetails.problemId != null) {
+        try {
+          var prb = await IncidentService().getProblemById(questionDetails.problemId!);
+          departementId = prb?.departement_id;
+          print('📋 Department from problem: $departementId');
+        } catch (e) {
+          print('❌ Error fetching problem for department: $e');
+        }
+      }
+      
+      if (departementId != null) {
+        try {
+          final departements = await _departementsFuture;
+          final matchingDepartement = departements.firstWhere(
+            (dept) => dept.id == departementId,
+            orElse: () => throw Exception('Department with id $departementId not found'),
+          );
+          if (mounted) {
+            setState(() {
+              _selectedDepartement = matchingDepartement;
+              print('✅ Department pre-selected: ${matchingDepartement.libelle} (id: ${matchingDepartement.id})');
+            });
+          }
+        } catch (e) {
+          print('❌ Error finding department: $e');
+        }
+      } else {
+        print('⚠️ No department ID found for question ${questionDetails.id}');
       }
     }).catchError((error) {
       print('${AppLocalizations.of(context)!.failedToFetchQuestionDetails}: $error');
@@ -514,6 +565,40 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                           },
                           validator: (value) =>
                           value == null ? AppLocalizations.of(context)!.pleaseSelectCategory : null,
+                        );
+                      },
+                    ),
+                    SizedBox(height: 16),
+                    FutureBuilder<List<Departement>>(
+                      future: _departementsFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
+                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return Center(child: Text(AppLocalizations.of(context)!.noDataFound));
+                        }
+
+                        final departements = snapshot.data!;
+
+                        return DropdownButtonFormField<Departement>(
+                          decoration: InputDecoration(
+                            labelText: "Département",
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                          ),
+                          value: _selectedDepartement,
+                          items: departements.map((departement) => DropdownMenuItem(
+                            value: departement,
+                            child: Text('${departement.code ?? ''} - ${departement.libelle ?? ''}'),
+                          )).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedDepartement = value;
+                            });
+                          },
+                          validator: (value) =>
+                          value == null ? "Veuillez sélectionner un département" : null,
                         );
                       },
                     ),

@@ -1,5 +1,6 @@
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
+import 'package:supervisormobile/features/calendar/models/departement.dart';
 
 import '../../Profile/models/group_model.dart';
 import '../../incidents/models/Coefficient.dart';
@@ -33,7 +34,7 @@ class Problem {
   String? closing_comment;  // Renamed to match C# field 'closing_comment'
   double? cost;  // Changed to `double?` for C# compatibility
   int? departement_id;  // Renamed to match C# field 'departement_id'
-  Group? departement;  // Renamed to match C# field 'departement'
+  Departement? departement;  // Renamed to match C# field 'departement'
   int? StatusType;  // Renamed to match C# field 'StatusType'
   int? Status;  // Renamed to match C# field 'Status'
   IncidentCategory? type;
@@ -76,11 +77,11 @@ class Problem {
   factory Problem.fromJson(Map<String, dynamic> json) {
     return Problem(
       id: json['id'] ?? 0,
-      user_id: json['user_id'] as int?,
+      user_id: json['user_id'] != null ? (json['user_id'] as num?)?.toInt() : null,
       user: json['user'] != null ? UserModel.fromJson(json['user']) : null,
-      assigned_to: json['assigned_to'] as int?,
+      assigned_to: json['assigned_to'] != null ? (json['assigned_to'] as num?)?.toInt() : null,
       assignedUser: json['assignedUser'] != null ? UserModel.fromJson(json['assignedUser']) : null,
-      boutique_id: json['boutique_id'] ?? 0,
+      boutique_id: (json['boutique_id'] as num?)?.toInt() ?? 0,
       boutique: json['boutique'] != null ? BoutiqueModel.fromJson(json['boutique']) : null,
       description: json['description'] ?? '',
       commentaire: json['commentaire'] as String?,
@@ -88,22 +89,22 @@ class Problem {
       problem_image_after: json['problem_image_after'] as String?,
       joint_file_before: json['joint_file_before'] as String?,
       joint_file_after: json['joint_file_after'] as String?,
-      coef_id: json['coef_id'] as int?,
+      coef_id: json['coef_id'] != null ? (json['coef_id'] as num?)?.toInt() : null,
       coefficient: json['coefficient'] != null ? Coefficient.fromJson(json['coefficient']) : null,
-      cluster: json['cluster'] as int?,
-      origin: json['origin'] as int?,
+      cluster: json['cluster'] != null ? (json['cluster'] as num?)?.toInt() : null,
+      origin: json['origin'] != null ? (json['origin'] as num?)?.toInt() : null,
       declaration_date: json['declaration_date'] != null ? DateTime.tryParse(json['declaration_date']) : null,
       planified_to: json['planified_to'] != null ? DateTime.tryParse(json['planified_to']) : null,
       planified_at: json['planified_at'] != null ? DateTime.tryParse(json['planified_at']) : null,
       closed_date: json['closed_date'] != null ? DateTime.tryParse(json['closed_date']) : null,
       closing_comment: json['closing_comment'] as String?,
-      cost: json['cost'] != null ? (json['cost'] as num).toDouble() : null,
-      departement_id: json['departement_id'] as int?,
-      departement: json['departement'] != null ? Group.fromJson(json['departement']) : null,
-      StatusType: json['statusType'] as int?,
-      Status: json['status'] as int?,
+      cost: json['cost'] != null ? (json['cost'] as num?)?.toDouble() : null,
+      departement_id: json['departement_id'] != null ? (json['departement_id'] as num?)?.toInt() : null,
+      departement: json['departement'] != null ? Departement.fromJson(json['departement']) : null,
+      StatusType: json['statusType'] != null ? (json['statusType'] as num?)?.toInt() : null,
+      Status: json['status'] != null ? (json['status'] as num?)?.toInt() : null,
       type: json['type'] != null ? IncidentCategoryExtension.fromString(json['type']) : null,
-      IncidentTypeId: json['IncidentTypeId'] as int?,
+      IncidentTypeId: json['IncidentTypeId'] != null ? (json['IncidentTypeId'] as num?)?.toInt() : null,
 
     );
   }

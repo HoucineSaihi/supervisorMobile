@@ -12,7 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
-import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
+import 'package:supervisormobile/features/calendar/models/departement.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
@@ -34,7 +34,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
   List<BoutiqueModel> _boutiques = [];
   List<Coefficient> _priorities = [];
-  late Future<List<IncidentType>> _incidentTypesFuture;
+  List<Departement> _departements = [];
 
   final ImagePicker _picker = ImagePicker();
   File? jointureFichier;
@@ -42,19 +42,18 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
   List<XFile>? _imageFiles;
 
   BoutiqueModel? _selectedBoutique;
+  Departement? _selectedDepartement;
 
   Coefficient? _selectedPriority;
 
   final _storage = FlutterSecureStorage();
   bool _isLoading = false;
-  IncidentType? _selectedIncidentType;
 
 
 
   @override
   void initState(){
     super.initState();
-    _incidentTypesFuture = MissionService().getIncidentTypes();
     MissionService().getBoutiques().then((boutiques) {
       setState(() {
         _boutiques = boutiques; // Update the boutique list
@@ -64,6 +63,12 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
     IncidentService().getAllCoefficients().then((coefficients) {
       setState(() {
         _priorities = coefficients; // Update the priorities list
+      });
+    });
+
+    MissionService().getDepartements().then((departements) {
+      setState(() {
+        _departements = departements; // Update the departements list
       });
     });
   }
@@ -232,7 +237,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
 
 
 
-    if(_selectedBoutique != null && _selectedPriority != null && _selectedIncidentType != null && _commentController.text.isNotEmpty && _descriptionController.text.isNotEmpty ){
+    if(_selectedBoutique != null && _selectedPriority != null && _selectedDepartement != null && _commentController.text.isNotEmpty && _descriptionController.text.isNotEmpty ){
       setState(() => _isLoading = true);
 
       String? imageName;
@@ -275,7 +280,9 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
           commentaire:_commentController.text,
           description: _descriptionController.text ,
         cluster: _selectedBoutique!.cluster,
-          IncidentTypeId: _selectedIncidentType?.id
+          IncidentTypeId: null,
+          departement_id: _selectedDepartement?.id,
+          type: IncidentCategory.all
 
       );
 
@@ -322,44 +329,6 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 16.0),
-                FutureBuilder<List<IncidentType>>(
-                  future: _incidentTypesFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Center(
-                          child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
-                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(
-                          child: Text(AppLocalizations.of(context)!.noDataFound));
-                    }
-
-                    final incidentTypes = snapshot.data!;
-
-                    return DropdownButtonFormField<IncidentType>(
-                      decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!.incidentCategory,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                      ),
-                      value: _selectedIncidentType,
-                      items: incidentTypes.map((incidentType) {
-                        return DropdownMenuItem<IncidentType>(
-                          value: incidentType,
-                          child: Text(incidentType.libelle ?? '${incidentType.id}'),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedIncidentType = value;
-                        });
-                      },
-                      validator: (value) =>
-                      value == null ? AppLocalizations.of(context)!.pleaseSelectCategory : null,
-                    );
-                  },
-                ),
                 const SizedBox(height: 16.0),
                 DropdownButtonFormField<BoutiqueModel>(
                   decoration: InputDecoration(
@@ -548,6 +517,32 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                     }).toList(),
                   ),
                 ],
+
+                const SizedBox(height: 16.0),
+
+                // Department Dropdown
+                DropdownButtonFormField<Departement>(
+                  decoration: InputDecoration(
+                    labelText: "Département",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  items: _departements
+                      .map((departement) => DropdownMenuItem<Departement>(
+                            value: departement,
+                            child: Text('${departement.code ?? ''} - ${departement.libelle ?? ''}'),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDepartement = value;
+                    });
+                  },
+                  validator: (value) => value == null
+                      ? "Veuillez sélectionner un département"
+                      : null,
+                ),
 
                 const SizedBox(height: 16.0),
 
