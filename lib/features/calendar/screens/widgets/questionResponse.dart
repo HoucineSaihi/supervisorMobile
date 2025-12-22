@@ -549,53 +549,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         // Returns an empty widget when _selectedAction is null
 
                         SizedBox(height: 16),
-                        FutureBuilder<List<IncidentType>>(
-                          future: _incidentTypesFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return Center(child: CircularProgressIndicator());
-                            } else if (snapshot.hasError) {
-                              return Center(
-                                  child: Text('${AppLocalizations.of(context)!.error}: ${snapshot.error}'));
-                            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                              return Center(
-                                  child: Text(AppLocalizations.of(context)!.noDataFound));
-                            }
 
-                            final incidentTypes = snapshot.data!;
-                            
-                            // Find the preselected incident type if preSelectedTypeId is provided
-                            IncidentType? preselectedType;
-                            if (widget.preSelectedTypeId != null) {
-                              preselectedType = incidentTypes.firstWhere(
-                                (type) => type.id == widget.preSelectedTypeId,
-                                orElse: () => incidentTypes.first,
-                              );
-                            }
-
-                            return DropdownButtonFormField<IncidentType>(
-                              decoration: InputDecoration(
-                                labelText: AppLocalizations.of(context)!.incidentType,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                              ),
-                              value: _selectedIncidentType ?? preselectedType,
-                              items: incidentTypes.map((incidentType) {
-                                return DropdownMenuItem<IncidentType>(
-                                  value: incidentType,
-                                  child: Text(incidentType.libelle ?? '${incidentType.id}'),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedIncidentType = value;
-                                });
-                              },
-                              validator: (value) =>
-                              value == null ? AppLocalizations.of(context)!.pleaseSelectCategory : null,
-                            );
-                          },
-                        ),
-                        SizedBox(height: 16),
                         FutureBuilder<List<Departement>>(
                           future: _departementsFuture,
                           builder: (context, snapshot) {
