@@ -7,7 +7,22 @@ class SecureStorageService {
   final _storage = FlutterSecureStorage();
 
   Future<void> saveLoginData(Map<String, dynamic> data) async {
-    await _storage.write(key: 'token', value: data['token']);
+    // Extract token and ensure it's a string (handle if it's a list)
+    String? tokenValue;
+    final tokenData = data['token'];
+    if (tokenData is List && tokenData.isNotEmpty) {
+      tokenValue = tokenData.first.toString();
+    } else if (tokenData is String) {
+      tokenValue = tokenData;
+    } else {
+      tokenValue = tokenData?.toString();
+    }
+    // Clean token: remove any brackets if present
+    if (tokenValue != null) {
+      tokenValue = tokenValue.replaceAll(RegExp(r'^\[|\]$'), '');
+    }
+    
+    await _storage.write(key: 'token', value: tokenValue);
     await _storage.write(key: 'expires', value: data['expires']);
     await _storage.write(key: 'currentUserId', value: data['currentUserId'].toString());
     await _storage.write(key: 'currentName', value: data['currentName']);

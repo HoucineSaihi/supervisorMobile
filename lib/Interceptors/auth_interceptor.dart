@@ -8,9 +8,12 @@ class AuthInterceptor extends Interceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
     try {
       // Get the token from secure storage
-      final String? token = await _storage.read(key: 'token');
+      String? token = await _storage.read(key: 'token');
       
       if (token != null && token.isNotEmpty) {
+        // Clean token: remove any brackets if present (safety check)
+        token = token.replaceAll(RegExp(r'^\[|\]$'), '').trim();
+        
         // Add Authorization header with Bearer token
         options.headers['Authorization'] = 'Bearer $token';
         print('🔑 AuthInterceptor: Token added to request headers');
