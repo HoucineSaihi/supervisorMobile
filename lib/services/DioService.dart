@@ -6,7 +6,7 @@ import 'package:supervisormobile/interceptors/auth_interceptor.dart';
 class DioService {
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.168.200:7060/api', // ✅ Using the real API URL
+      baseUrl: 'http://192.168.2.57:7070/api', //
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',

@@ -882,7 +882,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
                       SizedBox(height: 8),
-                      OutlinedButton.icon(
+                      /*OutlinedButton.icon(
                         onPressed: _pickImages,
                         icon: Icon(Icons.add, size: 24),
                         label: Text(AppLocalizations.of(context)!.image),
@@ -890,7 +890,7 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                           minimumSize: Size(double.infinity, 48),
                         ),
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: 16),*/
 
                       OutlinedButton.icon(
                         onPressed: _openCamera,

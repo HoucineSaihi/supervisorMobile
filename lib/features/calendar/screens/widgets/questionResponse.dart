@@ -606,7 +606,7 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                         Text(AppLocalizations.of(context)!.attachImages,
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 8),
+                        /* SizedBox(height: 8),
                         OutlinedButton.icon(
                           onPressed: _pickImages,
                           icon: Icon(Icons.add, size: 24),
@@ -623,9 +623,8 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                           style: OutlinedButton.styleFrom(
                             minimumSize: Size(double.infinity, 48),
                           ),
-                        ),
+                        ), */
                         SizedBox(height: 16),
-
                         OutlinedButton.icon(
                           onPressed: _openCamera,
                           icon: Icon(Icons.camera_alt, size: 24),
