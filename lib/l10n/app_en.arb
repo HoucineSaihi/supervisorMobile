@@ -60,6 +60,8 @@
   "@calendar": {
     "description": "Calendar navigation label"
   },
+    "campaigns": "Campaigns",
+
   "incidents": "Incidents",
   "@incidents": {
     "description": "Incidents navigation label"
