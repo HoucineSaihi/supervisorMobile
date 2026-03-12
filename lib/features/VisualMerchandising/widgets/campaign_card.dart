@@ -138,8 +138,7 @@ class CampaignCard extends StatelessWidget {
 
   // ── 2. Ligne : anneau de progression + méta ──────────
   Widget _buildInfoRow() {
-    final stats = campaign.executionStats;
-    final pct   = (stats.completionRatio * 100).toInt();
+    final pct = (campaign.completionRatio * 100).toInt();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -155,8 +154,8 @@ class CampaignCard extends StatelessWidget {
                 CustomPaint(
                   size: const Size(64, 64),
                   painter: _RingPainter(
-                    progress: stats.completionRatio,
-                    color: _ringColor(stats.completionRatio),
+                    progress: campaign.completionRatio,
+                    color: _ringColor(campaign.completionRatio),
                   ),
                 ),
                 Column(
@@ -187,7 +186,7 @@ class CampaignCard extends StatelessWidget {
 
           const SizedBox(width: 14),
 
-          // Méta : zones + images + guideline
+          // Méta : zones + images + guidelines
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,18 +194,20 @@ class CampaignCard extends StatelessWidget {
                 _MetaRow(
                   icon: Icons.grid_view_rounded,
                   label:
-                  '${stats.completedZones} / ${stats.totalZones} zones complètes',
+                  '${campaign.totalCompletedZones} / ${campaign.totalZones} zones complètes',
                 ),
                 const SizedBox(height: 5),
                 _MetaRow(
                   icon: Icons.photo_camera_outlined,
-                  label: '${stats.totalImages} photos envoyées',
+                  label: '${campaign.totalImages} photos envoyées',
                 ),
                 const SizedBox(height: 5),
-                if (campaign.containsGuideline)
+                if (campaign.containsGuideline && campaign.executionsStats.isNotEmpty)
                   _MetaRow(
                     icon: Icons.picture_as_pdf_outlined,
-                    label: campaign.executionStats.guidelineName,
+                    label: campaign.executionsStats.length == 1
+                        ? (campaign.executionsStats.first.guidelineName ?? '${campaign.executionsStats.length} guideline')
+                        : '${campaign.executionsStats.length} guidelines',
                     color: const Color(0xFF1E5FAA),
                   ),
               ],
@@ -219,7 +220,13 @@ class CampaignCard extends StatelessWidget {
 
   // ── 3. Grille des zones ──────────────────────────────
   Widget _buildZoneGrid() {
-    final zones = campaign.executionStats.zoneStats;
+    // Si plusieurs guidelines, on les groupe par guideline
+    if (campaign.executionsStats.length > 1) {
+      return _buildGroupedZoneGrid();
+    }
+
+    // Sinon, affichage simple (un seul guideline)
+    final zones = campaign.executionsStats.firstOrNull?.zoneStats ?? [];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -237,8 +244,8 @@ class CampaignCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           GridView.builder(
-            shrinkWrap: true,        // important : la grid s'adapte à son contenu
-            physics: const NeverScrollableScrollPhysics(), // scroll géré par le parent
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               crossAxisSpacing: 8,
@@ -253,10 +260,43 @@ class CampaignCard extends StatelessWidget {
     );
   }
 
+  // ── Grille groupée par guideline ──────────────────────
+  Widget _buildGroupedZoneGrid() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'PROGRESSION PAR ZONE',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF8AB2D4),
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Liste des guidelines avec leurs zones
+          ...campaign.executionsStats.asMap().entries.map((entry) {
+            final index = entry.key;
+            final guideline = entry.value;
+            final isLast = index == campaign.executionsStats.length - 1;
+
+            return _GuidelineSection(
+              guideline: guideline,
+              guidelineIndex: index + 1,
+              isLast: isLast,
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   // ── 4. Barre de progression globale ─────────────────
   Widget _buildProgressBar() {
-    final stats  = campaign.executionStats;
-    final pct    = (stats.completionRatio * 100).toInt();
+    final pct = (campaign.completionRatio * 100).toInt();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -287,11 +327,11 @@ class CampaignCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: stats.completionRatio,
+              value: campaign.completionRatio,
               minHeight: 7,
               backgroundColor: const Color(0xFFE2EEF8),
               valueColor: AlwaysStoppedAnimation<Color>(
-                _ringColor(stats.completionRatio),
+                _ringColor(campaign.completionRatio),
               ),
             ),
           ),
@@ -302,16 +342,20 @@ class CampaignCard extends StatelessWidget {
 
   // ── 5. Footer : boutons ──────────────────────────────
   Widget _buildFooter() {
+    final hasMultipleGuidelines = campaign.executionsStats.length > 1;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          // Bouton Guideline
+          // Bouton Guideline(s)
           if (campaign.containsGuideline)
             OutlinedButton.icon(
               onPressed: onGuideline,
               icon: const Icon(Icons.picture_as_pdf_outlined, size: 15),
-              label: const Text('Guideline'),
+              label: Text(hasMultipleGuidelines 
+                  ? 'Guidelines (${campaign.executionsStats.length})'
+                  : 'Guideline'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF1E5FAA),
                 side: const BorderSide(color: Color(0xFFB8D9F5)),
@@ -492,4 +536,135 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) => old.progress != progress;
+}
+
+// ── Widget : Section d'un guideline avec ses zones ──────
+class _GuidelineSection extends StatelessWidget {
+  final ExecutionStatsDto guideline;
+  final int guidelineIndex;
+  final bool isLast;
+
+  const _GuidelineSection({
+    required this.guideline,
+    required this.guidelineIndex,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (guideline.completionRatio * 100).toInt();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header du guideline
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0F6FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2EEF8)),
+          ),
+          child: Row(
+            children: [
+              // Badge numéro
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E5FAA),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    '$guidelineIndex',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Nom du guideline
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      guideline.guidelineName ?? 'Guideline $guidelineIndex',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F2D5E),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (guideline.guidelineDescription != null)
+                      Text(
+                        guideline.guidelineDescription!,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF7BACD8),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Progression du guideline
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2EEF8)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$pct%',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E5FAA),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '(${guideline.completedZones}/${guideline.totalZones})',
+                      style: const TextStyle(
+                        fontSize: 9,
+                        color: Color(0xFF7BACD8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Grille des zones de ce guideline
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 0.9,
+          ),
+          itemCount: guideline.zoneStats.length,
+          itemBuilder: (_, i) => ZoneTile(zone: guideline.zoneStats[i]),
+        ),
+        if (!isLast) const SizedBox(height: 16),
+      ],
+    );
+  }
 }

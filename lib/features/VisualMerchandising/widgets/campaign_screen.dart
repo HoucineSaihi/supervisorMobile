@@ -4,6 +4,7 @@ import 'package:supervisormobile/features/VisualMerchandising/widgets/site_selec
 
 import '../../../controllers/campaign_controller.dart';
 import 'campaign_card.dart';
+import 'guideline_handler.dart';
 
 
 class CampaignScreen extends StatelessWidget {
@@ -158,7 +159,7 @@ class CampaignScreen extends StatelessWidget {
                           // Get.to(() => ZoneScreen(campaign: controller.campaigns[index]));
                         },
                         onGuideline: () {
-                          // TODO: ouvrir le PDF
+                          GuidelineHandler.openGuideline(context, controller.campaigns[index]);
                         },
                       ),
                     ),

@@ -15,48 +15,50 @@ final List<VmCampaignDto> fakeCampaigns = [
     libelle: 'Collection Été 2025',
     zoneCount: 5,
     containsGuideline: true,
-    executionStats: ExecutionStatsDto(
-      guidelineId: 10,
-      guidelineName: 'Guideline Vitrine Principale',
-      guidelineDescription: 'Instructions pour la mise en place de la vitrine',
-      zoneStats: [
-        ZoneStatDto(
-          zoneId: 1,
-          zoneName: 'Vitrine Principale',
-          zoneCode: 'VP001',
-          imagesCount: 2,
-          isFinished: true,
-        ),
-        ZoneStatDto(
-          zoneId: 2,
-          zoneName: 'Wall Display',
-          zoneCode: 'WD002',
-          imagesCount: 3,
-          isFinished: true,
-        ),
-        ZoneStatDto(
-          zoneId: 3,
-          zoneName: 'Espace Assise',
-          zoneCode: 'EA003',
-          imagesCount: 1,
-          isFinished: true,
-        ),
-        ZoneStatDto(
-          zoneId: 4,
-          zoneName: 'PLV Entrée',
-          zoneCode: 'PE004',
-          imagesCount: 1,
-          isFinished: false, // partielle
-        ),
-        ZoneStatDto(
-          zoneId: 5,
-          zoneName: 'Zone Caisse',
-          zoneCode: 'ZC005',
-          imagesCount: 0,
-          isFinished: false, // vide
-        ),
-      ],
-    ),
+    executionsStats: [
+      ExecutionStatsDto(
+        guidelineId: 10,
+        guidelineName: 'Guideline Vitrine Principale',
+        guidelineDescription: 'Instructions pour la mise en place de la vitrine',
+        zoneStats: [
+          ZoneStatDto(
+            zoneId: 1,
+            zoneName: 'Vitrine Principale',
+            zoneCode: 'VP001',
+            imagesCount: 2,
+            isFinished: true,
+          ),
+          ZoneStatDto(
+            zoneId: 2,
+            zoneName: 'Wall Display',
+            zoneCode: 'WD002',
+            imagesCount: 3,
+            isFinished: true,
+          ),
+          ZoneStatDto(
+            zoneId: 3,
+            zoneName: 'Espace Assise',
+            zoneCode: 'EA003',
+            imagesCount: 1,
+            isFinished: true,
+          ),
+          ZoneStatDto(
+            zoneId: 4,
+            zoneName: 'PLV Entrée',
+            zoneCode: 'PE004',
+            imagesCount: 1,
+            isFinished: false, // partielle
+          ),
+          ZoneStatDto(
+            zoneId: 5,
+            zoneName: 'Zone Caisse',
+            zoneCode: 'ZC005',
+            imagesCount: 0,
+            isFinished: false, // vide
+          ),
+        ],
+      ),
+    ],
   ),
   VmCampaignDto(
     campaignId: 2,
@@ -65,25 +67,27 @@ final List<VmCampaignDto> fakeCampaigns = [
     libelle: 'Rentrée Automne 2025',
     zoneCount: 3,
     containsGuideline: true,
-    executionStats: ExecutionStatsDto(
-      guidelineId: 15,
-      guidelineName: 'Guideline Rentrée',
-      guidelineDescription: 'Mise en place pour la collection automne',
-      zoneStats: [
-        ZoneStatDto(
-          zoneId: 1, zoneName: 'Vitrine',
-          zoneCode: 'VP001', imagesCount: 0, isFinished: false,
-        ),
-        ZoneStatDto(
-          zoneId: 6, zoneName: 'Zone Réception',
-          zoneCode: 'ZR006', imagesCount: 0, isFinished: false,
-        ),
-        ZoneStatDto(
-          zoneId: 7, zoneName: 'Zone Événement',
-          zoneCode: 'ZE007', imagesCount: 0, isFinished: false,
-        ),
-      ],
-    ),
+    executionsStats: [
+      ExecutionStatsDto(
+        guidelineId: 15,
+        guidelineName: 'Guideline Rentrée',
+        guidelineDescription: 'Mise en place pour la collection automne',
+        zoneStats: [
+          ZoneStatDto(
+            zoneId: 1, zoneName: 'Vitrine',
+            zoneCode: 'VP001', imagesCount: 0, isFinished: false,
+          ),
+          ZoneStatDto(
+            zoneId: 6, zoneName: 'Zone Réception',
+            zoneCode: 'ZR006', imagesCount: 0, isFinished: false,
+          ),
+          ZoneStatDto(
+            zoneId: 7, zoneName: 'Zone Événement',
+            zoneCode: 'ZE007', imagesCount: 0, isFinished: false,
+          ),
+        ],
+      ),
+    ],
   ),
 ];
 

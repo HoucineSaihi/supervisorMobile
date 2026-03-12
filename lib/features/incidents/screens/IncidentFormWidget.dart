@@ -279,7 +279,9 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
           joint_file_before: fileName,
           commentaire:_commentController.text,
           description: _descriptionController.text ,
-        cluster: _selectedBoutique!.cluster,
+        cluster: _selectedBoutique!.cluster != null 
+            ? int.tryParse(_selectedBoutique!.cluster!) 
+            : null,
           IncidentTypeId: null,
           departement_id: _selectedDepartement?.id,
           type: IncidentCategory.all

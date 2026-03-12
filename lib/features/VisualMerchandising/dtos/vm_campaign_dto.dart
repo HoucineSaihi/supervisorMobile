@@ -5,16 +5,32 @@
 // ─────────────────────────────────────────────────────────
 
 // ── Statut de la campagne ──────────────────────────────
-// On convertit l'entier du backend en enum lisible.
-// 0 = pas encore démarrée, 1 = en cours
+// On convertit la string du backend en enum lisible.
 enum CampaignStatus {
-  notStarted, // status == 0
-  inProgress, // status == 1
-  submitted,  // status == 2 (pour plus tard)
+  notStarted, // 'Planified'
+  inProgress, // 'InProgress'
+  submitted,  // 'Completed'
+  cancelled,  // 'Cancelled'
   unknown,
 }
 
-// Helper : convertit l'int du JSON en enum
+// Helper : convertit la string du JSON en enum
+CampaignStatus campaignStatusFromString(String value) {
+  switch (value.toLowerCase()) {
+    case 'planified':
+      return CampaignStatus.notStarted;
+    case 'inprogress':
+      return CampaignStatus.inProgress;
+    case 'completed':
+      return CampaignStatus.submitted;
+    case 'cancelled':
+      return CampaignStatus.cancelled;
+    default:
+      return CampaignStatus.unknown;
+  }
+}
+
+// Helper : convertit l'int du JSON en enum (pour compatibilité)
 CampaignStatus campaignStatusFromInt(int value) {
   switch (value) {
     case 0:
@@ -23,6 +39,8 @@ CampaignStatus campaignStatusFromInt(int value) {
       return CampaignStatus.inProgress;
     case 2:
       return CampaignStatus.submitted;
+    case 3:
+      return CampaignStatus.cancelled;
     default:
       return CampaignStatus.unknown;
   }
@@ -69,14 +87,14 @@ class ZoneStatDto {
 // Contient les infos du guideline + la liste des zones
 class ExecutionStatsDto {
   final int guidelineId;
-  final String guidelineName;
-  final String guidelineDescription;
+  final String? guidelineName;
+  final String? guidelineDescription;
   final List<ZoneStatDto> zoneStats;
 
   const ExecutionStatsDto({
     required this.guidelineId,
-    required this.guidelineName,
-    required this.guidelineDescription,
+    this.guidelineName,
+    this.guidelineDescription,
     required this.zoneStats,
   });
 
@@ -89,8 +107,8 @@ class ExecutionStatsDto {
 
     return ExecutionStatsDto(
       guidelineId:          json['guidelineId']          as int,
-      guidelineName:        json['guidelineName']        as String,
-      guidelineDescription: json['guidelineDescription'] as String,
+      guidelineName:        json['guidelineName']        as String?,
+      guidelineDescription: json['guidelineDescription'] as String?,
       zoneStats:            zones,
     );
   }
@@ -121,7 +139,7 @@ class VmCampaignDto {
   final String libelle;
   final int zoneCount;
   final bool containsGuideline;
-  final ExecutionStatsDto executionStats;
+  final List<ExecutionStatsDto> executionsStats; // Maintenant une liste
 
   const VmCampaignDto({
     required this.campaignId,
@@ -130,20 +148,36 @@ class VmCampaignDto {
     required this.libelle,
     required this.zoneCount,
     required this.containsGuideline,
-    required this.executionStats,
+    required this.executionsStats,
   });
 
   factory VmCampaignDto.fromJson(Map<String, dynamic> json) {
+    // Le status peut venir comme string ou int (pour compatibilité)
+    CampaignStatus status;
+    if (json['status'] is String) {
+      status = campaignStatusFromString(json['status'] as String);
+    } else if (json['status'] is int) {
+      // Fallback pour compatibilité si jamais c'est encore un int
+      status = campaignStatusFromInt(json['status'] as int);
+    } else {
+      status = CampaignStatus.unknown;
+    }
+
+    // executionsStats est maintenant une liste
+    final rawExecutionsStats = json['executionsStats'] as List<dynamic>;
+    final executionsStatsList = rawExecutionsStats
+        .map((e) => ExecutionStatsDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+
     return VmCampaignDto(
       campaignId:        json['compaignId']       as int,
-      status:            campaignStatusFromInt(json['status'] as int),
+      status:            status,
       // Le backend envoie une string ISO 8601 → on la parse en DateTime
       endDate:           DateTime.parse(json['endDate'] as String),
       libelle:           json['libelle']           as String,
       zoneCount:         json['zoneCount']         as int,
       containsGuideline: json['containsGuideline'] as bool,
-      executionStats:    ExecutionStatsDto.fromJson(
-          json['executionsStats'] as Map<String, dynamic>),
+      executionsStats:   executionsStatsList,
     );
   }
 
@@ -155,7 +189,39 @@ class VmCampaignDto {
   // Est-ce que la deadline est dépassée ?
   bool get isOverdue => DateTime.now().isAfter(endDate);
 
-  // Peut-on soumettre ? (toutes les zones finies)
-  bool get canSubmit =>
-      executionStats.zoneStats.every((z) => z.isFinished);
+  // Toutes les zones de tous les guidelines
+  List<ZoneStatDto> get allZones {
+    return executionsStats.expand((stats) => stats.zoneStats).toList();
+  }
+
+  // Nombre total de zones complétées (tous guidelines confondus)
+  int get totalCompletedZones {
+    return allZones.where((z) => z.isFinished).length;
+  }
+
+  // Nombre total de zones (tous guidelines confondus)
+  int get totalZones {
+    return allZones.length;
+  }
+
+  // Total des photos uploadées (tous guidelines confondus)
+  int get totalImages {
+    return allZones.fold(0, (sum, z) => sum + z.imagesCount);
+  }
+
+  // Ratio de complétion global (0.0 → 1.0)
+  double get completionRatio {
+    return totalZones == 0 ? 0.0 : totalCompletedZones / totalZones;
+  }
+
+  // Peut-on soumettre ? (toutes les zones de tous les guidelines finies)
+  bool get canSubmit {
+    return allZones.every((z) => z.isFinished);
+  }
+
+  // Helper pour compatibilité : retourne le premier guideline (si existe)
+  // Utilisé pour l'affichage dans certains widgets
+  ExecutionStatsDto? get firstGuideline {
+    return executionsStats.isNotEmpty ? executionsStats.first : null;
+  }
 }

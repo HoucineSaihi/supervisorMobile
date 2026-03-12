@@ -18,7 +18,7 @@ class BoutiqueModel {
   String? passwordCegid;
   int? groupId;
   Group? group;
-  int? cluster;
+  String? cluster;
 
   BoutiqueModel({
     required this.id,
@@ -60,7 +60,11 @@ class BoutiqueModel {
       passwordCegid: json['passwordCegid'] as String?,
       groupId: json['groupId'] as int?,
       group: json['group'] != null ? Group.fromJson(json['group']) : null,
-      cluster: json['cluster'] as int
+      cluster: json['cluster'] != null 
+          ? (json['cluster'] is String 
+              ? json['cluster'] as String 
+              : json['cluster'].toString())
+          : null
     );
   }
 
