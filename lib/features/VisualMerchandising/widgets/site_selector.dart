@@ -28,6 +28,34 @@ class SiteSelector extends StatelessWidget {
           ),
         ),
 
+        // Résumé du nombre de boutiques chargées
+        Obx(() {
+          final count = controller.boutiques.length;
+          final isLoading = controller.isLoadingBoutiques.value;
+
+          String text;
+          if (isLoading) {
+            text = 'Chargement des boutiques...';
+          } else if (count == 0) {
+            text = 'Aucune boutique chargée';
+          } else if (count == 1) {
+            text = '1 boutique disponible';
+          } else {
+            text = '$count boutiques disponibles';
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 4),
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 10,
+                color: Color(0xFF7BACD8),
+              ),
+            ),
+          );
+        }),
+
         // Liste horizontale des boutiques ou Selector
         Obx(() {
           // Afficher un loader pendant le chargement
@@ -104,30 +132,19 @@ class SiteSelector extends StatelessWidget {
                         )]
                             : [],
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            site.libelle ?? site.code ?? 'Boutique ${site.id}',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF0F2D5E),
-                            ),
+                      child: Center(
+                        child: Text(
+                          site.libelle ?? site.code ?? 'Boutique ${site.id}',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF0F2D5E),
                           ),
-                          Text(
-                            site.city ?? '',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isSelected
-                                  ? Colors.white.withOpacity(0.7)
-                                  : const Color(0xFF7BACD8),
-                            ),
-                          ),
-                        ],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                   );
@@ -196,37 +213,21 @@ class _SearchableSelector extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selectedSite != null
-                          ? (selectedSite.libelle ??
-                              selectedSite.code ??
-                              'Boutique ${selectedSite.id}')
-                          : 'Sélectionner une boutique',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: selectedSite != null
-                            ? const Color(0xFF0F2D5E)
-                            : const Color(0xFF7BACD8),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (selectedSite != null && selectedSite.city != null)
-                      Text(
-                        selectedSite.city!,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF7BACD8),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
+                child: Text(
+                  selectedSite != null
+                      ? (selectedSite.libelle ??
+                          selectedSite.code ??
+                          'Boutique ${selectedSite.id}')
+                      : 'Sélectionner une boutique',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: selectedSite != null
+                        ? const Color(0xFF0F2D5E)
+                        : const Color(0xFF7BACD8),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),

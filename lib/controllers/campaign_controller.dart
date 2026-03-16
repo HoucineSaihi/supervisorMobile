@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../features/VisualMerchandising/dtos/vm_campaign_dto.dart';
@@ -29,6 +30,9 @@ class CampaignController extends GetxController {
 
   @override
   void onInit() {
+    if (kDebugMode) {
+      print('📲 CampaignController.onInit() called');
+    }
     super.onInit();
     // Charger les boutiques au démarrage
     loadBoutiques();
@@ -36,6 +40,17 @@ class CampaignController extends GetxController {
 
   // ── Charger les boutiques ──────────────────────────────
   Future<void> loadBoutiques() async {
+    // Éviter les appels concurrents
+    if (isLoadingBoutiques.value) {
+      if (kDebugMode) {
+        print('⏳ CampaignController.loadBoutiques() — already loading, skip');
+      }
+      return;
+    }
+
+    if (kDebugMode) {
+      print('📡 CampaignController.loadBoutiques() — start');
+    }
     isLoadingBoutiques.value = true;
     errorMessage.value = '';
 
@@ -44,6 +59,9 @@ class CampaignController extends GetxController {
       // On passe un tableau vide car le paramètre n'est pas utilisé
       final boutiquesList = await _vmService.getBoutiquesByUserIds([]);
       boutiques.assignAll(boutiquesList);
+      if (kDebugMode) {
+        print('✅ CampaignController.loadBoutiques() — loaded ${boutiquesList.length} boutiques');
+      }
     } catch (e) {
       errorMessage.value = 'Erreur lors du chargement des boutiques: ${e.toString()}';
       print('❌ Error loading boutiques: $e');
@@ -54,6 +72,9 @@ class CampaignController extends GetxController {
 
   // ── Sélectionner une boutique ──────────────────────────
   void selectSite(BoutiqueModel site) {
+    if (kDebugMode) {
+      print('🛍 CampaignController.selectSite() — id=${site.id}, name=${site.libelle ?? site.code}');
+    }
     selectedSite.value = site;
     loadCampaigns(); // charge les campagnes dès qu'on choisit un site
   }
@@ -61,8 +82,15 @@ class CampaignController extends GetxController {
   // ── Charger les campagnes ──────────────────────────────
   Future<void> loadCampaigns() async {
     if (selectedSite.value == null) {
+      if (kDebugMode) {
+        print('⚠️ CampaignController.loadCampaigns() — no selectedSite, abort');
+      }
       campaigns.clear();
       return;
+    }
+
+    if (kDebugMode) {
+      print('📡 CampaignController.loadCampaigns() — start for siteId=${selectedSite.value!.id}');
     }
 
     isLoading.value = true;
@@ -71,6 +99,9 @@ class CampaignController extends GetxController {
     try {
       final campaignsList = await _vmService.getCampaignsBySites([selectedSite.value!.id]);
       campaigns.assignAll(campaignsList);
+      if (kDebugMode) {
+        print('✅ CampaignController.loadCampaigns() — loaded ${campaignsList.length} campaigns');
+      }
     } catch (e) {
       errorMessage.value = 'Erreur lors du chargement des campagnes: ${e.toString()}';
       campaigns.clear();

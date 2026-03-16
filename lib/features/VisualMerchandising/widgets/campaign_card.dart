@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../dtos/vm_campaign_dto.dart';
 import 'zone_tile.dart';
 
@@ -457,20 +458,30 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     String label;
     Color  bg;
 
     switch (status) {
       case CampaignStatus.inProgress:
-        label = '● En cours';
+        label = '● ${l10n.inProgress}';
         bg    = Colors.white.withOpacity(0.22);
         break;
       case CampaignStatus.submitted:
-        label = '✓ Soumis';
+        label = '✓ ${l10n.completed}';
         bg    = const Color(0xFF27AE73).withOpacity(0.3);
         break;
+      case CampaignStatus.cancelled:
+        label = '✕ ${l10n.cancelled}';
+        bg    = const Color(0xFF8B0000).withOpacity(0.25);
+        break;
+      case CampaignStatus.notStarted:
+        label = '○ ${l10n.planned}';
+        bg    = Colors.white.withOpacity(0.15);
+        break;
       default:
-        label = '○ Non démarré';
+        label = '○ ${l10n.unknown}';
         bg    = Colors.white.withOpacity(0.15);
     }
 

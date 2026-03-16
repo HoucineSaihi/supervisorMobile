@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/services/DioService.dart';
 import '../dtos/vm_campaign_dto.dart';
@@ -18,6 +19,11 @@ class VmService {
     try {
       if (siteIds.isEmpty) {
         throw Exception('At least one site ID is required.');
+      }
+
+      if (kDebugMode) {
+        final baseUrl = _dio.options.baseUrl;
+        print('📡 VmService.getCampaignsBySites() → POST $baseUrl/VmCompaign/by-sites body=$siteIds');
       }
 
       final response = await _dio.post(
@@ -54,6 +60,11 @@ class VmService {
   /// Note: The endpoint uses the authenticated user's ID from the token
   Future<List<BoutiqueModel>> getBoutiquesByUserIds(List<int> userIds) async {
     try {
+      if (kDebugMode) {
+        final baseUrl = _dio.options.baseUrl;
+        print('📡 VmService.getBoutiquesByUserIds() → POST $baseUrl/Boutiques/getBoutiquesByUserIDs body=$userIds');
+      }
+
       final response = await _dio.post(
         '/Boutiques/getBoutiquesByUserIDs',
         data: userIds,
@@ -86,6 +97,11 @@ class VmService {
   /// GET /api/VmCompaign/guidelines/{guidelineId}/assets
   Future<List<VmGuidelineAsset>> getGuidelineAssets(int guidelineId) async {
     try {
+      if (kDebugMode) {
+        final baseUrl = _dio.options.baseUrl;
+        print('📡 VmService.getGuidelineAssets() → GET $baseUrl/VmCompaign/guidelines/$guidelineId/assets');
+      }
+
       final response = await _dio.get(
         '/VmCompaign/guidelines/$guidelineId/assets',
       );
