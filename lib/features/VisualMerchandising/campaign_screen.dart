@@ -3,9 +3,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/site_selector.dart';
 
-import '../../../controllers/campaign_controller.dart';
-import 'campaign_card.dart';
-import 'guideline_handler.dart';
+import '../../controllers/campaign_controller.dart';
+import 'execution_screen.dart';
+import 'widgets/campaign_card.dart';
+import 'widgets/guideline_handler.dart';
 
 
 class CampaignScreen extends StatelessWidget {
@@ -185,8 +186,17 @@ class CampaignScreen extends StatelessWidget {
                       child: CampaignCard(
                         campaign: controller.campaigns[index],
                         onEnter: () {
-                          // TODO: naviguer vers ZoneScreen
-                          // Get.to(() => ZoneScreen(campaign: controller.campaigns[index]));
+                          final selectedSite = controller.selectedSite.value;
+                          if (selectedSite == null) {
+                            return;
+                          }
+                          Get.to(
+                                () => ExecutionScreen(
+                              campaign: controller.campaigns[index],
+                              siteId: selectedSite.id,
+                            ),
+                            transition: Transition.rightToLeft,
+                          );
                         },
                         onGuideline: () {
                           GuidelineHandler.openGuideline(context, controller.campaigns[index]);

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import '../dtos/vm_campaign_dto.dart';
+import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
 import 'zone_tile.dart';
 
 class CampaignCard extends StatelessWidget {

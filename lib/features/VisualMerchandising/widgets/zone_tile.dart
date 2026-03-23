@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
 
-import '../dtos/vm_campaign_dto.dart';
 
 class ZoneTile extends StatelessWidget {
   final ZoneStatDto zone;

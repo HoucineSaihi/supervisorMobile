@@ -8,7 +8,7 @@ import 'package:supervisormobile/utils/Helpers/helper_functions.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import 'features/VisualMerchandising/widgets/campaign_screen.dart';
+import 'features/VisualMerchandising/campaign_screen.dart';
 
 class NavigationMenu extends StatelessWidget {
   const NavigationMenu({super.key});

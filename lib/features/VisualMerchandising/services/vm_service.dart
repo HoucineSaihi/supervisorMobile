@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/services/DioService.dart';
 import '../dtos/vm_campaign_dto.dart';
+import '../dtos/vm_campaign_execution_dto.dart';
 import '../dtos/vm_guideline_asset_dto.dart';
 import '../../calendar/models/boutiqueModel.dart';
 import 'guideline_cache_manager.dart';
@@ -51,6 +52,62 @@ class VmService {
       throw Exception('An error occurred while fetching campaigns: ${e.message}');
     } catch (e) {
       throw Exception('An error occurred while fetching campaigns: $e');
+    }
+  }
+
+  Future<VmCampaignExecutionDto> getCampaignExecutionBySite({
+    required int campaignId,
+    required int siteId,
+  }) async {
+    try {
+      if (campaignId <= 0 || siteId <= 0) {
+        throw Exception('Campaign ID and site ID must be greater than zero.');
+      }
+
+      final response = await _dio.get(
+        '/VmCompaign/$campaignId/sites/$siteId/executions',
+      );
+
+      if (response.statusCode == 200) {
+        return VmCampaignExecutionDto.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+      }
+      throw Exception(
+        'Failed to load campaign executions. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+        throw Exception('Request was cancelled');
+      }
+      if (e.response != null) {
+        final statusCode = e.response?.statusCode;
+        final data = e.response?.data;
+        final message = data is Map<String, dynamic>
+            ? data['message'] as String?
+            : null;
+
+        if (statusCode == 404) {
+          throw Exception(
+            message ?? 'Campaign not found or not linked to the provided site.',
+          );
+        }
+        if (statusCode == 400) {
+          throw Exception(
+            message ?? 'Campaign ID and site ID must be greater than zero.',
+          );
+        }
+        throw Exception(
+          message ?? 'An error occurred while retrieving campaign executions.',
+        );
+      }
+      throw Exception(
+        'An error occurred while retrieving campaign executions: ${e.message}',
+      );
+    } catch (e) {
+      throw Exception(
+        'An error occurred while retrieving campaign executions: $e',
+      );
     }
   }
 

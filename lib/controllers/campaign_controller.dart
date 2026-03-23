@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
+import 'package:supervisormobile/features/VisualMerchandising/services/vm_service.dart';
 
-import '../features/VisualMerchandising/dtos/vm_campaign_dto.dart';
-import '../features/VisualMerchandising/services/vm_service.dart';
 import '../features/calendar/models/boutiqueModel.dart';
 
 class CampaignController extends GetxController {

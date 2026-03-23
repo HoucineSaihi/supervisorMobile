@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
-import '../dtos/vm_campaign_dto.dart';
+import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
 import '../dtos/vm_guideline_asset_dto.dart';
 import '../services/vm_service.dart';
 
