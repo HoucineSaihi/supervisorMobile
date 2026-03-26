@@ -6,6 +6,7 @@ class UserModel {
   int id;
   String? nom;
   String? username;
+  String? email;
   String? passwd;
   String? fax;
   String? tel;
@@ -23,6 +24,7 @@ class UserModel {
     required this.id,
     this.nom,
     this.username,
+    this.email,
     this.passwd,
     this.fax,
     this.tel,
@@ -42,6 +44,7 @@ class UserModel {
       id: json['id'] as int,
       nom: json['nom'] as String?,
       username: json['username'] as String?,
+      email: json['email'] as String?,
       passwd: json['passwd'] as String?,
       fax: json['fax'] as String?,
       tel: json['tel'] as String?,
@@ -66,6 +69,7 @@ class UserModel {
       'id': id,
       'nom': nom,
       'username': username,
+      'email': email,
       'passwd': passwd,
       'fax': fax,
       'tel': tel,
@@ -83,6 +87,7 @@ class UserModel {
     int? id,
     String? nom,
     String? username,
+    String? email,
     String? passwd,
     String? fax,
     String? tel,
@@ -100,6 +105,7 @@ class UserModel {
       id: id ?? this.id,
       nom: nom ?? this.nom,
       username: username ?? this.username,
+      email: email ?? this.email,
       passwd: passwd ?? this.passwd,
       fax: fax ?? this.fax,
       tel: tel ?? this.tel,

@@ -4,43 +4,45 @@ import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_d
 
 class ZoneRow extends StatelessWidget {
   final ZoneStatDto zone;
-  final bool isCompleteLocally;  // tient compte des photos ajoutées
-  final int localPhotoCount;     // photos ajoutées localement
+  final bool isZoneValidated;
+  final bool hasLocalPending;
+  final int totalPhotoCount;
   final VoidCallback onTap;
 
   const ZoneRow({
     super.key,
     required this.zone,
-    required this.isCompleteLocally,
-    required this.localPhotoCount,
+    required this.isZoneValidated,
+    required this.hasLocalPending,
+    required this.totalPhotoCount,
     required this.onTap,
   });
 
   // ── Couleurs selon l'état ───────────────────────────
   Color get _bgColor {
-    if (isCompleteLocally)  return const Color(0xFFE6FAF0);
+    if (isZoneValidated) return const Color(0xFFE6FAF0);
+    if (hasLocalPending) return const Color(0xFFFFF4E5);
     if (zone.isPartial)     return const Color(0xFFFFF4E5);
     return Colors.white;
   }
 
   Color get _borderColor {
-    if (isCompleteLocally)  return const Color(0xFFB0E8CC);
+    if (isZoneValidated) return const Color(0xFFB0E8CC);
+    if (hasLocalPending) return const Color(0xFFFCD34D);
     if (zone.isPartial)     return const Color(0xFFFCD34D);
     return const Color(0xFFE2EEF8);
   }
 
   Color get _progressColor {
-    if (isCompleteLocally)  return const Color(0xFF27AE73);
+    if (isZoneValidated) return const Color(0xFF27AE73);
+    if (hasLocalPending) return const Color(0xFFF5A623);
     if (zone.isPartial)     return const Color(0xFFF5A623);
     return const Color(0xFF1E5FAA);
   }
 
-  // ── Total des photos (backend + local) ─────────────
-  int get _totalPhotos => zone.imagesCount + localPhotoCount;
-
   // ── Widget du statut (droite) ───────────────────────
   Widget get _statusWidget {
-    if (isCompleteLocally) {
+    if (isZoneValidated) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
@@ -58,7 +60,25 @@ class ZoneRow extends StatelessWidget {
         ),
       );
     }
-    if (zone.isPartial || localPhotoCount > 0) {
+    if (hasLocalPending) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7E8),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFF7C66A)),
+        ),
+        child: const Text(
+          'En attente',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFB86B00),
+          ),
+        ),
+      );
+    }
+    if (zone.isPartial) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
@@ -66,9 +86,9 @@ class ZoneRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFFCD34D)),
         ),
-        child: Text(
-          '$_totalPhotos photo${_totalPhotos > 1 ? 's' : ''}',
-          style: const TextStyle(
+        child: const Text(
+          'Partielle',
+          style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
             color: Color(0xFFC87700),
@@ -174,8 +194,9 @@ class ZoneRow extends StatelessWidget {
                             child: LinearProgressIndicator(
                               // Progress : on divise par 1 si zone vide
                               // juste pour montrer visuellement l'état
-                              value: isCompleteLocally ? 1.0
-                                  : (zone.isPartial || localPhotoCount > 0)
+                              value: isZoneValidated
+                                  ? 1.0
+                                  : (hasLocalPending || zone.isPartial)
                                   ? 0.5
                                   : 0.0,
                               minHeight: 5,
@@ -188,7 +209,7 @@ class ZoneRow extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '$_totalPhotos photo${_totalPhotos > 1 ? 's' : ''}',
+                          '$totalPhotoCount photo${totalPhotoCount > 1 ? 's' : ''}',
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -206,7 +227,7 @@ class ZoneRow extends StatelessWidget {
               // ── Flèche droite ─────────────────────────
               Icon(
                 Icons.chevron_right_rounded,
-                color: isCompleteLocally
+                color: isZoneValidated
                     ? const Color(0xFF27AE73)
                     : const Color(0xFFB0C8E0),
                 size: 22,

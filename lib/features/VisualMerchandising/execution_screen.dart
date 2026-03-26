@@ -343,8 +343,9 @@ class ExecutionScreen extends StatelessWidget {
                         final zone = zones[index];
                         return ZoneRow(
                           zone: zone,
-                          isCompleteLocally: controller.isZoneComplete(zone),
-                          localPhotoCount: controller.localPhotoCount(zone.zoneId),
+                          isZoneValidated: controller.isZoneValidated(zone),
+                          hasLocalPending: controller.hasLocalPending(zone),
+                          totalPhotoCount: controller.totalPhotoCount(zone),
                           onTap: () {
                             Get.to(
                               () => ZoneDetailScreen(

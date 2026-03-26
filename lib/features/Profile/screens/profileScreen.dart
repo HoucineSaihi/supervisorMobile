@@ -71,6 +71,66 @@ class _ProfileInfoState extends State<ProfileInfo> {
     });
   }
 
+  Widget _buildInfoCard({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 40,
+            width: 40,
+            decoration: BoxDecoration(
+              color: TColors.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: TColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value.isEmpty ? AppLocalizations.of(context)!.notAvailable : value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,26 +185,6 @@ class _ProfileInfoState extends State<ProfileInfo> {
                                 ),
                               ),
                             ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap: () => _openImagePicker(user),
-                                child: Container(
-                                  width: 35,
-                                  height: 35,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(100),
-                                  ),
-                                  child: const Icon(
-                                    Iconsax.edit,
-                                    size: 20,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -158,25 +198,12 @@ class _ProfileInfoState extends State<ProfileInfo> {
                           user.username ?? 'Username',
                           style: TextStyle(fontSize: 16, color: TColors.grey),
                         ),
-                        const SizedBox(height: 20),
-                        OutlinedButton(
-                          onPressed: () => _openEditUserInfo(user),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: TColors.accent,
-                            side: BorderSide(color: TColors.accent),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Iconsax.edit, size: 20, color: TColors.accent),
-                              const SizedBox(width: 8),
-                              Text(AppLocalizations.of(context)!.editProfile),
-                            ],
-                          ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user.email ?? AppLocalizations.of(context)!.notAvailable,
+                          style: TextStyle(fontSize: 14, color: Colors.white70),
                         ),
+                        const SizedBox(height: 8),
                       ],
                     ),
                   );
@@ -205,81 +232,36 @@ class _ProfileInfoState extends State<ProfileInfo> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: TColors.primary, width: 2),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Text(
-                                      '${AppLocalizations.of(context)!.phone}: ${user.tel ?? AppLocalizations.of(context)!.notAvailable}',
-                                      style: TextStyle(fontSize: 18),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Icon(Iconsax.call, color: TColors.primary),
-                                ),
-                              ],
-                            ),
+                          _buildInfoCard(
+                            context: context,
+                            icon: Iconsax.user,
+                            label: AppLocalizations.of(context)!.name,
+                            value: user.nom ?? '',
                           ),
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: TColors.primary, width: 2),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Text(
-                                      '${AppLocalizations.of(context)!.role}: ${user.role?.libelle ?? AppLocalizations.of(context)!.notAvailable}',
-                                      style: TextStyle(fontSize: 18),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Icon(Iconsax.user, color: TColors.primary),
-                                ),
-                              ],
-                            ),
+                          _buildInfoCard(
+                            context: context,
+                            icon: Iconsax.profile_circle,
+                            label: AppLocalizations.of(context)!.username,
+                            value: user.username ?? '',
                           ),
-                          /* Container(
-                            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: TColors.primary, width: 2),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Text(
-                                      'Appartient à: ${user.groups?.isNotEmpty == true ? 'Groupe, ${user.groups![0].groupName}' : "Boutique, ${user.boutique?.libelle ?? ''}"}',
-                                      style: TextStyle(fontSize: 18),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Icon(Iconsax.group, color: TColors.primary),
-                                ),
-                              ],
-                            ),
-                          ), */
+                          _buildInfoCard(
+                            context: context,
+                            icon: Iconsax.sms,
+                            label: 'Email',
+                            value: user.email ?? '',
+                          ),
+                          _buildInfoCard(
+                            context: context,
+                            icon: Iconsax.shield_tick,
+                            label: AppLocalizations.of(context)!.role,
+                            value: user.role?.libelle ?? '',
+                          ),
+                          _buildInfoCard(
+                            context: context,
+                            icon: Iconsax.code,
+                            label: 'Role code',
+                            value: user.role?.code ?? '',
+                          ),
                         ],
                       ),
                     );

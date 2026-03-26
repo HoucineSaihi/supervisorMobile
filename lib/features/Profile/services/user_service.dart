@@ -37,8 +37,11 @@ class UserService {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data; // ✅ Already parsed JSON
-        return UserModel.fromJson(data);
+        final payload = response.data;
+        final userJson = payload is Map<String, dynamic> && payload['data'] is Map<String, dynamic>
+            ? payload['data'] as Map<String, dynamic>
+            : Map<String, dynamic>.from(payload as Map);
+        return UserModel.fromJson(userJson);
       } else {
         print('Failed to load user. Status code: ${response.statusCode}');
         return null;

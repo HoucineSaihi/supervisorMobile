@@ -29,7 +29,7 @@ class ZoneDetailScreen extends StatelessWidget {
           children: [
             _buildHeader(controller),
             _buildGuidelineRef(),
-            _buildInstructions(),
+            _buildInstructions(context),
             _buildPhotoGrid(controller),
             _buildActionBar(controller),
           ],
@@ -48,7 +48,7 @@ class ZoneDetailScreen extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -89,32 +89,41 @@ class ZoneDetailScreen extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
 
-          // Emoji + Nom
-          Text(
-            _emojiForCode(zone.zoneCode),
-            style: const TextStyle(fontSize: 32),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            zone.zoneName,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            zone.zoneCode,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white.withOpacity(0.6),
-            ),
+          // Emoji + Nom + Libellé sur la même ligne
+          Row(
+            children: [
+              Text(
+                _emojiForCode(zone.zoneCode),
+                style: const TextStyle(fontSize: 22),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  zone.zoneName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                zone.zoneCode,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.7),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
 
           // Barre de progression de la zone
           Obx(() {
@@ -129,7 +138,7 @@ class ZoneDetailScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     child: LinearProgressIndicator(
                       value: isComplete ? 1.0 : (total > 0 ? 0.5 : 0.0),
-                      minHeight: 6,
+                      minHeight: 4,
                       backgroundColor: Colors.white.withOpacity(0.2),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         isComplete
@@ -139,11 +148,11 @@ class ZoneDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Text(
                   isComplete ? '$total photo${total > 1 ? 's' : ''} ✓' : '$total photo${total > 1 ? 's' : ''}',
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
@@ -203,10 +212,9 @@ class ZoneDetailScreen extends StatelessWidget {
   }
 
   // ── 3. Consignes ────────────────────────────────────
-  Widget _buildInstructions() {
+  Widget _buildInstructions(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -217,10 +225,15 @@ class ZoneDetailScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: false,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 0),
+          childrenPadding: const EdgeInsets.fromLTRB(13, 0, 13, 10),
+          iconColor: const Color(0xFF1B3F72),
+          collapsedIconColor: const Color(0xFF1B3F72),
+          title: const Row(
             children: [
               Text('📋', style: TextStyle(fontSize: 14)),
               SizedBox(width: 6),
@@ -234,39 +247,40 @@ class ZoneDetailScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          // On génère les consignes selon le type de zone
-          ..._instructionsForZone(zone.zoneCode).map(
-                (instruction) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 5),
-                    width: 5, height: 5,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF4A9EDD),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      instruction,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        color: Color(0xFF4A6D96),
-                        fontWeight: FontWeight.w500,
-                        height: 1.4,
+          children: [
+            // On génère les consignes selon le type de zone
+            ..._instructionsForZone(zone.zoneCode).map(
+              (instruction) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 5),
+                      width: 5, height: 5,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF4A9EDD),
+                        shape: BoxShape.circle,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        instruction,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF4A6D96),
+                          fontWeight: FontWeight.w500,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

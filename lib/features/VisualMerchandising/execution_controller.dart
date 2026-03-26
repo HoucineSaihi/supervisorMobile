@@ -86,10 +86,18 @@ class ExecutionController extends GetxController {
 
   int backendPhotoCount(ZoneStatDto zone) {
     final remoteCount = remotePhotoCount(zone.zoneId);
-    return remoteCount > 0 ? remoteCount : zone.imagesCount;
+    return remoteCount >= zone.imagesCount ? remoteCount : zone.imagesCount;
   }
 
   int localPhotoCount(int zoneId) => photosForZone(zoneId).length;
+
+  int totalPhotoCount(ZoneStatDto zone) =>
+      backendPhotoCount(zone) + localPhotoCount(zone.zoneId);
+
+  bool isZoneValidated(ZoneStatDto zone) => zone.isFinished;
+
+  bool hasLocalPending(ZoneStatDto zone) =>
+      localPhotoCount(zone.zoneId) > 0 && !zone.isFinished;
 
   bool isZoneComplete(ZoneStatDto zone) =>
       zone.isFinished || localPhotoCount(zone.zoneId) > 0;
