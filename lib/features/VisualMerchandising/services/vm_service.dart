@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:mime/mime.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/services/DioService.dart';
 import '../dtos/vm_campaign_dto.dart';
 import '../dtos/vm_campaign_execution_dto.dart';
+import '../dtos/vm_campaign_submit_dto.dart';
 import '../dtos/vm_guideline_asset_dto.dart';
 import '../../calendar/models/boutiqueModel.dart';
 import 'guideline_cache_manager.dart';
@@ -12,6 +15,12 @@ import 'guideline_cache_manager.dart';
 /// Service for Visual Merchandising API calls
 class VmService {
   static final Dio _dio = DioService.dio;
+  static const Set<String> _allowedMimeTypes = <String>{
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/webp',
+  };
 
   /// Get campaigns by site IDs
   /// POST /api/VmCompaign/by-sites
@@ -33,9 +42,13 @@ class VmService {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonResponse = response.data;
+        if (response.data is! List) {
+          throw Exception('Invalid response format for campaigns by sites.');
+        }
+        final List<dynamic> jsonResponse = response.data as List<dynamic>;
         return jsonResponse
-            .map((json) => VmCampaignDto.fromJson(json as Map<String, dynamic>))
+            .whereType<Map<String, dynamic>>()
+            .map(VmCampaignDto.fromJson)
             .toList();
       } else {
         throw Exception(
@@ -107,6 +120,173 @@ class VmService {
     } catch (e) {
       throw Exception(
         'An error occurred while retrieving campaign executions: $e',
+      );
+    }
+  }
+
+  Future<VmCampaignSubmitResponseDto> submitCampaign({
+    required int campaignId,
+    required int siteId,
+    required List<ZoneStatDto> zones,
+    required Map<int, List<String>> localZonePhotos,
+    required String platform,
+    required String appVersion,
+  }) async {
+    try {
+      if (campaignId <= 0 || siteId <= 0) {
+        throw const VmSubmitApiException(
+          message: 'campaignId/siteId invalides.',
+        );
+      }
+      if (zones.isEmpty) {
+        throw const VmSubmitApiException(
+          message: 'Aucune zone a soumettre.',
+        );
+      }
+
+      final zonePayload = <VmSubmitZoneDto>[];
+
+      for (final zone in zones) {
+        final paths = localZonePhotos[zone.zoneId] ?? const <String>[];
+        if (paths.isEmpty) {
+          continue;
+        }
+        final photos = <VmSubmitPhotoDto>[];
+        for (final path in paths) {
+          final file = File(path);
+          if (!await file.exists()) {
+            throw VmSubmitApiException(
+              message: 'Photo introuvable pour la zone ${zone.zoneCode}.',
+            );
+          }
+          final bytes = await file.readAsBytes();
+          if (bytes.isEmpty) {
+            throw VmSubmitApiException(
+              message: 'Photo vide detectee pour la zone ${zone.zoneCode}.',
+            );
+          }
+          final fileName = file.uri.pathSegments.isNotEmpty
+              ? file.uri.pathSegments.last
+              : 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final mimeType = lookupMimeType(path) ?? 'image/jpeg';
+          if (!_allowedMimeTypes.contains(mimeType)) {
+            throw VmSubmitApiException(
+              message: 'Format image non supporte ($mimeType) pour ${zone.zoneCode}.',
+            );
+          }
+          final encoded = base64Encode(bytes);
+          if (encoded.isEmpty) {
+            throw VmSubmitApiException(
+              message: 'Base64 invalide pour la zone ${zone.zoneCode}.',
+            );
+          }
+          try {
+            base64Decode(encoded);
+          } catch (_) {
+            throw VmSubmitApiException(
+              message: 'Base64 invalide pour la zone ${zone.zoneCode}.',
+            );
+          }
+          photos.add(
+            VmSubmitPhotoDto(
+              fileName: fileName,
+              mimeType: mimeType,
+              contentBase64: encoded,
+              capturedAt: DateTime.now().toUtc().toIso8601String(),
+            ),
+          );
+        }
+
+        if (photos.isEmpty) {
+          throw VmSubmitApiException(
+            message: 'Chaque zone doit contenir au moins une photo (${zone.zoneCode}).',
+          );
+        }
+        zonePayload.add(
+          VmSubmitZoneDto(
+            zoneId: zone.zoneId,
+            zoneCode: zone.zoneCode,
+            photos: photos,
+          ),
+        );
+      }
+
+      if (zonePayload.isEmpty) {
+        throw const VmSubmitApiException(
+          message: 'Aucune zone valide a soumettre (photos requises).',
+        );
+      }
+
+      final payload = VmCampaignSubmitRequestDto(
+        campaignId: campaignId,
+        siteId: siteId,
+        submittedAt: DateTime.now().toUtc().toIso8601String(),
+        zones: zonePayload,
+        meta: <String, dynamic>{
+          'appVersion': appVersion,
+          'platform': platform,
+        },
+      );
+      if (payload.campaignId != campaignId || payload.siteId != siteId) {
+        throw const VmSubmitApiException(
+          message: 'Mismatch entre URL et body (campaignId/siteId).',
+        );
+      }
+
+      final response = await _dio.post(
+        '/VmCompaign/$campaignId/sites/$siteId/submit',
+        data: payload.toJson(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          return VmCampaignSubmitResponseDto.fromJson(data);
+        }
+      }
+
+      throw Exception(
+        'Failed to submit campaign. Status code: ${response.statusCode}',
+      );
+    } on VmSubmitApiException {
+      rethrow;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+        throw const VmSubmitApiException(
+          message: 'La soumission a ete annulee.',
+        );
+      }
+      if (e.response != null) {
+        final statusCode = e.response?.statusCode;
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          final message = data['message'] as String?;
+          final parsed = VmCampaignSubmitResponseDto.fromJson(data);
+          throw VmSubmitApiException(
+            message: message ?? parsed.message ?? 'Echec de soumission.',
+            statusCode: statusCode,
+            response: parsed,
+          );
+        }
+        if (statusCode == 404) {
+          throw const VmSubmitApiException(
+            message: 'Campagne introuvable ou non liee au site.',
+            statusCode: 404,
+          );
+        }
+        if (statusCode == 500) {
+          throw const VmSubmitApiException(
+            message: 'Erreur serveur pendant la soumission.',
+            statusCode: 500,
+          );
+        }
+      }
+      throw VmSubmitApiException(
+        message: 'Erreur reseau pendant la soumission: ${e.message}',
+      );
+    } catch (e) {
+      throw VmSubmitApiException(
+        message: 'Erreur pendant la soumission: $e',
       );
     }
   }

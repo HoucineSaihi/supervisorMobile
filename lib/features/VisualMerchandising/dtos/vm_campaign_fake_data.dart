@@ -10,6 +10,7 @@ import 'vm_campaign_dto.dart';
 final List<VmCampaignDto> fakeCampaigns = [
   VmCampaignDto(
     campaignId: 1,
+    siteId: 1,
     status: CampaignStatus.inProgress,
     endDate: DateTime(2025, 6, 15, 23, 59, 59),
     libelle: 'Collection Été 2025',
@@ -62,6 +63,7 @@ final List<VmCampaignDto> fakeCampaigns = [
   ),
   VmCampaignDto(
     campaignId: 2,
+    siteId: 1,
     status: CampaignStatus.notStarted,
     endDate: DateTime(2025, 7, 30, 23, 59, 59),
     libelle: 'Rentrée Automne 2025',

@@ -193,7 +193,9 @@ class CampaignScreen extends StatelessWidget {
                           Get.to(
                                 () => ExecutionScreen(
                               campaign: controller.campaigns[index],
-                              siteId: selectedSite.id,
+                              siteId: controller.campaigns[index].siteId > 0
+                                  ? controller.campaigns[index].siteId
+                                  : selectedSite.id,
                             ),
                             transition: Transition.rightToLeft,
                           );

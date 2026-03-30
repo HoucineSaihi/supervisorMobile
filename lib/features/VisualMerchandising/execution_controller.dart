@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_execution_dto.dart';
+import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_submit_dto.dart';
 import 'package:supervisormobile/features/VisualMerchandising/services/vm_service.dart';
 
 
@@ -40,11 +42,15 @@ class ExecutionController extends GetxController {
       'data': data,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
-    await File('debug-64022c.log').writeAsString(
-      '${jsonEncode(payload)}\n',
-      mode: FileMode.append,
-      flush: true,
-    );
+    try {
+      await File('debug-64022c.log').writeAsString(
+        '${jsonEncode(payload)}\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+    } catch (e) {
+      debugPrint('ExecutionController._logDebug skipped: $e');
+    }
   }
   // #endregion
 
@@ -126,7 +132,7 @@ class ExecutionController extends GetxController {
     executionError.value = '';
     try {
       // #region agent log
-      await _logDebug(
+      _logDebug(
         runId: 'pre-fix',
         hypothesisId: 'H3_H4',
         location: 'execution_controller.dart:loadExecution:start',
@@ -147,7 +153,7 @@ class ExecutionController extends GetxController {
       }
 
       // #region agent log
-      await _logDebug(
+      _logDebug(
         runId: 'pre-fix',
         hypothesisId: 'H3_H4',
         location: 'execution_controller.dart:loadExecution:success',
@@ -164,7 +170,7 @@ class ExecutionController extends GetxController {
       executionError.value = e.toString();
       zones.assignAll(campaign.allZones);
       // #region agent log
-      await _logDebug(
+      _logDebug(
         runId: 'pre-fix',
         hypothesisId: 'H3',
         location: 'execution_controller.dart:loadExecution:fallback',
@@ -229,10 +235,33 @@ class ExecutionController extends GetxController {
   }
 
   Future<void> submitCampaign() async {
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      Get.snackbar(
+        'Soumission impossible',
+        'Completez toutes les zones avant de soumettre.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.shade700,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+      );
+      return;
+    }
+    final campaign = _campaign;
+    final siteId = _loadedSiteId;
+    if (campaign == null || siteId == null) {
+      Get.snackbar(
+        'Erreur',
+        'Campagne introuvable pour la soumission.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+      );
+      return;
+    }
     isUploading.value = true;
     // #region agent log
-    await _logDebug(
+    _logDebug(
       runId: 'pre-fix',
       hypothesisId: 'H5',
       location: 'execution_controller.dart:submitCampaign',
@@ -244,14 +273,117 @@ class ExecutionController extends GetxController {
       },
     );
     // #endregion
-    isUploading.value = false;
-    Get.snackbar(
-      'Campagne prête',
-      'Soumission locale effectuée.',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green.shade600,
-      colorText: Colors.white,
-      margin: const EdgeInsets.all(12),
-    );
+    try {
+      if (zones.isEmpty) {
+        throw const VmSubmitApiException(
+          message: 'Aucune zone a soumettre.',
+        );
+      }
+      final zonesWithoutLocalPhoto = zones
+          .where((z) => photosForZone(z.zoneId).isEmpty)
+          .toList();
+      if (zonesWithoutLocalPhoto.isNotEmpty) {
+        throw const VmSubmitApiException(
+          message: 'Chaque zone doit contenir au moins une photo locale.',
+        );
+      }
+
+      final response = await _vmService.submitCampaign(
+        campaignId: campaign.campaignId,
+        siteId: siteId,
+        zones: zones.toList(),
+        localZonePhotos: zonePhotos,
+        platform: _platformName(),
+        appVersion: '1.0.0',
+      );
+      if (!response.success) {
+        throw Exception(response.message ?? 'La soumission a échoué.');
+      }
+
+      zonePhotos.clear();
+      for (final zone in zones) {
+        zonePhotos[zone.zoneId] = <String>[];
+      }
+      zonePhotos.refresh();
+
+      await loadExecution(campaignId: campaign.campaignId, siteId: siteId);
+
+      Get.snackbar(
+        'Succès',
+        response.message ?? 'Campagne soumise avec succès.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+      );
+    } on VmSubmitApiException catch (e) {
+      final detailedMessage = _buildSubmitErrorMessage(e);
+      Get.snackbar(
+        'Erreur',
+        detailedMessage,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        e.toString().replaceFirst('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+      );
+    } finally {
+      isUploading.value = false;
+    }
+  }
+
+  String _buildSubmitErrorMessage(VmSubmitApiException error) {
+    if (error.response != null && error.response!.errors.isNotEmpty) {
+      final mapped = error.response!.errors.map((e) {
+        final zoneSuffix = e.zoneId != null ? ' (zone ${e.zoneId})' : '';
+        switch (e.code) {
+          case 'ZONE_NOT_ASSIGNED':
+            return 'Zone non affectee a la campagne/site$zoneSuffix';
+          case 'NO_PHOTOS':
+            return 'Aucune photo fournie pour la zone$zoneSuffix';
+          case 'INVALID_IMAGE_FORMAT':
+            return 'Format image invalide$zoneSuffix';
+          case 'INVALID_BASE64':
+            return 'Image corrompue (base64 invalide)$zoneSuffix';
+          default:
+            return 'Erreur de validation$zoneSuffix';
+        }
+      }).join(' | ');
+      return '${error.message}. $mapped';
+    }
+
+    if (error.statusCode == 404) {
+      return 'Campagne inexistante ou non liee au site.';
+    }
+    if (error.statusCode == 500) {
+      return 'Erreur serveur. Reessayez dans quelques instants.';
+    }
+    return error.message;
+  }
+
+  String _platformName() {
+    if (kIsWeb) return 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'android';
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.windows:
+        return 'windows';
+      case TargetPlatform.macOS:
+        return 'macos';
+      case TargetPlatform.linux:
+        return 'linux';
+      case TargetPlatform.fuchsia:
+        return 'fuchsia';
+    }
   }
 }

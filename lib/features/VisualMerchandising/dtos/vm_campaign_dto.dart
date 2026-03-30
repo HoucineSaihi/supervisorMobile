@@ -65,12 +65,14 @@ class ZoneStatDto {
 
   // Lit un Map (JSON parsé) et construit un ZoneStatDto
   factory ZoneStatDto.fromJson(Map<String, dynamic> json) {
+    final imagesCount = (json['imagesCount'] as num?)?.toInt() ?? 0;
     return ZoneStatDto(
-      zoneId:      json['zoneId']      as int,
-      zoneName:    json['zoneName']    as String,
-      zoneCode:    json['zoneCode']    as String,
-      imagesCount: json['imagesCount'] as int,
-      isFinished:  json['isFinished']  as bool,
+      zoneId: (json['zoneId'] as num?)?.toInt() ?? 0,
+      zoneName: json['zoneName'] as String? ?? '',
+      zoneCode: json['zoneCode'] as String? ?? '',
+      imagesCount: imagesCount,
+      // by-sites API no longer provides isFinished; derive from imagesCount
+      isFinished: imagesCount > 0,
     );
   }
 
@@ -100,7 +102,7 @@ class ExecutionStatsDto {
 
   factory ExecutionStatsDto.fromJson(Map<String, dynamic> json) {
     // json['zoneStats'] est une List → on mappe chaque élément
-    final rawZones = json['zoneStats'] as List<dynamic>;
+    final rawZones = (json['zoneStats'] as List<dynamic>?) ?? <dynamic>[];
     final zones = rawZones
         .map((z) => ZoneStatDto.fromJson(z as Map<String, dynamic>))
         .toList();
@@ -134,6 +136,7 @@ class ExecutionStatsDto {
 // Correspond à un élément racine du tableau JSON
 class VmCampaignDto {
   final int campaignId;
+  final int siteId;
   final CampaignStatus status;
   final DateTime endDate;
   final String libelle;
@@ -143,6 +146,7 @@ class VmCampaignDto {
 
   const VmCampaignDto({
     required this.campaignId,
+    required this.siteId,
     required this.status,
     required this.endDate,
     required this.libelle,
@@ -164,13 +168,15 @@ class VmCampaignDto {
     }
 
     // executionsStats est maintenant une liste
-    final rawExecutionsStats = json['executionsStats'] as List<dynamic>;
+    final rawExecutionsStats =
+        (json['executionsStats'] as List<dynamic>?) ?? <dynamic>[];
     final executionsStatsList = rawExecutionsStats
         .map((e) => ExecutionStatsDto.fromJson(e as Map<String, dynamic>))
         .toList();
 
     return VmCampaignDto(
       campaignId:        json['compaignId']       as int,
+      siteId:            (json['siteId'] as num?)?.toInt() ?? 0,
       status:            status,
       // Le backend envoie une string ISO 8601 → on la parse en DateTime
       endDate:           DateTime.parse(json['endDate'] as String),

@@ -397,9 +397,11 @@ class CampaignCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                campaign.canSubmit
-                    ? '✉️  Soumettre la campagne'
-                    : 'Entrer dans la campagne →',
+                campaign.status == CampaignStatus.submitted
+                    ? 'Voir Mon exécution'
+                    : campaign.canSubmit
+                        ? '✉️  Soumettre la campagne'
+                        : 'Entrer dans la campagne →',
               ),
             ),
           ),

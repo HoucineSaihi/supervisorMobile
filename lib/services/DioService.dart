@@ -6,7 +6,7 @@ import 'package:supervisormobile/interceptors/auth_interceptor.dart';
 class DioService {
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'https://0cbc-41-230-152-210.ngrok-free.app/api', //
+      baseUrl: 'http://192.168.1.19:7000/api', //
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -24,6 +24,28 @@ class DioService {
       error: true,
     ),
   ]);
+
+  /// Returns API host without `/api` suffix.
+  /// Example: `https://host/api` -> `https://host`
+  static String get assetsBaseUrl {
+    final rawBase = dio.options.baseUrl.trim();
+    if (rawBase.isEmpty) return rawBase;
+
+    final parsed = Uri.tryParse(rawBase);
+    if (parsed == null || parsed.host.isEmpty) return rawBase;
+
+    final path = parsed.path;
+    final normalizedPath = path.endsWith('/api')
+        ? path.substring(0, path.length - 4)
+        : path;
+
+    final rebuilt = parsed.replace(path: normalizedPath, query: '', fragment: '');
+    final rebuiltString = rebuilt.toString();
+    final noSuffix = rebuiltString
+        .replaceFirst(RegExp(r'[?#]+$'), '')
+        .replaceAll(RegExp(r'/$'), '');
+    return noSuffix;
+  }
 
   // Test method to demonstrate API call
   static Future<void> testApiCall() async {

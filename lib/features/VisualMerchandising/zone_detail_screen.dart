@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
+import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_execution_dto.dart';
 import 'package:supervisormobile/features/VisualMerchandising/execution_controller.dart';
 
 
@@ -127,9 +128,14 @@ class ZoneDetailScreen extends StatelessWidget {
 
           // Barre de progression de la zone
           Obx(() {
-            final localCount = controller.localPhotoCount(zone.zoneId);
-            final total = controller.backendPhotoCount(zone) + localCount;
-            final isComplete = controller.isZoneComplete(zone);
+            final localPhotos = controller.zonePhotos[zone.zoneId] ?? const <String>[];
+            final remotePhotos =
+                controller.remotePhotosByZone[zone.zoneId] ?? const <VmExecutionPhotoDto>[];
+            final backendCount =
+                remotePhotos.length >= zone.imagesCount ? remotePhotos.length : zone.imagesCount;
+            final localCount = localPhotos.length;
+            final total = backendCount + localCount;
+            final isComplete = zone.isFinished || localCount > 0;
 
             return Row(
               children: [
@@ -292,8 +298,12 @@ class ZoneDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Obx(() {
-            final localPhotos = controller.photosForZone(zone.zoneId);
-            final totalExisting = controller.backendPhotoCount(zone);
+            final localPhotos = controller.zonePhotos[zone.zoneId] ?? const <String>[];
+            final remotePhotos =
+                controller.remotePhotosByZone[zone.zoneId] ?? const <VmExecutionPhotoDto>[];
+            final totalExisting = remotePhotos.length >= zone.imagesCount
+                ? remotePhotos.length
+                : zone.imagesCount;
             final totalPhotos = totalExisting + localPhotos.length;
 
             return Padding(
@@ -311,9 +321,12 @@ class ZoneDetailScreen extends StatelessWidget {
           }),
           Expanded(
             child: Obx(() {
-              final localPhotos = controller.photosForZone(zone.zoneId);
-              final remotePhotos = controller.remotePhotosForZone(zone.zoneId);
-              final existingCount = controller.backendPhotoCount(zone);
+              final localPhotos = controller.zonePhotos[zone.zoneId] ?? const <String>[];
+              final remotePhotos =
+                  controller.remotePhotosByZone[zone.zoneId] ?? const <VmExecutionPhotoDto>[];
+              final existingCount = remotePhotos.length >= zone.imagesCount
+                  ? remotePhotos.length
+                  : zone.imagesCount;
 
               // Cas : aucune photo du tout
               if (existingCount == 0 && localPhotos.isEmpty) {
@@ -400,7 +413,8 @@ class ZoneDetailScreen extends StatelessWidget {
           // Bouton valider
           Expanded(
             child: Obx(() {
-              final isComplete = controller.isZoneComplete(zone);
+              final localCount = (controller.zonePhotos[zone.zoneId] ?? const <String>[]).length;
+              final isComplete = zone.isFinished || localCount > 0;
               return ElevatedButton(
                 onPressed: isComplete ? () => Get.back() : null,
                 style: ElevatedButton.styleFrom(
@@ -543,12 +557,18 @@ class _ExistingPhotoTile extends StatelessWidget {
         children: [
           if (hasImage)
             Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _placeholder(),
+              child: GestureDetector(
+                onTap: () => Get.to(
+                  () => _FullScreenImageViewer.network(imageUrl: imageUrl!),
+                  transition: Transition.fadeIn,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    imageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _placeholder(),
+                  ),
                 ),
               ),
             )
@@ -634,16 +654,21 @@ class _LocalPhotoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Vraie photo depuis le fichier local
-          Image.file(
-            File(path),
-            fit: BoxFit.cover,
-          ),
+    return GestureDetector(
+      onTap: () => Get.to(
+        () => _FullScreenImageViewer.file(imagePath: path),
+        transition: Transition.fadeIn,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Vraie photo depuis le fichier local
+            Image.file(
+              File(path),
+              fit: BoxFit.cover,
+            ),
 
           // Dégradé en bas
           Positioned(
@@ -684,25 +709,66 @@ class _LocalPhotoTile extends StatelessWidget {
           ),
 
           // Bouton supprimer en haut à droite
-          Positioned(
-            top: 8, right: 8,
-            child: GestureDetector(
-              onTap: onDelete,
-              child: Container(
-                width: 26, height: 26,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.delete_outline,
-                  size: 14,
-                  color: Color(0xFFE74C3C),
+            Positioned(
+              top: 8, right: 8,
+              child: GestureDetector(
+                onTap: onDelete,
+                child: Container(
+                  width: 26, height: 26,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    size: 14,
+                    color: Color(0xFFE74C3C),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FullScreenImageViewer extends StatelessWidget {
+  final String? imageUrl;
+  final String? imagePath;
+
+  const _FullScreenImageViewer.network({required this.imageUrl}) : imagePath = null;
+  const _FullScreenImageViewer.file({required this.imagePath}) : imageUrl = null;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 0.8,
+          maxScale: 4.0,
+          child: imageUrl != null
+              ? Image.network(
+                  imageUrl!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.broken_image,
+                    color: Colors.white70,
+                    size: 56,
+                  ),
+                )
+              : Image.file(
+                  File(imagePath!),
+                  fit: BoxFit.contain,
+                ),
+        ),
       ),
     );
   }

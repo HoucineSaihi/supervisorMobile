@@ -1,4 +1,22 @@
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
+import 'package:supervisormobile/services/DioService.dart';
+
+String _normalizeVmPhotoUrl(String rawUrl) {
+  final trimmed = rawUrl.trim();
+  if (trimmed.isEmpty) return '';
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  final baseWithoutApi = DioService.assetsBaseUrl;
+  if (baseWithoutApi.isEmpty) return trimmed;
+
+  final baseUri = Uri.tryParse(baseWithoutApi);
+  if (baseUri == null) return trimmed;
+  final relativePath = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
+  final resolvedUrl = baseUri.resolve(relativePath).toString();
+  return resolvedUrl;
+}
 
 class VmExecutionPhotoDto {
   final int photoId;
@@ -12,9 +30,10 @@ class VmExecutionPhotoDto {
   });
 
   factory VmExecutionPhotoDto.fromJson(Map<String, dynamic> json) {
+    final rawUrl = json['url'] as String? ?? '';
     return VmExecutionPhotoDto(
       photoId: (json['photoId'] as num?)?.toInt() ?? 0,
-      url: json['url'] as String? ?? '',
+      url: _normalizeVmPhotoUrl(rawUrl),
       fileName: json['fileName'] as String?,
     );
   }
@@ -37,13 +56,35 @@ class VmZoneExecutionDto {
     final rawPhotos = (json['photos'] as List<dynamic>? ?? <dynamic>[]);
     return VmZoneExecutionDto(
       executionId: (json['executionId'] as num?)?.toInt() ?? 0,
-      status: (json['status'] as num?)?.toInt() ?? 0,
+      status: _executionStatusToInt(json['status']),
       isValidated: json['isValidated'] as bool? ?? false,
       photos: rawPhotos
           .map((p) => VmExecutionPhotoDto.fromJson(p as Map<String, dynamic>))
           .toList(),
     );
   }
+}
+
+int _executionStatusToInt(dynamic value) {
+  if (value is num) return value.toInt();
+  if (value is String) {
+    switch (value.toLowerCase()) {
+      case 'planified':
+      case 'planned':
+        return 0;
+      case 'inprogress':
+      case 'in_progress':
+        return 1;
+      case 'completed':
+        return 2;
+      case 'cancelled':
+      case 'canceled':
+        return 3;
+      default:
+        return 0;
+    }
+  }
+  return 0;
 }
 
 class VmExecutionZoneDto {
