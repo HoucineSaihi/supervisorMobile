@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
+import 'package:supervisormobile/features/VisualMerchandising/vm_l10n_helpers.dart';
 
 
 class ZoneRow extends StatelessWidget {
@@ -41,7 +43,7 @@ class ZoneRow extends StatelessWidget {
   }
 
   // ── Widget du statut (droite) ───────────────────────
-  Widget get _statusWidget {
+  Widget _statusWidget(AppLocalizations l10n) {
     if (isZoneValidated) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -50,9 +52,9 @@ class ZoneRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFB0E8CC)),
         ),
-        child: const Text(
-          '✓ Complet',
-          style: TextStyle(
+        child: Text(
+          l10n.vmZoneStatusComplete,
+          style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
             color: Color(0xFF1A7A4A),
@@ -68,9 +70,9 @@ class ZoneRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFF7C66A)),
         ),
-        child: const Text(
-          'En attente',
-          style: TextStyle(
+        child: Text(
+          l10n.vmZoneStatusPending,
+          style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
             color: Color(0xFFB86B00),
@@ -86,9 +88,9 @@ class ZoneRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFFCD34D)),
         ),
-        child: const Text(
-          'Partielle',
-          style: TextStyle(
+        child: Text(
+          l10n.vmZoneStatusPartial,
+          style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
             color: Color(0xFFC87700),
@@ -103,9 +105,9 @@ class ZoneRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFE2EEF8)),
       ),
-      child: const Text(
-        'À faire',
-        style: TextStyle(
+      child: Text(
+        l10n.vmZoneStatusTodo,
+        style: const TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,
           color: Color(0xFF7BACD8),
@@ -116,6 +118,7 @@ class ZoneRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -179,7 +182,7 @@ class ZoneRow extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _statusWidget,
+                        _statusWidget(l10n),
                       ],
                     ),
 
@@ -209,7 +212,7 @@ class ZoneRow extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '$totalPhotoCount photo${totalPhotoCount > 1 ? 's' : ''}',
+                          vmPhotosLabel(l10n, totalPhotoCount),
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,

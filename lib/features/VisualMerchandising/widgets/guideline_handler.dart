@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:open_file/open_file.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
 import '../dtos/vm_guideline_asset_dto.dart';
@@ -12,8 +13,9 @@ class GuidelineHandler {
   /// Opens guideline document(s) for a campaign
   /// If multiple guidelines, shows a dialog to select one
   static Future<void> openGuideline(BuildContext context, VmCampaignDto campaign) async {
+    final l10n = AppLocalizations.of(context)!;
     if (!campaign.containsGuideline || campaign.executionsStats.isEmpty) {
-      _showError(context, 'Aucune guideline disponible pour cette campagne.');
+      _showError(context, l10n.vmNoGuidelineForCampaign);
       return;
     }
 
@@ -30,6 +32,7 @@ class GuidelineHandler {
   /// Affiche un dialog pour sélectionner un guideline
   static Future<void> _showGuidelineSelector(
       BuildContext context, VmCampaignDto campaign) async {
+    final l10n = AppLocalizations.of(context)!;
     final selectedGuideline = await showDialog<ExecutionStatsDto>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -37,9 +40,9 @@ class GuidelineHandler {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          title: const Text(
-            'Sélectionner un guideline',
-            style: TextStyle(
+          title: Text(
+            l10n.vmSelectGuidelineTitle,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Color(0xFF0F2D5E),
@@ -72,7 +75,8 @@ class GuidelineHandler {
                     ),
                   ),
                   title: Text(
-                    guideline.guidelineName ?? 'Guideline ${index + 1}',
+                    guideline.guidelineName ??
+                        l10n.vmGuidelineNumberedFallback(index + 1),
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -114,6 +118,7 @@ class GuidelineHandler {
   /// Ouvre les assets d'un guideline
   static Future<void> _openGuidelineAssets(
       BuildContext context, ExecutionStatsDto guideline) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       // Afficher un loader
       showDialog(
@@ -136,7 +141,7 @@ class GuidelineHandler {
 
       if (assets.isEmpty) {
         if (context.mounted) {
-          _showError(context, 'Aucun document disponible pour ce guideline.');
+          _showError(context, l10n.vmNoDocumentsForGuideline);
         }
         return;
       }
@@ -154,7 +159,10 @@ class GuidelineHandler {
     } catch (e) {
       if (context.mounted) {
         Navigator.of(context).pop(); // Fermer le loader
-        _showError(context, 'Erreur lors du chargement des documents: ${e.toString()}');
+        _showError(
+          context,
+          l10n.vmLoadDocumentsError(e.toString()),
+        );
       }
     }
   }
@@ -162,6 +170,7 @@ class GuidelineHandler {
   /// Affiche un dialog pour sélectionner un asset
   static Future<void> _showAssetSelector(
       BuildContext context, List<VmGuidelineAsset> assets) async {
+    final l10n = AppLocalizations.of(context)!;
     final selectedAsset = await showDialog<VmGuidelineAsset>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -169,9 +178,9 @@ class GuidelineHandler {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          title: const Text(
-            'Sélectionner un document',
-            style: TextStyle(
+          title: Text(
+            l10n.vmSelectDocumentTitle,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Color(0xFF0F2D5E),
@@ -217,7 +226,7 @@ class GuidelineHandler {
                         ),
                       const SizedBox(height: 4),
                       Text(
-                        '${asset.assetType ?? "Fichier"} • ${asset.formattedSize}',
+                        '${asset.assetType ?? l10n.vmAssetTypeFile} • ${asset.formattedSize}',
                         style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF8AB2D4),
@@ -249,6 +258,7 @@ class GuidelineHandler {
   /// Ouvre un asset (document) avec l'app par défaut du mobile
   /// Télécharge d'abord le fichier depuis l'endpoint de download
   static Future<void> _openAsset(BuildContext context, VmGuidelineAsset asset) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       // Afficher un loader pendant le téléchargement
       showDialog(
@@ -263,7 +273,7 @@ class GuidelineHandler {
               ),
               const SizedBox(height: 16),
               Text(
-                'Téléchargement de ${asset.fileName}...',
+                l10n.vmDownloadingFile(asset.fileName),
                 style: const TextStyle(
                   fontSize: 14,
                   color: Color(0xFF0F2D5E),
@@ -291,7 +301,7 @@ class GuidelineHandler {
       final file = File(filePath);
       if (!await file.exists()) {
         if (context.mounted) {
-          _showError(context, 'Le fichier téléchargé n\'existe pas.');
+          _showError(context, l10n.vmDownloadedFileMissing);
         }
         return;
       }
@@ -309,8 +319,8 @@ class GuidelineHandler {
       
       if (result.type != ResultType.done) {
         if (context.mounted) {
-          String errorMessage = 'Impossible d\'ouvrir le fichier: ${asset.fileName}';
-          if (result.message != null && result.message!.isNotEmpty) {
+          var errorMessage = l10n.vmCannotOpenFile(asset.fileName);
+          if (result.message.isNotEmpty) {
             errorMessage += '\n${result.message}';
           }
           _showError(context, errorMessage);
@@ -320,7 +330,10 @@ class GuidelineHandler {
       // Fermer le loader en cas d'erreur
       if (context.mounted) {
         Navigator.of(context).pop(); // Fermer le loader
-        _showError(context, 'Erreur lors du téléchargement/ouverture: ${e.toString()}');
+        _showError(
+          context,
+          l10n.vmDownloadOpenError(e.toString()),
+        );
       }
     }
   }

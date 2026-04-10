@@ -1,12 +1,13 @@
 
 import 'package:dio/dio.dart';
 import 'package:supervisormobile/interceptors/ClientIdInterceptor.dart';
+import 'package:supervisormobile/interceptors/accept_language_interceptor.dart';
 import 'package:supervisormobile/interceptors/auth_interceptor.dart';
 
 class DioService {
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.1.19:7000/api', //
+      baseUrl: 'http://192.168.168.200:7060/api', //
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -15,6 +16,7 @@ class DioService {
   )..interceptors.addAll([
     AuthInterceptor(), // Add authentication interceptor first
     ClientIdInterceptor(),
+    AcceptLanguageInterceptor(),
     LogInterceptor(
       request: true,
       requestHeader: true,
@@ -51,7 +53,7 @@ class DioService {
   static Future<void> testApiCall() async {
     try {
       print('🧪 DioService: Testing API call...');
-      final response = await dio.get('/test-endpoint');
+      await dio.get('/test-endpoint');
       print('✅ DioService: API call completed successfully');
     } catch (e) {
       print('❌ DioService: API call failed: $e');

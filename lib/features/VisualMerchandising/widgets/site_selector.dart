@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import '../../../controllers/campaign_controller.dart';
 import '../../calendar/models/boutiqueModel.dart';
@@ -8,6 +9,7 @@ class SiteSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Get.find() récupère le controller qu'on a créé plus tôt
     final controller = Get.find<CampaignController>();
 
@@ -15,11 +17,11 @@ class SiteSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Label au dessus
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'SÉLECTIONNER UNE BOUTIQUE',
-            style: TextStyle(
+            l10n.vmSelectBoutiqueSectionLabel,
+            style: const TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: Color(0xFF7BACD8),
@@ -35,13 +37,13 @@ class SiteSelector extends StatelessWidget {
 
           String text;
           if (isLoading) {
-            text = 'Chargement des boutiques...';
+            text = l10n.vmLoadingBoutiques;
           } else if (count == 0) {
-            text = 'Aucune boutique chargée';
+            text = l10n.vmNoBoutiquesLoaded;
           } else if (count == 1) {
-            text = '1 boutique disponible';
+            text = l10n.vmOneBoutiqueAvailable;
           } else {
-            text = '$count boutiques disponibles';
+            text = l10n.vmNbBoutiquesAvailable(count);
           }
 
           return Padding(
@@ -72,12 +74,12 @@ class SiteSelector extends StatelessWidget {
 
           // Afficher un message si aucune boutique
           if (controller.boutiques.isEmpty) {
-            return const SizedBox(
+            return SizedBox(
               height: 56,
               child: Center(
                 child: Text(
-                  'Aucune boutique disponible',
-                  style: TextStyle(
+                  l10n.vmNoBoutiqueAvailable,
+                  style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF7BACD8),
                   ),
@@ -88,7 +90,7 @@ class SiteSelector extends StatelessWidget {
 
           // Si plus de 4 boutiques, afficher un selector avec recherche
           if (controller.boutiques.length > 4) {
-            return _SearchableSelector(controller: controller);
+            return _SearchableSelector(controller: controller, l10n: l10n);
           }
 
           // Sinon, afficher les pins horizontaux
@@ -134,7 +136,9 @@ class SiteSelector extends StatelessWidget {
                       ),
                       child: Center(
                         child: Text(
-                          site.libelle ?? site.code ?? 'Boutique ${site.id}',
+                          site.libelle ??
+                              site.code ??
+                              l10n.vmBoutiqueFallback(site.id),
                           style: TextStyle(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
@@ -161,14 +165,18 @@ class SiteSelector extends StatelessWidget {
 // ── Widget : Selector avec recherche ─────────────────────
 class _SearchableSelector extends StatelessWidget {
   final CampaignController controller;
+  final AppLocalizations l10n;
 
-  const _SearchableSelector({required this.controller});
+  const _SearchableSelector({
+    required this.controller,
+    required this.l10n,
+  });
 
   void _showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
-        return _BoutiqueSearchDialog(controller: controller);
+        return _BoutiqueSearchDialog(controller: controller, l10n: l10n);
       },
     );
   }
@@ -217,8 +225,8 @@ class _SearchableSelector extends StatelessWidget {
                   selectedSite != null
                       ? (selectedSite.libelle ??
                           selectedSite.code ??
-                          'Boutique ${selectedSite.id}')
-                      : 'Sélectionner une boutique',
+                          l10n.vmBoutiqueFallback(selectedSite.id))
+                      : l10n.vmSelectBoutiquePlaceholder,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -247,8 +255,12 @@ class _SearchableSelector extends StatelessWidget {
 // ── Dialog : Recherche de boutique ────────────────────────
 class _BoutiqueSearchDialog extends StatefulWidget {
   final CampaignController controller;
+  final AppLocalizations l10n;
 
-  const _BoutiqueSearchDialog({required this.controller});
+  const _BoutiqueSearchDialog({
+    required this.controller,
+    required this.l10n,
+  });
 
   @override
   State<_BoutiqueSearchDialog> createState() => _BoutiqueSearchDialogState();
@@ -279,7 +291,9 @@ class _BoutiqueSearchDialogState extends State<_BoutiqueSearchDialog> {
         _filteredBoutiques = widget.controller.boutiques;
       } else {
         _filteredBoutiques = widget.controller.boutiques.where((boutique) {
-          final name = (boutique.libelle ?? boutique.code ?? 'Boutique ${boutique.id}')
+          final name = (boutique.libelle ??
+                  boutique.code ??
+                  widget.l10n.vmBoutiqueFallback(boutique.id))
               .toLowerCase();
           final city = (boutique.city ?? '').toLowerCase();
           final code = (boutique.code ?? '').toLowerCase();
@@ -293,6 +307,7 @@ class _BoutiqueSearchDialogState extends State<_BoutiqueSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = widget.l10n;
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
@@ -315,10 +330,10 @@ class _BoutiqueSearchDialogState extends State<_BoutiqueSearchDialog> {
               ),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Rechercher une boutique',
-                      style: TextStyle(
+                      l10n.vmSearchBoutiqueTitle,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -340,7 +355,7 @@ class _BoutiqueSearchDialogState extends State<_BoutiqueSearchDialog> {
                 controller: _searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Rechercher par nom, ville ou code...',
+                  hintText: l10n.vmSearchBoutiqueHint,
                   prefixIcon: const Icon(Icons.search, color: Color(0xFF7BACD8)),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -375,12 +390,12 @@ class _BoutiqueSearchDialogState extends State<_BoutiqueSearchDialog> {
             // Boutiques list
             Flexible(
               child: _filteredBoutiques.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.all(32),
+                  ? Padding(
+                      padding: const EdgeInsets.all(32),
                       child: Center(
                         child: Text(
-                          'Aucune boutique trouvée',
-                          style: TextStyle(
+                          l10n.vmNoBoutiqueFound,
+                          style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF7BACD8),
                           ),
@@ -419,7 +434,7 @@ class _BoutiqueSearchDialogState extends State<_BoutiqueSearchDialog> {
                             title: Text(
                               boutique.libelle ??
                                   boutique.code ??
-                                  'Boutique ${boutique.id}',
+                                  l10n.vmBoutiqueFallback(boutique.id),
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,

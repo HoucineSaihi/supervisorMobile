@@ -1,20 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
+import 'package:supervisormobile/features/VisualMerchandising/vm_l10n_helpers.dart';
 
 
 class ZoneTile extends StatelessWidget {
   final ZoneStatDto zone;
+  final int pendingLocalPhotosCount;
 
-  const ZoneTile({super.key, required this.zone});
+  const ZoneTile({
+    super.key,
+    required this.zone,
+    this.pendingLocalPhotosCount = 0,
+  });
+
+  bool get _hasLocalPending => pendingLocalPhotosCount > 0;
+  int get _displayPhotoCount => zone.imagesCount + pendingLocalPhotosCount;
 
   // Retourne la bonne couleur selon l'état de la zone
   Color get _backgroundColor {
+    if (_hasLocalPending && !zone.isFinished) return const Color(0xFFFFF4E5);
     if (zone.isFinished) return const Color(0xFFE6FAF0); // vert pastel
     if (zone.isPartial)  return const Color(0xFFFFF4E5); // amber pastel
     return const Color(0xFFF4F9FF);                       // bleu pâle
   }
 
   Color get _borderColor {
+    if (_hasLocalPending && !zone.isFinished) return const Color(0xFFFCD34D);
     if (zone.isFinished) return const Color(0xFFB0E8CC);
     if (zone.isPartial)  return const Color(0xFFFCD34D);
     return const Color(0xFFE2EEF8);
@@ -25,6 +37,9 @@ class ZoneTile extends StatelessWidget {
     if (zone.isFinished) {
       return const Text('✅', style: TextStyle(fontSize: 12));
     }
+    if (_hasLocalPending) {
+      return const Text('⏳', style: TextStyle(fontSize: 12));
+    }
     if (zone.isPartial) {
       return const Text('⏳', style: TextStyle(fontSize: 12));
     }
@@ -33,48 +48,57 @@ class ZoneTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: _backgroundColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _borderColor, width: 1.5),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           // Emoji de la zone — on utilise le zoneCode pour choisir l'emoji
           Text(
             _emojiForCode(zone.zoneCode),
-            style: const TextStyle(fontSize: 20),
+            style: const TextStyle(fontSize: 18),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
 
           // Nom de la zone
-          Text(
-            zone.zoneName,
-            style: const TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF4A6D96),
+          Expanded(
+            child: Center(
+              child: Text(
+                zone.zoneName,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF4A6D96),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
 
-          const SizedBox(height: 2),
+          const SizedBox(height: 1),
 
           // Nombre de photos
           Text(
-            '${zone.imagesCount} photo${zone.imagesCount > 1 ? 's' : ''}',
-            style: const TextStyle(
-              fontSize: 9.5,
-              color: Color(0xFF7BACD8),
+            vmPhotosLabel(l10n, _displayPhotoCount),
+            style: TextStyle(
+              fontSize: 9,
+              color: _hasLocalPending
+                  ? const Color(0xFFB86B00)
+                  : const Color(0xFF7BACD8),
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
 
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           _statusIcon,
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/site_selector.dart';
@@ -14,6 +15,7 @@ class CampaignScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // On initialise le controller ici — Get le garde en mémoire
     final controller = Get.put(CampaignController(), permanent: false);
 
@@ -41,7 +43,7 @@ class CampaignScreen extends StatelessWidget {
                     FutureBuilder<String?>(
                       future: const FlutterSecureStorage().read(key: 'currentName'),
                       builder: (context, snapshot) {
-                        String displayName = 'RESPONSABLE';
+                        String displayName = l10n.vmDefaultResponsibleName;
                         String initials = 'AM';
 
                         if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
@@ -63,9 +65,9 @@ class CampaignScreen extends StatelessWidget {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'BONJOUR,',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.vmGreetingHello,
+                                  style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     color: Color(0xFF7BACD8),
@@ -135,9 +137,8 @@ class CampaignScreen extends StatelessWidget {
                 return SliverFillRemaining(
                   child: _EmptyState(
                     icon: Icons.store_outlined,
-                    title: 'Sélectionnez une boutique',
-                    subtitle:
-                    'Choisissez une boutique ci-dessus\npour voir ses campagnes.',
+                    title: l10n.vmSelectBoutiqueTitle,
+                    subtitle: l10n.vmSelectBoutiqueSubtitle,
                   ),
                 );
               }
@@ -158,8 +159,10 @@ class CampaignScreen extends StatelessWidget {
                 return SliverFillRemaining(
                   child: _EmptyState(
                     icon: Icons.error_outline,
-                    title: 'Erreur de chargement',
-                    subtitle: controller.errorMessage.value,
+                    title: l10n.vmLoadCampaignsErrorTitle,
+                    subtitle: l10n.vmErrorLoadingCampaigns(
+                      controller.errorMessage.value,
+                    ),
                     isError: true,
                   ),
                 );
@@ -170,42 +173,101 @@ class CampaignScreen extends StatelessWidget {
                 return SliverFillRemaining(
                   child: _EmptyState(
                     icon: Icons.campaign_outlined,
-                    title: 'Aucune campagne active',
-                    subtitle: 'Cette boutique n\'a pas\nde campagne en cours.',
+                    title: l10n.vmNoActiveCampaignTitle,
+                    subtitle: l10n.vmNoActiveCampaignSubtitle,
                   ),
                 );
               }
 
               // ── Liste des campagnes ────────────────────
+              final showLoadMore =
+                  controller.hasNextPage.value || controller.isLoadingMore.value;
               return SliverPadding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                        (context, index) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: CampaignCard(
-                        campaign: controller.campaigns[index],
-                        onEnter: () {
-                          final selectedSite = controller.selectedSite.value;
-                          if (selectedSite == null) {
-                            return;
-                          }
-                          Get.to(
-                                () => ExecutionScreen(
-                              campaign: controller.campaigns[index],
-                              siteId: controller.campaigns[index].siteId > 0
-                                  ? controller.campaigns[index].siteId
-                                  : selectedSite.id,
+                    (context, index) {
+                      if (index < controller.campaigns.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: CampaignCard(
+                            campaign: controller.campaigns[index],
+                            pendingLocalPhotosCount: controller
+                                .pendingLocalPhotosCountForCampaign(
+                              controller.campaigns[index].campaignId,
                             ),
-                            transition: Transition.rightToLeft,
-                          );
-                        },
-                        onGuideline: () {
-                          GuidelineHandler.openGuideline(context, controller.campaigns[index]);
-                        },
-                      ),
-                    ),
-                    childCount: controller.campaigns.length,
+                            pendingLocalZonesCount: controller
+                                .pendingLocalZonesCountForCampaign(
+                              controller.campaigns[index].campaignId,
+                            ),
+                            pendingLocalPhotosByZone: controller
+                                .pendingLocalPhotosByZoneForCampaign(
+                              controller.campaigns[index].campaignId,
+                            ),
+                            onEnter: () async {
+                              final selectedSite = controller.selectedSite.value;
+                              if (selectedSite == null) {
+                                return;
+                              }
+                              await Get.to(
+                                () => ExecutionScreen(
+                                  campaign: controller.campaigns[index],
+                                  siteId: controller.campaigns[index].siteId > 0
+                                      ? controller.campaigns[index].siteId
+                                      : selectedSite.id,
+                                ),
+                                transition: Transition.rightToLeft,
+                              );
+                              await controller.refreshPendingLocalPhotosForLoadedCampaigns();
+                            },
+                            onGuideline: () {
+                              GuidelineHandler.openGuideline(
+                                context,
+                                controller.campaigns[index],
+                              );
+                            },
+                          ),
+                        );
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 2, bottom: 6),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: controller.hasNextPage.value &&
+                                    !controller.isLoadingMore.value
+                                ? controller.loadMoreCampaigns
+                                : null,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF1E5FAA),
+                              side: const BorderSide(color: Color(0xFFB8D9F5)),
+                              backgroundColor: const Color(0xFFEAF3FD),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              textStyle: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            child: controller.isLoadingMore.value
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF1E5FAA),
+                                    ),
+                                  )
+                                : Text(l10n.vmLoadMore),
+                          ),
+                        ),
+                      );
+                    },
+                    childCount:
+                        controller.campaigns.length + (showLoadMore ? 1 : 0),
                   ),
                 ),
               );

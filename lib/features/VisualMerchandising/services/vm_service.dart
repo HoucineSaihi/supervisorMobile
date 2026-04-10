@@ -12,6 +12,66 @@ import '../dtos/vm_guideline_asset_dto.dart';
 import '../../calendar/models/boutiqueModel.dart';
 import 'guideline_cache_manager.dart';
 
+class VmCampaignsPaginationDto {
+  final int pageNumber;
+  final int pageSize;
+  final int totalCount;
+  final int totalPages;
+  final bool hasNextPage;
+  final bool hasPreviousPage;
+  final bool isFirstPage;
+  final bool isLastPage;
+  final int currentPageSize;
+  final int remainingItems;
+  final int? nextPageNumber;
+  final int? previousPageNumber;
+
+  const VmCampaignsPaginationDto({
+    required this.pageNumber,
+    required this.pageSize,
+    required this.totalCount,
+    required this.totalPages,
+    required this.hasNextPage,
+    required this.hasPreviousPage,
+    required this.isFirstPage,
+    required this.isLastPage,
+    required this.currentPageSize,
+    required this.remainingItems,
+    required this.nextPageNumber,
+    required this.previousPageNumber,
+  });
+
+  factory VmCampaignsPaginationDto.fromJson(Map<String, dynamic> json) {
+    final nextPage = (json['nextPageNumber'] as num?)?.toInt();
+    final previousPage = (json['previousPageNumber'] as num?)?.toInt();
+    return VmCampaignsPaginationDto(
+      pageNumber: (json['pageNumber'] as num?)?.toInt() ?? 1,
+      pageSize: (json['pageSize'] as num?)?.toInt() ?? 10,
+      totalCount: (json['totalCount'] as num?)?.toInt() ?? 0,
+      totalPages: (json['totalPages'] as num?)?.toInt() ?? 1,
+      hasNextPage: json['hasNextPage'] as bool? ?? false,
+      hasPreviousPage: json['hasPreviousPage'] as bool? ?? false,
+      isFirstPage: json['isFirstPage'] as bool? ?? true,
+      isLastPage: json['isLastPage'] as bool? ?? true,
+      currentPageSize: (json['currentPageSize'] as num?)?.toInt() ?? 0,
+      remainingItems: (json['remainingItems'] as num?)?.toInt() ?? 0,
+      nextPageNumber: nextPage != null && nextPage > 0 ? nextPage : null,
+      previousPageNumber:
+          previousPage != null && previousPage > 0 ? previousPage : null,
+    );
+  }
+}
+
+class VmCampaignsPageDto {
+  final List<VmCampaignDto> data;
+  final VmCampaignsPaginationDto pagination;
+
+  const VmCampaignsPageDto({
+    required this.data,
+    required this.pagination,
+  });
+}
+
 /// Service for Visual Merchandising API calls
 class VmService {
   static final Dio _dio = DioService.dio;
@@ -22,34 +82,54 @@ class VmService {
     'image/webp',
   };
 
-  /// Get campaigns by site IDs
-  /// POST /api/VmCompaign/by-sites
+  /// Get campaigns by site IDs (paginated)
+  /// POST /api/VmCompaign/by-sites?pageNumber=1
   /// Request body: [1, 2, 3] (array of site IDs)
-  Future<List<VmCampaignDto>> getCampaignsBySites(List<int> siteIds) async {
+  Future<VmCampaignsPageDto> getCampaignsBySites(
+    List<int> siteIds, {
+    int pageNumber = 1,
+  }) async {
     try {
       if (siteIds.isEmpty) {
         throw Exception('At least one site ID is required.');
       }
+      if (pageNumber <= 0) {
+        throw Exception('pageNumber must be greater than zero.');
+      }
 
       if (kDebugMode) {
         final baseUrl = _dio.options.baseUrl;
-        print('📡 VmService.getCampaignsBySites() → POST $baseUrl/VmCompaign/by-sites body=$siteIds');
+        print(
+          '📡 VmService.getCampaignsBySites() → POST '
+          '$baseUrl/VmCompaign/by-sites?pageNumber=$pageNumber body=$siteIds',
+        );
       }
 
       final response = await _dio.post(
         '/VmCompaign/by-sites',
+        queryParameters: {'pageNumber': pageNumber},
         data: siteIds,
       );
 
       if (response.statusCode == 200) {
-        if (response.data is! List) {
+        if (response.data is! Map<String, dynamic>) {
           throw Exception('Invalid response format for campaigns by sites.');
         }
-        final List<dynamic> jsonResponse = response.data as List<dynamic>;
-        return jsonResponse
+        final jsonResponse = response.data as Map<String, dynamic>;
+        final rawData = (jsonResponse['data'] as List<dynamic>? ?? <dynamic>[]);
+        final rawPagination =
+            (jsonResponse['pagination'] as Map<String, dynamic>? ?? <String, dynamic>{});
+
+        final campaigns = rawData
             .whereType<Map<String, dynamic>>()
             .map(VmCampaignDto.fromJson)
             .toList();
+        final pagination = VmCampaignsPaginationDto.fromJson(rawPagination);
+
+        return VmCampaignsPageDto(
+          data: campaigns,
+          pagination: pagination,
+        );
       } else {
         throw Exception(
             'Failed to load campaigns. Status code: ${response.statusCode}');
@@ -420,6 +500,7 @@ class VmService {
         // Perform automatic cleanup after download (non-blocking)
         GuidelineCacheManager.performCleanup().catchError((e) {
           print('Cache cleanup error: $e');
+          return 0;
         });
         
         return filePath;

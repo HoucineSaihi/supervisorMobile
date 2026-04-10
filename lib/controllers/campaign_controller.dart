@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
 import 'package:supervisormobile/features/VisualMerchandising/services/vm_service.dart';
 
@@ -21,12 +25,31 @@ class CampaignController extends GetxController {
 
   // Est-ce qu'on est en train de charger ?
   final RxBool isLoading = false.obs;
+  final RxBool isLoadingMore = false.obs;
 
   // Est-ce qu'on est en train de charger les boutiques ?
   final RxBool isLoadingBoutiques = false.obs;
 
   // Message d'erreur (vide = pas d'erreur)
   final RxString errorMessage = ''.obs;
+  final RxInt currentPage = 1.obs;
+  final RxInt totalPages = 1.obs;
+  final RxInt totalCount = 0.obs;
+  final RxBool hasNextPage = false.obs;
+  final RxMap<int, int> pendingLocalPhotosByCampaign = <int, int>{}.obs;
+  final RxMap<int, int> pendingLocalZonesByCampaign = <int, int>{}.obs;
+  final RxMap<int, Map<int, int>> pendingLocalPhotosByZoneByCampaign =
+      <int, Map<int, int>>{}.obs;
+
+  void _resetPagination() {
+    currentPage.value = 1;
+    totalPages.value = 1;
+    totalCount.value = 0;
+    hasNextPage.value = false;
+    pendingLocalPhotosByCampaign.clear();
+    pendingLocalZonesByCampaign.clear();
+    pendingLocalPhotosByZoneByCampaign.clear();
+  }
 
   @override
   void onInit() {
@@ -63,7 +86,7 @@ class CampaignController extends GetxController {
         print('✅ CampaignController.loadBoutiques() — loaded ${boutiquesList.length} boutiques');
       }
     } catch (e) {
-      errorMessage.value = 'Erreur lors du chargement des boutiques: ${e.toString()}';
+      errorMessage.value = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       print('❌ Error loading boutiques: $e');
     } finally {
       isLoadingBoutiques.value = false;
@@ -76,6 +99,9 @@ class CampaignController extends GetxController {
       print('🛍 CampaignController.selectSite() — id=${site.id}, name=${site.libelle ?? site.code}');
     }
     selectedSite.value = site;
+    campaigns.clear();
+    errorMessage.value = '';
+    _resetPagination();
     loadCampaigns(); // charge les campagnes dès qu'on choisit un site
   }
 
@@ -86,8 +112,10 @@ class CampaignController extends GetxController {
         print('⚠️ CampaignController.loadCampaigns() — no selectedSite, abort');
       }
       campaigns.clear();
+      _resetPagination();
       return;
     }
+    if (isLoading.value || isLoadingMore.value) return;
 
     if (kDebugMode) {
       print('📡 CampaignController.loadCampaigns() — start for siteId=${selectedSite.value!.id}');
@@ -97,17 +125,133 @@ class CampaignController extends GetxController {
     errorMessage.value = '';
 
     try {
-      final campaignsList = await _vmService.getCampaignsBySites([selectedSite.value!.id]);
-      campaigns.assignAll(campaignsList);
+      final response = await _vmService.getCampaignsBySites(
+        [selectedSite.value!.id],
+        pageNumber: 1,
+      );
+      campaigns.assignAll(response.data);
+      currentPage.value = response.pagination.pageNumber;
+      totalPages.value = response.pagination.totalPages;
+      totalCount.value = response.pagination.totalCount;
+      hasNextPage.value = response.pagination.hasNextPage;
+      await refreshPendingLocalPhotosForLoadedCampaigns();
       if (kDebugMode) {
-        print('✅ CampaignController.loadCampaigns() — loaded ${campaignsList.length} campaigns');
+        print(
+          '✅ CampaignController.loadCampaigns() — loaded ${response.data.length} campaigns '
+          '(page ${response.pagination.pageNumber}/${response.pagination.totalPages})',
+        );
       }
     } catch (e) {
-      errorMessage.value = 'Erreur lors du chargement des campagnes: ${e.toString()}';
+      errorMessage.value = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       campaigns.clear();
+      _resetPagination();
       print('❌ Error loading campaigns: $e');
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<void> loadMoreCampaigns() async {
+    final selected = selectedSite.value;
+    if (selected == null) return;
+    if (!hasNextPage.value || isLoading.value || isLoadingMore.value) return;
+
+    final nextPage = currentPage.value + 1;
+    isLoadingMore.value = true;
+    try {
+      final response = await _vmService.getCampaignsBySites(
+        [selected.id],
+        pageNumber: nextPage,
+      );
+      campaigns.addAll(response.data);
+      currentPage.value = response.pagination.pageNumber;
+      totalPages.value = response.pagination.totalPages;
+      totalCount.value = response.pagination.totalCount;
+      hasNextPage.value = response.pagination.hasNextPage;
+      await refreshPendingLocalPhotosForLoadedCampaigns();
+    } catch (e) {
+      errorMessage.value = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+    } finally {
+      isLoadingMore.value = false;
+    }
+  }
+
+  int pendingLocalPhotosCountForCampaign(int campaignId) {
+    return pendingLocalPhotosByCampaign[campaignId] ?? 0;
+  }
+
+  int pendingLocalZonesCountForCampaign(int campaignId) {
+    return pendingLocalZonesByCampaign[campaignId] ?? 0;
+  }
+
+  Map<int, int> pendingLocalPhotosByZoneForCampaign(int campaignId) {
+    return pendingLocalPhotosByZoneByCampaign[campaignId] ?? const <int, int>{};
+  }
+
+  Future<void> refreshPendingLocalPhotosForLoadedCampaigns() async {
+    final selected = selectedSite.value;
+    if (selected == null) {
+      pendingLocalPhotosByCampaign.clear();
+      return;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final photoSnapshot = <int, int>{};
+    final zoneSnapshot = <int, int>{};
+    final zonePhotoSnapshot = <int, Map<int, int>>{};
+
+    for (final campaign in campaigns) {
+      final key = 'vm_pending_photos_${campaign.campaignId}_${selected.id}';
+      final raw = prefs.getString(key);
+      if (raw == null || raw.isEmpty) continue;
+
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map<String, dynamic>) continue;
+        var count = 0;
+        var zonesWithLocal = 0;
+        final byZone = <int, int>{};
+        decoded.forEach((zoneIdRaw, listDynamic) {
+          if (listDynamic is! List) return;
+          final zoneId = int.tryParse(zoneIdRaw);
+          if (zoneId == null) return;
+          var zoneHasValidLocal = false;
+          var zonePhotoCount = 0;
+          for (final pathDynamic in listDynamic) {
+            if (pathDynamic is! String || pathDynamic.isEmpty) continue;
+            if (File(pathDynamic).existsSync()) {
+              count++;
+              zoneHasValidLocal = true;
+              zonePhotoCount++;
+            }
+          }
+          if (zoneHasValidLocal) zonesWithLocal++;
+          if (zonePhotoCount > 0) byZone[zoneId] = zonePhotoCount;
+        });
+        if (count > 0) {
+          photoSnapshot[campaign.campaignId] = count;
+        }
+        if (zonesWithLocal > 0) {
+          zoneSnapshot[campaign.campaignId] = zonesWithLocal;
+        }
+        if (byZone.isNotEmpty) {
+          zonePhotoSnapshot[campaign.campaignId] = byZone;
+        }
+      } catch (_) {
+        await prefs.remove(key);
+      }
+    }
+
+    pendingLocalPhotosByCampaign
+      ..clear()
+      ..addAll(photoSnapshot);
+    pendingLocalPhotosByCampaign.refresh();
+    pendingLocalZonesByCampaign
+      ..clear()
+      ..addAll(zoneSnapshot);
+    pendingLocalZonesByCampaign.refresh();
+    pendingLocalPhotosByZoneByCampaign
+      ..clear()
+      ..addAll(zonePhotoSnapshot);
+    pendingLocalPhotosByZoneByCampaign.refresh();
   }
 }

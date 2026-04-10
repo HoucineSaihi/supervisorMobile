@@ -230,4 +230,20 @@ class VmCampaignDto {
   ExecutionStatsDto? get firstGuideline {
     return executionsStats.isNotEmpty ? executionsStats.first : null;
   }
+
+  VmCampaignDto copyWith({
+    CampaignStatus? status,
+    List<ExecutionStatsDto>? executionsStats,
+  }) {
+    return VmCampaignDto(
+      campaignId: campaignId,
+      siteId: siteId,
+      status: status ?? this.status,
+      endDate: endDate,
+      libelle: libelle,
+      zoneCount: zoneCount,
+      containsGuideline: containsGuideline,
+      executionsStats: executionsStats ?? this.executionsStats,
+    );
+  }
 }

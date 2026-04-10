@@ -1025,5 +1025,236 @@
   "missionAddedSuccessfully": "Mission added successfully.",
   "failedToAddMission": "Failed to add mission.",
   "serverErrorWithCode": "Server error: {code}",
-  "unexpectedErrorOccurred": "An unexpected error occurred: {message}"
+  "unexpectedErrorOccurred": "An unexpected error occurred: {message}",
+  "vmGreetingHello": "HELLO,",
+  "vmDefaultResponsibleName": "MANAGER",
+  "vmSelectBoutiqueTitle": "Select a store",
+  "vmSelectBoutiqueSubtitle": "Choose a store above\nto see its campaigns.",
+  "vmLoadCampaignsErrorTitle": "Loading error",
+  "vmNoActiveCampaignTitle": "No active campaign",
+  "vmNoActiveCampaignSubtitle": "This store has no\ncampaign in progress.",
+  "vmLoadMore": "Load more",
+  "vmSelectBoutiqueSectionLabel": "SELECT A STORE",
+  "vmLoadingBoutiques": "Loading stores...",
+  "vmNoBoutiquesLoaded": "No store loaded",
+  "vmOneBoutiqueAvailable": "1 store available",
+  "vmNbBoutiquesAvailable": "{count} stores available",
+  "@vmNbBoutiquesAvailable": {
+    "description": "Count of stores available for selection",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "vmNoBoutiqueAvailable": "No store available",
+  "vmSelectBoutiquePlaceholder": "Select a store",
+  "vmSearchBoutiqueTitle": "Search for a store",
+  "vmSearchBoutiqueHint": "Search by name, city, or code...",
+  "vmNoBoutiqueFound": "No store found",
+  "vmBoutiqueFallback": "Store {id}",
+  "@vmBoutiqueFallback": {
+    "placeholders": {
+      "id": { "type": "int" }
+    }
+  },
+  "vmBackToCampaigns": "Campaigns",
+  "vmCompletionLabel": "Completion",
+  "vmZonesLabel": "Zones",
+  "vmLimitLabel": "Deadline",
+  "vmLimitDialogTitle": "Deadline",
+  "vmOk": "OK",
+  "vmGlobalProgress": "Overall progress",
+  "vmPhotoCountOne": "1 photo",
+  "vmPhotoCountMany": "{count} photos",
+  "@vmPhotoCountMany": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "vmGuidelineVmBannerTitle": "VM guideline",
+  "vmGuidelineFallbackName": "Guideline",
+  "vmZonesToCompleteTitle": "ZONES TO COMPLETE",
+  "vmNoZonesFound": "No zone found.",
+  "vmLiveDataUnavailable": "Live data unavailable: showing campaign stats.",
+  "vmCampaignCompleted": "Campaign completed",
+  "vmSubmitCampaign": "Submit campaign",
+  "vmSubmitCampaignEmailCta": "✉️  Submit campaign",
+  "vmCompleteAllZones": "Complete all zones",
+  "vmZonesRemainingOne": "1 zone remaining",
+  "vmZonesRemainingMany": "{count} zones remaining",
+  "@vmZonesRemainingMany": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "vmVisualMerchBadge": "Visual Merch",
+  "vmMetaZonesComplete": "{completed} / {total} zones complete",
+  "@vmMetaZonesComplete": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "vmMetaPhotosSent": "{count} photos submitted",
+  "@vmMetaPhotosSent": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "vmGuidelinesCount": "{count} guidelines",
+  "@vmGuidelinesCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "vmGuidelineDisplayFallback": "Guideline {index}",
+  "@vmGuidelineDisplayFallback": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "vmProgressionByZoneTitle": "PROGRESS BY ZONE",
+  "vmGuidelinesButton": "Guidelines ({count})",
+  "@vmGuidelinesButton": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "vmGuidelineButton": "Guideline",
+  "vmViewExecution": "View my execution",
+  "vmEnterCampaign": "Enter campaign →",
+  "vmZoneStatusComplete": "✓ Complete",
+  "vmZoneStatusPending": "Pending",
+  "vmZoneStatusPartial": "Partial",
+  "vmZoneStatusTodo": "To do",
+  "vmNoGuidelineForCampaign": "No guideline available for this campaign.",
+  "vmSelectGuidelineTitle": "Select a guideline",
+  "vmGuidelineNumberedFallback": "Guideline {index}",
+  "@vmGuidelineNumberedFallback": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "vmNoDocumentsForGuideline": "No document available for this guideline.",
+  "vmLoadDocumentsError": "Error loading documents: {error}",
+  "@vmLoadDocumentsError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "vmSelectDocumentTitle": "Select a document",
+  "vmAssetTypeFile": "File",
+  "vmDownloadingFile": "Downloading {name}...",
+  "@vmDownloadingFile": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vmDownloadedFileMissing": "The downloaded file does not exist.",
+  "vmCannotOpenFile": "Unable to open the file: {name}",
+  "@vmCannotOpenFile": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "vmDownloadOpenError": "Error while downloading/opening: {error}",
+  "@vmDownloadOpenError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "vmErrorLoadingBoutiques": "Error loading stores: {error}",
+  "@vmErrorLoadingBoutiques": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "vmErrorLoadingCampaigns": "Error loading campaigns: {error}",
+  "@vmErrorLoadingCampaigns": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "vmSubmitImpossibleTitle": "Cannot submit",
+  "vmCompleteAllZonesBeforeSubmit": "Complete all zones before submitting.",
+  "vmCampaignNotFoundForSubmit": "Campaign not found for submission.",
+  "vmSubmitSuccessTitle": "Success",
+  "vmCampaignSubmittedSuccess": "Campaign submitted successfully.",
+  "vmSubmitFailed": "Submission failed.",
+  "vmNoZonesToSubmit": "No zone to submit.",
+  "vmEachZoneNeedsLocalPhoto": "Each zone must contain at least one local photo.",
+  "vmErrorZoneNotAssigned": "Zone not assigned to campaign/site{zoneSuffix}",
+  "@vmErrorZoneNotAssigned": {
+    "placeholders": {
+      "zoneSuffix": { "type": "String" }
+    }
+  },
+  "vmErrorNoPhotos": "No photo provided for the zone{zoneSuffix}",
+  "@vmErrorNoPhotos": {
+    "placeholders": {
+      "zoneSuffix": { "type": "String" }
+    }
+  },
+  "vmErrorInvalidImageFormat": "Invalid image format{zoneSuffix}",
+  "@vmErrorInvalidImageFormat": {
+    "placeholders": {
+      "zoneSuffix": { "type": "String" }
+    }
+  },
+  "vmErrorInvalidBase64": "Corrupted image (invalid base64){zoneSuffix}",
+  "@vmErrorInvalidBase64": {
+    "placeholders": {
+      "zoneSuffix": { "type": "String" }
+    }
+  },
+  "vmErrorValidation": "Validation error{zoneSuffix}",
+  "@vmErrorValidation": {
+    "placeholders": {
+      "zoneSuffix": { "type": "String" }
+    }
+  },
+  "vmErrorZoneIdSuffix": " (zone {zoneId})",
+  "@vmErrorZoneIdSuffix": {
+    "placeholders": {
+      "zoneId": { "type": "int" }
+    }
+  },
+  "vmErrorCampaignNotFound404": "Campaign does not exist or is not linked to the store.",
+  "vmErrorServer500Retry": "Server error. Please try again in a moment.",
+  "vmZonesBackLabel": "Zones",
+  "vmConsultGuidelineForZone": "Open the guideline for this zone",
+  "vmSeeVisualGuidelines": "See visual instructions",
+  "vmPhotoShootInstructions": "Photo instructions",
+  "vmPhotosAddedTitle": "ADDED PHOTOS ({count})",
+  "@vmPhotosAddedTitle": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "vmCamera": "Camera",
+  "vmGallery": "Gallery",
+  "vmValidateZone": "Validate this zone ✓",
+  "vmAddPhotosHint": "Add photos",
+  "vmNoPhotosAdded": "No photo added",
+  "vmEmptyPhotosHint": "Take a photo or choose one\nfrom your gallery to get started.",
+  "vmPhotoOkBadge": "✓ OK",
+  "vmPhotoNumberLabel": "Photo #{number}",
+  "@vmPhotoNumberLabel": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "vmPhotoSent": "Sent ✓",
+  "vmAddPhoto": "Add",
+  "vmInstructionVp1": "Front photo in natural light",
+  "vmInstructionVp2": "Include the full window (wide shot)",
+  "vmInstructionVp3": "2nd photo: flagship product detail in the foreground",
+  "vmInstructionWd1": "Capture the full wall from the front",
+  "vmInstructionWd2": "Ensure all products are visible",
+  "vmInstructionWd3": "Good lighting, without glare",
+  "vmInstructionZc1": "Overview of the checkout counter",
+  "vmInstructionZc2": "ILV display visible and readable",
+  "vmInstructionZc3": "Clean area compliant with brand standards",
+  "vmInstructionDef1": "Sharp, well-framed photo",
+  "vmInstructionDef2": "Follow the guideline instructions",
+  "vmInstructionDef3": "Ensure visual compliance"
 }

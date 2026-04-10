@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
 import 'package:supervisormobile/features/VisualMerchandising/execution_controller.dart';
+import 'package:supervisormobile/features/VisualMerchandising/widgets/guideline_handler.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/zone_row.dart';
+import 'package:supervisormobile/features/VisualMerchandising/vm_l10n_helpers.dart';
 import 'package:supervisormobile/features/VisualMerchandising/zone_detail_screen.dart';
 
 
@@ -12,31 +16,75 @@ class ExecutionScreen extends StatelessWidget {
 
   const ExecutionScreen({super.key, required this.campaign, required this.siteId});
 
-  ExecutionStatsDto? get _stats => campaign.firstGuideline;
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // On crée le controller ET on lui passe la campagne
     final controller = Get.put(ExecutionController());
     controller.init(campaign, siteId);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F6FF),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(controller),
-            _buildGuidelineBanner(),
-            _buildZoneList(controller),
-            _buildSubmitBar(controller),
-          ],
+    return Obx(() {
+      final vm = controller.liveCampaign.value ?? campaign;
+      return Scaffold(
+        backgroundColor: const Color(0xFFF0F6FF),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(context, controller, vm, l10n),
+              _buildGuidelineBanner(context, l10n, vm),
+              _buildZoneList(controller, l10n, vm),
+              _buildSubmitBar(controller, l10n),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   // ── 1. Header avec progression globale ─────────────
-  Widget _buildHeader(ExecutionController controller) {
+  Widget _buildHeader(
+    BuildContext context,
+    ExecutionController controller,
+    VmCampaignDto vm,
+    AppLocalizations l10n,
+  ) {
+    final status = vm.status;
+    final hasLocalPending = controller.zonePhotos.values.any(
+      (photos) => photos.isNotEmpty,
+    );
+    final isLocalPendingOnly =
+        hasLocalPending && status != CampaignStatus.submitted;
+    final isFrench = Localizations.localeOf(context).languageCode == 'fr';
+
+    Color dotColor;
+    String statusLabel;
+    if (isLocalPendingOnly) {
+      dotColor = const Color(0xFFF5A623);
+      statusLabel = isFrench ? 'En cours localement' : 'In progress locally';
+    } else {
+      switch (status) {
+        case CampaignStatus.inProgress:
+          dotColor = const Color(0xFF7EFFA0);
+          statusLabel = l10n.inProgress;
+          break;
+        case CampaignStatus.submitted:
+          dotColor = const Color(0xFF27AE73);
+          statusLabel = l10n.completed;
+          break;
+        case CampaignStatus.cancelled:
+          dotColor = const Color(0xFFFF8A80);
+          statusLabel = l10n.cancelled;
+          break;
+        case CampaignStatus.notStarted:
+          dotColor = const Color(0xFFE2EEF8);
+          statusLabel = l10n.planned;
+          break;
+        default:
+          dotColor = const Color(0xFFB8D9F5);
+          statusLabel = l10n.unknown;
+      }
+    }
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -45,7 +93,8 @@ class ExecutionScreen extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+      // Réduire la hauteur globale du header.
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -55,11 +104,11 @@ class ExecutionScreen extends StatelessWidget {
             onTap: () => Get.back(),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.chevron_left, color: Colors.white70, size: 20),
+              children: [
+                const Icon(Icons.chevron_left, color: Colors.white70, size: 20),
                 Text(
-                  'Campagnes',
-                  style: TextStyle(
+                  l10n.vmBackToCampaigns,
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.white70,
@@ -69,11 +118,11 @@ class ExecutionScreen extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           // Badge statut
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
@@ -84,15 +133,15 @@ class ExecutionScreen extends StatelessWidget {
               children: [
                 Container(
                   width: 6, height: 6,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF7EFFA0),
+                  decoration: BoxDecoration(
+                    color: dotColor,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 5),
-                const Text(
-                  'En cours',
-                  style: TextStyle(
+                Text(
+                  statusLabel,
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -103,11 +152,11 @@ class ExecutionScreen extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
           // Titre campagne
           Text(
-            campaign.libelle,
+            vm.libelle,
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -115,7 +164,7 @@ class ExecutionScreen extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           // Stats : 3 chips
           Obx(() {
@@ -124,33 +173,54 @@ class ExecutionScreen extends StatelessWidget {
                 .where((z) => controller.isZoneComplete(z))
                 .length;
             final pct = (controller.globalProgress * 100).toInt();
+            final limitDate = DateFormat('dd/MM/yyyy').format(vm.endDate);
 
             return Row(
               children: [
-                _HeaderChip(
-                  value: '$pct%',
-                  label: 'Complétion',
+                Expanded(
+                  child: _HeaderChip(
+                    value: '$pct%',
+                    label: l10n.vmCompletionLabel,
+                  ),
                 ),
-                const SizedBox(width: 10),
-                _HeaderChip(
-                  value: '$completed/${zones.length}',
-                  label: 'Zones',
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _HeaderChip(
+                    value: '$completed/${zones.length}',
+                    label: l10n.vmZonesLabel,
+                  ),
                 ),
-                const SizedBox(width: 10),
-                _HeaderChip(
-                  value: campaign.isOverdue
-                      ? 'Dépassé'
-                      : '${campaign.daysRemaining}j',
-                  label: 'Restants',
-                  valueColor: campaign.isOverdue
-                      ? const Color(0xFFFF8A80)
-                      : const Color(0xFFFFD27A),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _HeaderChip(
+                    // Afficher uniquement la date limite, sans indication "dépassée".
+                    value: limitDate,
+                    label: l10n.vmLimitLabel,
+                    onTap: () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (dialogContext) {
+                          return AlertDialog(
+                            title: Text(l10n.vmLimitDialogTitle),
+                            content: Text(limitDate),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(dialogContext).pop(),
+                                child: Text(l10n.vmOk),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ],
             );
           }),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           // Barre de progression globale
           Obx(() => Column(
@@ -158,16 +228,21 @@ class ExecutionScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Avancement global',
-                    style: TextStyle(
+                  Text(
+                    l10n.vmGlobalProgress,
+                    style: const TextStyle(
                       fontSize: 11,
                       color: Colors.white70,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
-                    '${controller.totalBackendPhotos + controller.zonePhotos.values.fold(0, (s, l) => s + l.length)} photos',
+                    vmPhotosLabel(
+                      l10n,
+                      controller.totalBackendPhotos +
+                          controller.zonePhotos.values
+                              .fold(0, (s, l) => s + l.length),
+                    ),
                     style: const TextStyle(
                       fontSize: 11,
                       color: Colors.white,
@@ -176,7 +251,7 @@ class ExecutionScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
@@ -196,17 +271,16 @@ class ExecutionScreen extends StatelessWidget {
   }
 
   // ── 2. Bannière guideline ───────────────────────────
-  Widget _buildGuidelineBanner() {
-    if (!campaign.containsGuideline) return const SizedBox.shrink();
+  Widget _buildGuidelineBanner(
+    BuildContext context,
+    AppLocalizations l10n,
+    VmCampaignDto vm,
+  ) {
+    if (!vm.containsGuideline) return const SizedBox.shrink();
 
     return GestureDetector(
       onTap: () {
-        // TODO: ouvrir le PDF
-        Get.snackbar(
-          '📄 Guideline',
-          _stats?.guidelineName ?? 'Guideline',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        GuidelineHandler.openGuideline(context, vm);
       },
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -246,16 +320,16 @@ class ExecutionScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Guideline VM',
-                    style: TextStyle(
+                  Text(
+                    l10n.vmGuidelineVmBannerTitle,
+                    style: const TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF1B3F72),
                     ),
                   ),
                   Text(
-                    _stats?.guidelineName ?? 'Guideline',
+                    vm.firstGuideline?.guidelineName ?? l10n.vmGuidelineFallbackName,
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF7BACD8),
@@ -277,16 +351,20 @@ class ExecutionScreen extends StatelessWidget {
   }
 
   // ── 3. Liste des zones (scrollable) ────────────────
-  Widget _buildZoneList(ExecutionController controller) {
+  Widget _buildZoneList(
+    ExecutionController controller,
+    AppLocalizations l10n,
+    VmCampaignDto vm,
+  ) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
             child: Text(
-              'ZONES À COMPLÉTER',
-              style: TextStyle(
+              l10n.vmZonesToCompleteTitle,
+              style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF7BACD8),
@@ -301,12 +379,19 @@ class ExecutionScreen extends StatelessWidget {
                   child: CircularProgressIndicator(color: Color(0xFF1E5FAA)),
                 );
               }
+              // Dépendance explicite sur les photos locales pour forcer la
+              // reconstruction de la liste et des compteurs par zone.
+              final localPhotosTick = controller.zonePhotos.values.fold<int>(
+                0,
+                (sum, photos) => sum + photos.length,
+              );
+
               final zones = controller.zones;
               if (zones.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
-                    'Aucune zone trouvée.',
-                    style: TextStyle(
+                    l10n.vmNoZonesFound,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF7BACD8),
                       fontWeight: FontWeight.w600,
@@ -326,9 +411,9 @@ class ExecutionScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: const Color(0xFFFCD34D)),
                       ),
-                      child: const Text(
-                        'Données live indisponibles: affichage des stats de campagne.',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.vmLiveDataUnavailable,
+                        style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFFC87700),
                           fontWeight: FontWeight.w600,
@@ -337,6 +422,7 @@ class ExecutionScreen extends StatelessWidget {
                     ),
                   Expanded(
                     child: ListView.builder(
+                      key: ValueKey('zones_${zones.length}_$localPhotosTick'),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: zones.length,
                       itemBuilder: (context, index) {
@@ -350,7 +436,7 @@ class ExecutionScreen extends StatelessWidget {
                             Get.to(
                               () => ZoneDetailScreen(
                                 zone: zone,
-                                campaign: campaign,
+                                campaign: vm,
                               ),
                               transition: Transition.rightToLeft,
                             );
@@ -369,7 +455,10 @@ class ExecutionScreen extends StatelessWidget {
   }
 
   // ── 4. Bouton soumettre (sticky en bas) ────────────
-  Widget _buildSubmitBar(ExecutionController controller) {
+  Widget _buildSubmitBar(
+    ExecutionController controller,
+    AppLocalizations l10n,
+  ) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       decoration: const BoxDecoration(
@@ -378,8 +467,9 @@ class ExecutionScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Bouton soumettre
+          // Bouton soumettre — read isCampaignSubmitted / canSubmit inside Obx so they stay reactive
           Obx(() {
+            final submitted = controller.isCampaignSubmitted;
             final canSubmit = controller.canSubmit;
             final isUploading = controller.isUploading.value;
 
@@ -413,21 +503,25 @@ class ExecutionScreen extends StatelessWidget {
                   ),
                 )
                     : Text(
-                  canSubmit
-                      ? '✉️  Soumettre la campagne'
-                      : 'Complétez toutes les zones',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                        submitted
+                            ? l10n.vmCampaignCompleted
+                            : canSubmit
+                                ? l10n.vmSubmitCampaignEmailCta
+                                : l10n.vmCompleteAllZones,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
             );
           }),
 
           // Hint sous le bouton
           Obx(() {
-            if (controller.canSubmit) return const SizedBox.shrink();
+            if (controller.canSubmit || controller.isCampaignSubmitted) {
+              return const SizedBox.shrink();
+            }
             final zones = controller.zones;
             final remaining = zones
                 .where((z) => !controller.isZoneComplete(z))
@@ -435,7 +529,7 @@ class ExecutionScreen extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(top: 7),
               child: Text(
-                '$remaining zone${remaining > 1 ? 's' : ''} restante${remaining > 1 ? 's' : ''}',
+                vmZonesRemainingLabel(l10n, remaining),
                 style: const TextStyle(
                   fontSize: 11,
                   color: Color(0xFF8AB2D4),
@@ -456,17 +550,20 @@ class _HeaderChip extends StatelessWidget {
   final String value;
   final String label;
   final Color valueColor;
+  final VoidCallback? onTap;
 
   const _HeaderChip({
     required this.value,
     required this.label,
     this.valueColor = Colors.white,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+    final chip = Container(
+      // Réduire la hauteur du chip tout en laissant suffisamment d'espace.
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.12),
         borderRadius: BorderRadius.circular(14),
@@ -481,6 +578,8 @@ class _HeaderChip extends StatelessWidget {
               fontWeight: FontWeight.w800,
               color: valueColor,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           Text(
             label,
@@ -489,8 +588,21 @@ class _HeaderChip extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: Colors.white.withOpacity(0.65),
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) return chip;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: chip,
       ),
     );
   }

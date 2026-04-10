@@ -3,10 +3,13 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_execution_dto.dart';
+import 'package:supervisormobile/controllers/campaign_controller.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_submit_dto.dart';
 import 'package:supervisormobile/features/VisualMerchandising/services/vm_service.dart';
 
@@ -24,6 +27,9 @@ class ExecutionController extends GetxController {
   VmCampaignDto? _campaign;
   int? _loadedCampaignId;
   int? _loadedSiteId;
+
+  /// Updated after submit and kept in sync with [_campaign]; drives [ExecutionScreen] UI.
+  final Rx<VmCampaignDto?> liveCampaign = Rx<VmCampaignDto?>(null);
 
   // #region agent log
   Future<void> _logDebug({
@@ -56,9 +62,11 @@ class ExecutionController extends GetxController {
 
   Future<void> init(VmCampaignDto campaign, int siteId) async {
     if (_loadedCampaignId == campaign.campaignId && _loadedSiteId == siteId) {
+      liveCampaign.value = _campaign;
       return;
     }
     _campaign = campaign;
+    liveCampaign.value = campaign;
     _loadedCampaignId = campaign.campaignId;
     _loadedSiteId = siteId;
     zonePhotos.clear();
@@ -67,6 +75,7 @@ class ExecutionController extends GetxController {
     for (final zone in campaign.allZones) {
       zonePhotos[zone.zoneId] = <String>[];
     }
+    await _loadPendingLocalPhotos();
     // #region agent log
     _logDebug(
       runId: 'pre-fix',
@@ -114,7 +123,14 @@ class ExecutionController extends GetxController {
     return completed / zones.length;
   }
 
+  /// True when the campaign is already submitted (drives button disabled state).
+  bool get isCampaignSubmitted {
+    final s = liveCampaign.value?.status ?? _campaign?.status;
+    return s == CampaignStatus.submitted;
+  }
+
   bool get canSubmit {
+    if (isCampaignSubmitted) return false;
     if (zones.isEmpty) return false;
     return zones.every(isZoneComplete);
   }
@@ -193,6 +209,7 @@ class ExecutionController extends GetxController {
     if (picked == null) return;
     zonePhotos[zoneId] = [...photosForZone(zoneId), picked.path];
     zonePhotos.refresh();
+    await _savePendingLocalPhotos();
     // #region agent log
     _logDebug(
       runId: 'pre-fix',
@@ -212,6 +229,7 @@ class ExecutionController extends GetxController {
     if (picked == null) return;
     zonePhotos[zoneId] = [...photosForZone(zoneId), picked.path];
     zonePhotos.refresh();
+    await _savePendingLocalPhotos();
     // #region agent log
     _logDebug(
       runId: 'pre-fix',
@@ -232,13 +250,18 @@ class ExecutionController extends GetxController {
     final updated = [...current]..removeAt(index);
     zonePhotos[zoneId] = updated;
     zonePhotos.refresh();
+    _savePendingLocalPhotos();
   }
 
   Future<void> submitCampaign() async {
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final l10n = AppLocalizations.of(ctx)!;
+
     if (!canSubmit) {
       Get.snackbar(
-        'Soumission impossible',
-        'Completez toutes les zones avant de soumettre.',
+        l10n.vmSubmitImpossibleTitle,
+        l10n.vmCompleteAllZonesBeforeSubmit,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orange.shade700,
         colorText: Colors.white,
@@ -250,8 +273,8 @@ class ExecutionController extends GetxController {
     final siteId = _loadedSiteId;
     if (campaign == null || siteId == null) {
       Get.snackbar(
-        'Erreur',
-        'Campagne introuvable pour la soumission.',
+        l10n.error,
+        l10n.vmCampaignNotFoundForSubmit,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade600,
         colorText: Colors.white,
@@ -275,16 +298,16 @@ class ExecutionController extends GetxController {
     // #endregion
     try {
       if (zones.isEmpty) {
-        throw const VmSubmitApiException(
-          message: 'Aucune zone a soumettre.',
+        throw VmSubmitApiException(
+          message: l10n.vmNoZonesToSubmit,
         );
       }
       final zonesWithoutLocalPhoto = zones
           .where((z) => photosForZone(z.zoneId).isEmpty)
           .toList();
       if (zonesWithoutLocalPhoto.isNotEmpty) {
-        throw const VmSubmitApiException(
-          message: 'Chaque zone doit contenir au moins une photo locale.',
+        throw VmSubmitApiException(
+          message: l10n.vmEachZoneNeedsLocalPhoto,
         );
       }
 
@@ -297,9 +320,10 @@ class ExecutionController extends GetxController {
         appVersion: '1.0.0',
       );
       if (!response.success) {
-        throw Exception(response.message ?? 'La soumission a échoué.');
+        throw Exception(response.message ?? l10n.vmSubmitFailed);
       }
 
+      await _clearPendingLocalPhotos();
       zonePhotos.clear();
       for (final zone in zones) {
         zonePhotos[zone.zoneId] = <String>[];
@@ -308,18 +332,26 @@ class ExecutionController extends GetxController {
 
       await loadExecution(campaignId: campaign.campaignId, siteId: siteId);
 
+      final newStatus = response.campaignStatus != null
+          ? campaignStatusFromString(response.campaignStatus!)
+          : CampaignStatus.submitted;
+      _campaign = _campaign!.copyWith(status: newStatus);
+      liveCampaign.value = _campaign;
+
+      await _refreshCampaignListIfAvailable();
+
       Get.snackbar(
-        'Succès',
-        response.message ?? 'Campagne soumise avec succès.',
+        l10n.vmSubmitSuccessTitle,
+        response.message ?? l10n.vmCampaignSubmittedSuccess,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade600,
         colorText: Colors.white,
         margin: const EdgeInsets.all(12),
       );
     } on VmSubmitApiException catch (e) {
-      final detailedMessage = _buildSubmitErrorMessage(e);
+      final detailedMessage = _buildSubmitErrorMessage(l10n, e);
       Get.snackbar(
-        'Erreur',
+        l10n.error,
         detailedMessage,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade600,
@@ -328,7 +360,7 @@ class ExecutionController extends GetxController {
       );
     } catch (e) {
       Get.snackbar(
-        'Erreur',
+        l10n.error,
         e.toString().replaceFirst('Exception: ', ''),
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade600,
@@ -340,31 +372,51 @@ class ExecutionController extends GetxController {
     }
   }
 
-  String _buildSubmitErrorMessage(VmSubmitApiException error) {
+  Future<void> _refreshCampaignListIfAvailable() async {
+    if (!Get.isRegistered<CampaignController>()) return;
+    final cc = Get.find<CampaignController>();
+    await cc.loadCampaigns();
+    final id = _campaign?.campaignId;
+    if (id == null) return;
+    for (final c in cc.campaigns) {
+      if (c.campaignId == id) {
+        _campaign = c;
+        liveCampaign.value = c;
+        break;
+      }
+    }
+  }
+
+  String _buildSubmitErrorMessage(
+    AppLocalizations l10n,
+    VmSubmitApiException error,
+  ) {
     if (error.response != null && error.response!.errors.isNotEmpty) {
       final mapped = error.response!.errors.map((e) {
-        final zoneSuffix = e.zoneId != null ? ' (zone ${e.zoneId})' : '';
+        final zoneSuffix = e.zoneId != null
+            ? l10n.vmErrorZoneIdSuffix(e.zoneId!)
+            : '';
         switch (e.code) {
           case 'ZONE_NOT_ASSIGNED':
-            return 'Zone non affectee a la campagne/site$zoneSuffix';
+            return l10n.vmErrorZoneNotAssigned(zoneSuffix);
           case 'NO_PHOTOS':
-            return 'Aucune photo fournie pour la zone$zoneSuffix';
+            return l10n.vmErrorNoPhotos(zoneSuffix);
           case 'INVALID_IMAGE_FORMAT':
-            return 'Format image invalide$zoneSuffix';
+            return l10n.vmErrorInvalidImageFormat(zoneSuffix);
           case 'INVALID_BASE64':
-            return 'Image corrompue (base64 invalide)$zoneSuffix';
+            return l10n.vmErrorInvalidBase64(zoneSuffix);
           default:
-            return 'Erreur de validation$zoneSuffix';
+            return l10n.vmErrorValidation(zoneSuffix);
         }
       }).join(' | ');
       return '${error.message}. $mapped';
     }
 
     if (error.statusCode == 404) {
-      return 'Campagne inexistante ou non liee au site.';
+      return l10n.vmErrorCampaignNotFound404;
     }
     if (error.statusCode == 500) {
-      return 'Erreur serveur. Reessayez dans quelques instants.';
+      return l10n.vmErrorServer500Retry;
     }
     return error.message;
   }
@@ -385,5 +437,80 @@ class ExecutionController extends GetxController {
       case TargetPlatform.fuchsia:
         return 'fuchsia';
     }
+  }
+
+  String? _pendingPhotosPrefsKey() {
+    final campaignId = _loadedCampaignId;
+    final siteId = _loadedSiteId;
+    if (campaignId == null || siteId == null) return null;
+    return 'vm_pending_photos_${campaignId}_$siteId';
+  }
+
+  Future<void> _loadPendingLocalPhotos() async {
+    final key = _pendingPhotosPrefsKey();
+    if (key == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(key);
+    if (raw == null || raw.isEmpty) return;
+
+    bool hasPrunedInvalidPath = false;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return;
+
+      decoded.forEach((zoneIdRaw, pathsDynamic) {
+        final zoneId = int.tryParse(zoneIdRaw);
+        if (zoneId == null || pathsDynamic is! List) return;
+        final sanitized = <String>[];
+        for (final pathDynamic in pathsDynamic) {
+          if (pathDynamic is! String || pathDynamic.isEmpty) continue;
+          if (File(pathDynamic).existsSync()) {
+            sanitized.add(pathDynamic);
+          } else {
+            hasPrunedInvalidPath = true;
+          }
+        }
+        if (sanitized.isNotEmpty) {
+          zonePhotos[zoneId] = sanitized;
+        } else {
+          zonePhotos.putIfAbsent(zoneId, () => <String>[]);
+        }
+      });
+
+      zonePhotos.refresh();
+      if (hasPrunedInvalidPath) {
+        await _savePendingLocalPhotos();
+      }
+    } catch (_) {
+      await prefs.remove(key);
+    }
+  }
+
+  Future<void> _savePendingLocalPhotos() async {
+    final key = _pendingPhotosPrefsKey();
+    if (key == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final payload = <String, List<String>>{};
+
+    zonePhotos.forEach((zoneId, paths) {
+      if (paths.isEmpty) return;
+      final existing = paths.where((p) => p.isNotEmpty && File(p).existsSync()).toList();
+      if (existing.isNotEmpty) {
+        payload[zoneId.toString()] = existing;
+      }
+    });
+
+    if (payload.isEmpty) {
+      await prefs.remove(key);
+      return;
+    }
+    await prefs.setString(key, jsonEncode(payload));
+  }
+
+  Future<void> _clearPendingLocalPhotos() async {
+    final key = _pendingPhotosPrefsKey();
+    if (key == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
   }
 }
