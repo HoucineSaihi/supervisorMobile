@@ -12,7 +12,7 @@ class DioService {
   
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://localhost:7000'
+      baseUrl: 'https://659f-197-2-14-34.ngrok-free.app'
           '/api', // ⚡ Replace with your real API URL http://shopconnect.exoticgroup.net:8080/api
       headers: {
         'Accept': 'application/json',
