@@ -5,7 +5,12 @@ import 'package:supervisormobile/utils/Helpers/robust_storage_service.dart';
 
 class SecureStorageService {
   Future<void> saveLoginData(Map<String, dynamic> data) async {
-    await RobustStorageService.write('token', data['token']);
+    final String token = (data['token'] ?? '').toString().trim();
+    if (token.isEmpty) {
+      throw Exception('Login succeeded but token is missing from response.');
+    }
+
+    await RobustStorageService.write('token', token);
     await RobustStorageService.write('expires', data['expires']);
     await RobustStorageService.write('currentUserId', data['currentUserId'].toString());
     await RobustStorageService.write('currentName', data['currentName']);
@@ -55,7 +60,7 @@ class LoginService {
       if (response.statusCode == 200) {
         final data = response.data;
 
-        if (data['success']) {
+        if (data['success'] == true) {
           print('🔐 LoginService: Saving login data...');
           print('🔐 LoginService: Token received: ${data['token'] != null ? 'YES' : 'NO'}');
           await _storageService.saveLoginData(data);

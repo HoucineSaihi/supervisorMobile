@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class RobustStorageService {
@@ -6,8 +7,20 @@ class RobustStorageService {
   static SharedPreferences? _prefs;
   static bool _useSecureStorage = true;
 
+  static Future<SharedPreferences> _getPrefs() async {
+    return _prefs ??= await SharedPreferences.getInstance();
+  }
+
   // Initialize the service
   static Future<void> initialize() async {
+    if (kIsWeb) {
+      // Web build: rely on SharedPreferences (backed by browser localStorage)
+      _prefs = await SharedPreferences.getInstance();
+      _useSecureStorage = false;
+      print('🔐 RobustStorageService: Using SharedPreferences on web');
+      return;
+    }
+
     try {
       // Try to initialize secure storage
       await _secureStorage.read(key: 'test');
@@ -27,13 +40,15 @@ class RobustStorageService {
       if (_useSecureStorage) {
         await _secureStorage.write(key: key, value: value);
       } else {
-        await _prefs?.setString(key, value);
+        final prefs = await _getPrefs();
+        await prefs.setString(key, value);
       }
     } catch (e) {
       // If secure storage fails, try SharedPreferences
       if (_useSecureStorage) {
         _useSecureStorage = false;
-        await _prefs?.setString(key, value);
+        final prefs = await _getPrefs();
+        await prefs.setString(key, value);
         print('🔐 RobustStorageService: Switched to SharedPreferences due to error: $e');
       }
     }
@@ -45,13 +60,15 @@ class RobustStorageService {
       if (_useSecureStorage) {
         return await _secureStorage.read(key: key);
       } else {
-        return _prefs?.getString(key);
+        final prefs = await _getPrefs();
+        return prefs.getString(key);
       }
     } catch (e) {
       // If secure storage fails, try SharedPreferences
       if (_useSecureStorage) {
         _useSecureStorage = false;
-        final result = _prefs?.getString(key);
+        final prefs = await _getPrefs();
+        final result = prefs.getString(key);
         print('🔐 RobustStorageService: Switched to SharedPreferences due to error: $e');
         return result;
       }
@@ -65,13 +82,15 @@ class RobustStorageService {
       if (_useSecureStorage) {
         await _secureStorage.delete(key: key);
       } else {
-        await _prefs?.remove(key);
+        final prefs = await _getPrefs();
+        await prefs.remove(key);
       }
     } catch (e) {
       // If secure storage fails, try SharedPreferences
       if (_useSecureStorage) {
         _useSecureStorage = false;
-        await _prefs?.remove(key);
+        final prefs = await _getPrefs();
+        await prefs.remove(key);
         print('🔐 RobustStorageService: Switched to SharedPreferences due to error: $e');
       }
     }
@@ -83,13 +102,15 @@ class RobustStorageService {
       if (_useSecureStorage) {
         await _secureStorage.deleteAll();
       } else {
-        await _prefs?.clear();
+        final prefs = await _getPrefs();
+        await prefs.clear();
       }
     } catch (e) {
       // If secure storage fails, try SharedPreferences
       if (_useSecureStorage) {
         _useSecureStorage = false;
-        await _prefs?.clear();
+        final prefs = await _getPrefs();
+        await prefs.clear();
         print('🔐 RobustStorageService: Switched to SharedPreferences due to error: $e');
       }
     }
