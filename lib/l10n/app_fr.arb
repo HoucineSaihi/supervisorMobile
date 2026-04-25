@@ -369,6 +369,7 @@
   "vmNoBoutiqueFound": "Aucune boutique trouvée",
   "vmBoutiqueFallback": "Boutique {id}",
   "vmBackToCampaigns": "Campagnes",
+  "vmComments": "Commentaires",
   "vmCompletionLabel": "Complétion",
   "vmZonesLabel": "Zones",
   "vmLimitLabel": "Limite",
@@ -390,6 +391,13 @@
   "vmZonesRemainingMany": "{count} zones restantes",
   "vmVisualMerchBadge": "Visual Merch",
   "vmMetaZonesComplete": "{completed} / {total} zones complètes",
+  "vmMetaZonesApproved": "{completed} / {total} zones approuvées",
+  "@vmMetaZonesApproved": {
+    "placeholders": {
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
   "vmMetaPhotosSent": "{count} photos envoyées",
   "vmGuidelinesCount": "{count} guidelines",
   "vmGuidelineDisplayFallback": "Guideline {index}",
@@ -442,7 +450,7 @@
   "vmAddPhotosHint": "Ajoutez des photos",
   "vmNoPhotosAdded": "Aucune photo ajoutée",
   "vmEmptyPhotosHint": "Prenez une photo ou choisissez\ndepuis votre galerie pour commencer.",
-  "vmPhotoOkBadge": "✓ OK",
+  "vmPhotoOkBadge": "✓ Envoyée",
   "vmPhotoNumberLabel": "Photo #{number}",
   "vmPhotoSent": "Envoyée ✓",
   "vmAddPhoto": "Ajouter",

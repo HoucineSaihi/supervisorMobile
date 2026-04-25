@@ -10,6 +10,7 @@ class ZoneRow extends StatelessWidget {
   final bool hasLocalPending;
   final int totalPhotoCount;
   final VoidCallback onTap;
+  final String? issueText;
 
   const ZoneRow({
     super.key,
@@ -18,33 +19,54 @@ class ZoneRow extends StatelessWidget {
     required this.hasLocalPending,
     required this.totalPhotoCount,
     required this.onTap,
+    this.issueText,
   });
 
   // ── Couleurs selon l'état ───────────────────────────
   Color get _bgColor {
-    if (isZoneValidated) return const Color(0xFFE6FAF0);
-    if (hasLocalPending) return const Color(0xFFFFF4E5);
-    if (zone.isPartial)     return const Color(0xFFFFF4E5);
+    if (zone.isDisapproved) return const Color(0xFFFFECE9);
+    if (zone.isApproved || isZoneValidated) return const Color(0xFFE6FAF0);
+    if (hasLocalPending || zone.isSubmitted) return const Color(0xFFFFF4E5);
     return Colors.white;
   }
 
   Color get _borderColor {
-    if (isZoneValidated) return const Color(0xFFB0E8CC);
-    if (hasLocalPending) return const Color(0xFFFCD34D);
-    if (zone.isPartial)     return const Color(0xFFFCD34D);
+    if (zone.isDisapproved) return const Color(0xFFF3A9A0);
+    if (zone.isApproved || isZoneValidated) return const Color(0xFFB0E8CC);
+    if (hasLocalPending || zone.isSubmitted) return const Color(0xFFFCD34D);
     return const Color(0xFFE2EEF8);
   }
 
   Color get _progressColor {
-    if (isZoneValidated) return const Color(0xFF27AE73);
-    if (hasLocalPending) return const Color(0xFFF5A623);
-    if (zone.isPartial)     return const Color(0xFFF5A623);
+    if (zone.isDisapproved) return const Color(0xFFE74C3C);
+    if (zone.isApproved || isZoneValidated) return const Color(0xFF27AE73);
+    if (hasLocalPending || zone.isSubmitted) return const Color(0xFFF5A623);
     return const Color(0xFF1E5FAA);
   }
 
   // ── Widget du statut (droite) ───────────────────────
   Widget _statusWidget(AppLocalizations l10n) {
-    if (isZoneValidated) {
+    final isFrench = l10n.localeName.toLowerCase().startsWith('fr');
+
+    if (zone.isDisapproved) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFECE9),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFF3A9A0)),
+        ),
+        child: Text(
+          isFrench ? 'Desapprouvee' : 'Disapproved',
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFC62828),
+          ),
+        ),
+      );
+    }
+    if (zone.isApproved || isZoneValidated) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
@@ -53,7 +75,7 @@ class ZoneRow extends StatelessWidget {
           border: Border.all(color: const Color(0xFFB0E8CC)),
         ),
         child: Text(
-          l10n.vmZoneStatusComplete,
+          isFrench ? 'Approuvee' : 'Approved',
           style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
@@ -62,7 +84,7 @@ class ZoneRow extends StatelessWidget {
         ),
       );
     }
-    if (hasLocalPending) {
+    if (hasLocalPending || zone.isSubmitted) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
@@ -71,29 +93,11 @@ class ZoneRow extends StatelessWidget {
           border: Border.all(color: const Color(0xFFF7C66A)),
         ),
         child: Text(
-          l10n.vmZoneStatusPending,
+          isFrench ? 'Soumise' : 'Submitted',
           style: const TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
             color: Color(0xFFB86B00),
-          ),
-        ),
-      );
-    }
-    if (zone.isPartial) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF4E5),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFFCD34D)),
-        ),
-        child: Text(
-          l10n.vmZoneStatusPartial,
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFFC87700),
           ),
         ),
       );
@@ -195,11 +199,11 @@ class ZoneRow extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: LinearProgressIndicator(
-                              // Progress : on divise par 1 si zone vide
-                              // juste pour montrer visuellement l'état
                               value: isZoneValidated
                                   ? 1.0
-                                  : (hasLocalPending || zone.isPartial)
+                                  : zone.isDisapproved
+                                  ? 1.0
+                                  : (hasLocalPending || zone.isSubmitted)
                                   ? 0.5
                                   : 0.0,
                               minHeight: 5,
@@ -221,6 +225,36 @@ class ZoneRow extends StatelessWidget {
                         ),
                       ],
                     ),
+
+                    // Issue snippet (disapproved only)
+                    if (zone.isDisapproved && issueText != null && issueText!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 7),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              size: 11,
+                              color: Color(0xFFE74C3C),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                issueText!,
+                                style: const TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFE74C3C),
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -231,6 +265,12 @@ class ZoneRow extends StatelessWidget {
               Icon(
                 Icons.chevron_right_rounded,
                 color: isZoneValidated
+                    ? const Color(0xFF27AE73)
+                    : zone.isDisapproved
+                    ? const Color(0xFFE74C3C)
+                    : zone.isSubmitted
+                    ? const Color(0xFFF5A623)
+                    : zone.isApproved
                     ? const Color(0xFF27AE73)
                     : const Color(0xFFB0C8E0),
                 size: 22,

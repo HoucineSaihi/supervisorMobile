@@ -85,34 +85,82 @@ class CampaignScreen extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF4A9EDD), Color(0xFF2563B0)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF2563B0).withOpacity(0.3),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Refresh button
+                                Obx(() {
+                                  final isLoading = controller.isLoading.value;
+                                  return GestureDetector(
+                                    onTap: isLoading
+                                        ? null
+                                        : () => controller.loadCampaigns(),
+                                    child: AnimatedOpacity(
+                                      duration: const Duration(milliseconds: 200),
+                                      opacity: isLoading ? 0.5 : 1.0,
+                                      child: Container(
+                                        width: 42,
+                                        height: 42,
+                                        margin: const EdgeInsets.only(right: 10),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEAF3FD),
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(
+                                            color: const Color(0xFFB8D9F5),
+                                          ),
+                                        ),
+                                        child: isLoading
+                                            ? const Center(
+                                                child: SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    color: Color(0xFF1E5FAA),
+                                                  ),
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.refresh_rounded,
+                                                color: Color(0xFF1E5FAA),
+                                                size: 20,
+                                              ),
+                                      ),
+                                    ),
+                                  );
+                                }),
+
+                                // Avatar
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF4A9EDD), Color(0xFF2563B0)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF2563B0).withOpacity(0.3),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Text(
-                                  initials,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
+                                  child: Center(
+                                    child: Text(
+                                      initials,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
                           ],
                         );

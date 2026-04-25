@@ -9,7 +9,9 @@
 enum CampaignStatus {
   notStarted, // 'Planified'
   inProgress, // 'InProgress'
-  submitted,  // 'Completed'
+  submitted,  // 'Completed' (pending supervisor decision)
+  approved,   // 'approved'
+  disapproved, // 'disapproved'
   cancelled,  // 'Cancelled'
   unknown,
 }
@@ -23,6 +25,10 @@ CampaignStatus campaignStatusFromString(String value) {
       return CampaignStatus.inProgress;
     case 'completed':
       return CampaignStatus.submitted;
+    case 'approved':
+      return CampaignStatus.approved;
+    case 'disapproved':
+      return CampaignStatus.disapproved;
     case 'cancelled':
       return CampaignStatus.cancelled;
     default:
@@ -53,6 +59,7 @@ class ZoneStatDto {
   final String zoneName;
   final String zoneCode;
   final int imagesCount;
+  final String status;
   final bool isFinished;
 
   const ZoneStatDto({
@@ -60,28 +67,42 @@ class ZoneStatDto {
     required this.zoneName,
     required this.zoneCode,
     required this.imagesCount,
+    this.status = 'not_started',
     required this.isFinished,
   });
+
+  String get normalizedStatus => status.trim().toLowerCase();
+  bool get isApproved => normalizedStatus == 'approved';
+  bool get isDisapproved => normalizedStatus == 'disapproved';
+  bool get isSubmitted => normalizedStatus == 'submitted';
+  bool get isNotStarted => normalizedStatus == 'not_started';
 
   // Lit un Map (JSON parsé) et construit un ZoneStatDto
   factory ZoneStatDto.fromJson(Map<String, dynamic> json) {
     final imagesCount = (json['imagesCount'] as num?)?.toInt() ?? 0;
+    final rawStatus = (json['status'] as String?)?.trim().toLowerCase();
+    final status = (rawStatus == null || rawStatus.isEmpty)
+        ? (imagesCount > 0 ? 'submitted' : 'not_started')
+        : rawStatus;
+    final isFinished = status == 'approved' ||
+        ((json['isFinished'] as bool?) ?? false && status != 'disapproved');
+
     return ZoneStatDto(
       zoneId: (json['zoneId'] as num?)?.toInt() ?? 0,
       zoneName: json['zoneName'] as String? ?? '',
       zoneCode: json['zoneCode'] as String? ?? '',
       imagesCount: imagesCount,
-      // by-sites API no longer provides isFinished; derive from imagesCount
-      isFinished: imagesCount > 0,
+      status: status,
+      isFinished: isFinished,
     );
   }
 
   // ── Propriétés calculées ──────────────────────────────
   // Est-ce que la zone a au moins une photo mais n'est pas finie ?
-  bool get isPartial => imagesCount > 0 && !isFinished;
+  bool get isPartial => isSubmitted || (imagesCount > 0 && !isFinished && !isDisapproved);
 
   // Est-ce que la zone n'a aucune photo ?
-  bool get isEmpty => imagesCount == 0 && !isFinished;
+  bool get isEmpty => isNotStarted || (imagesCount == 0 && !isFinished);
 }
 
 // ── Execution Stats ────────────────────────────────────
@@ -120,16 +141,22 @@ class ExecutionStatsDto {
   // Nombre de zones complètement finies
   int get completedZones => zoneStats.where((z) => z.isFinished).length;
 
+  // Nombre de zones approuvées (statut approved)
+  int get approvedZones => zoneStats.where((z) => z.isApproved).length;
+
+  // Zones approuvées + soumises (comptent dans la progression)
+  int get approvedAndSubmittedZones =>
+      zoneStats.where((z) => z.isApproved || z.isSubmitted).length;
+
   // Nombre total de zones
   int get totalZones => zoneStats.length;
 
   // Total des photos uploadées sur toutes les zones
   int get totalImages => zoneStats.fold(0, (sum, z) => sum + z.imagesCount);
 
-  // Ratio de complétion (0.0 → 1.0)
-  // Ex: 3 zones finies sur 5 → 0.6 → 60%
+  // Ratio de complétion (0.0 → 1.0) — basé sur approuvées + soumises
   double get completionRatio =>
-      totalZones == 0 ? 0.0 : completedZones / totalZones;
+      totalZones == 0 ? 0.0 : approvedAndSubmittedZones / totalZones;
 }
 
 // ── Campaign ───────────────────────────────────────────
@@ -205,6 +232,16 @@ class VmCampaignDto {
     return allZones.where((z) => z.isFinished).length;
   }
 
+  // Nombre total de zones approuvées (statut approved uniquement)
+  int get totalApprovedZones {
+    return allZones.where((z) => z.isApproved).length;
+  }
+
+  // Zones approuvées + soumises (tous guidelines confondus)
+  int get totalApprovedAndSubmittedZones {
+    return allZones.where((z) => z.isApproved || z.isSubmitted).length;
+  }
+
   // Nombre total de zones (tous guidelines confondus)
   int get totalZones {
     return allZones.length;
@@ -215,9 +252,9 @@ class VmCampaignDto {
     return allZones.fold(0, (sum, z) => sum + z.imagesCount);
   }
 
-  // Ratio de complétion global (0.0 → 1.0)
+  // Ratio de complétion global — basé sur approuvées + soumises
   double get completionRatio {
-    return totalZones == 0 ? 0.0 : totalCompletedZones / totalZones;
+    return totalZones == 0 ? 0.0 : totalApprovedAndSubmittedZones / totalZones;
   }
 
   // Peut-on soumettre ? (toutes les zones de tous les guidelines finies)

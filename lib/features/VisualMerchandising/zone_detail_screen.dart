@@ -25,7 +25,10 @@ class ZoneDetailScreen extends StatelessWidget {
     // Get.find() récupère le controller déjà créé dans ExecutionScreen
     // On n'en crée pas un nouveau !
     final controller = Get.find<ExecutionController>();
-    final isCampaignCompleted = campaign.status == CampaignStatus.submitted;
+    final isCampaignCompleted =
+        campaign.status == CampaignStatus.submitted ||
+        campaign.status == CampaignStatus.approved ||
+        campaign.status == CampaignStatus.disapproved;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F6FF),
@@ -33,7 +36,8 @@ class ZoneDetailScreen extends StatelessWidget {
         child: Column(
           children: [
             _buildHeader(controller, l10n),
-            _buildGuidelineRef(l10n),
+            // _buildGuidelineRef(l10n),
+            _buildDisapprovalBanner(controller),
             _buildInstructions(context, l10n),
             _buildPhotoGrid(
               controller,
@@ -104,50 +108,89 @@ class ZoneDetailScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Emoji + Nom + Libellé sur la même ligne
-          Row(
-            children: [
-              Text(
-                _emojiForCode(zone.zoneCode),
-                style: const TextStyle(fontSize: 22),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  zone.zoneName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          // Emoji + Nom + Libellé + statut
+          Obx(() {
+            final currentZone = _resolveCurrentZone(controller);
+            final localCount = (controller.zonePhotos[currentZone.zoneId] ?? const <String>[]).length;
+            final hasLocalPending =
+                localCount > 0 && !currentZone.isApproved && !currentZone.isDisapproved;
+            final statusColor = _zoneStatusColor(currentZone, hasLocalPending);
+            final statusLabel = _zoneStatusLabel(l10n, currentZone, hasLocalPending);
+
+            return Row(
+              children: [
+                Text(
+                  _emojiForCode(currentZone.zoneCode),
+                  style: const TextStyle(fontSize: 22),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    currentZone.zoneName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  currentZone.zoneCode,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white.withOpacity(0.7),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  statusLabel,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                zone.zoneCode,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.white.withOpacity(0.7),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+              ],
+            );
+          }),
 
           const SizedBox(height: 8),
 
           // Barre de progression de la zone
           Obx(() {
-            final localPhotos = controller.zonePhotos[zone.zoneId] ?? const <String>[];
+            final currentZone = _resolveCurrentZone(controller);
+            final localPhotos = controller.zonePhotos[currentZone.zoneId] ?? const <String>[];
             final remotePhotos =
-                controller.remotePhotosByZone[zone.zoneId] ?? const <VmExecutionPhotoDto>[];
+                controller.remotePhotosByZone[currentZone.zoneId] ?? const <VmExecutionPhotoDto>[];
             final backendCount =
-                remotePhotos.length >= zone.imagesCount ? remotePhotos.length : zone.imagesCount;
+                remotePhotos.length >= currentZone.imagesCount
+                    ? remotePhotos.length
+                    : currentZone.imagesCount;
             final localCount = localPhotos.length;
             final total = backendCount + localCount;
-            final isComplete = zone.isFinished || localCount > 0;
+            final hasLocalPending =
+                localCount > 0 && !currentZone.isApproved && !currentZone.isDisapproved;
+            final isApproved = currentZone.isApproved;
+            final isDisapproved = currentZone.isDisapproved;
+            final isSubmitted = currentZone.isSubmitted || hasLocalPending;
+            final isComplete = isApproved || isDisapproved || isSubmitted;
+            final progressColor = _zoneStatusColor(currentZone, hasLocalPending);
+            final progressValue = (isApproved || isDisapproved)
+                ? 1.0
+                : (isSubmitted ? 0.5 : 0.0);
 
             return Row(
               children: [
@@ -155,14 +198,10 @@ class ZoneDetailScreen extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: LinearProgressIndicator(
-                      value: isComplete ? 1.0 : (total > 0 ? 0.5 : 0.0),
+                      value: progressValue,
                       minHeight: 4,
                       backgroundColor: Colors.white.withOpacity(0.2),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isComplete
-                            ? const Color(0xFF7EFFA0)
-                            : Colors.white.withOpacity(0.85),
-                      ),
+                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                     ),
                   ),
                 ),
@@ -227,6 +266,97 @@ class ZoneDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // ── 2b. Bannière de refus ───────────────────────────
+  Widget _buildDisapprovalBanner(ExecutionController controller) {
+    return Obx(() {
+      final currentZone = _resolveCurrentZone(controller);
+      if (!currentZone.isDisapproved) return const SizedBox.shrink();
+
+      final issueText = controller.zoneIssues[zone.zoneId];
+
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFECE9),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFF3A9A0), width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 11, 12, 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE74C3C).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: const Icon(
+                      Icons.cancel_outlined,
+                      color: Color(0xFFE74C3C),
+                      size: 17,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Zone refusée',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFC62828),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Issue message (if present)
+            if (issueText != null && issueText.isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFF3A9A0).withOpacity(0.6)),
+                ),
+                child: Text(
+                  issueText,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: Color(0xFF7B1010),
+                    fontWeight: FontWeight.w500,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ] else ...[
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: Text(
+                  'Aucun commentaire de refus fourni.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFB71C1C),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    });
   }
 
   // ── 3. Consignes ────────────────────────────────────
@@ -440,7 +570,13 @@ class ZoneDetailScreen extends StatelessWidget {
           Expanded(
             child: Obx(() {
               final localCount = (controller.zonePhotos[zone.zoneId] ?? const <String>[]).length;
-              final isComplete = zone.isFinished || localCount > 0;
+              final currentZone = _resolveCurrentZone(controller);
+              final hasLocalPending =
+                  localCount > 0 && !currentZone.isApproved && !currentZone.isDisapproved;
+              final isComplete = currentZone.isApproved ||
+                  currentZone.isDisapproved ||
+                  currentZone.isSubmitted ||
+                  hasLocalPending;
               final canValidate = isComplete && !isCampaignCompleted;
               return ElevatedButton(
                 onPressed: canValidate ? () => Get.back() : null,
@@ -560,6 +696,38 @@ class ZoneDetailScreen extends StatelessWidget {
     if (c.startsWith('ZR')) return '🚪';
     if (c.startsWith('ZE')) return '🎪';
     return '📍';
+  }
+
+  ZoneStatDto _resolveCurrentZone(ExecutionController controller) {
+    for (final current in controller.zones) {
+      if (current.zoneId == zone.zoneId) return current;
+    }
+    return zone;
+  }
+
+  Color _zoneStatusColor(ZoneStatDto currentZone, bool hasLocalPending) {
+    if (currentZone.isDisapproved) return const Color(0xFFE74C3C);
+    if (currentZone.isApproved) return const Color(0xFF27AE73);
+    if (currentZone.isSubmitted || hasLocalPending) return const Color(0xFFF5A623);
+    return Colors.white.withOpacity(0.85);
+  }
+
+  String _zoneStatusLabel(
+    AppLocalizations l10n,
+    ZoneStatDto currentZone,
+    bool hasLocalPending,
+  ) {
+    final isFrench = l10n.localeName.toLowerCase().startsWith('fr');
+    if (currentZone.isDisapproved) {
+      return isFrench ? 'Desapprouvee' : 'Disapproved';
+    }
+    if (currentZone.isApproved) {
+      return isFrench ? 'Approuvee' : 'Approved';
+    }
+    if (currentZone.isSubmitted || hasLocalPending) {
+      return isFrench ? 'Soumise' : 'Submitted';
+    }
+    return l10n.vmZoneStatusTodo;
   }
 }
 

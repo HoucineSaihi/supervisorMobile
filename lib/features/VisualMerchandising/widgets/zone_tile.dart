@@ -19,28 +19,28 @@ class ZoneTile extends StatelessWidget {
 
   // Retourne la bonne couleur selon l'état de la zone
   Color get _backgroundColor {
-    if (_hasLocalPending && !zone.isFinished) return const Color(0xFFFFF4E5);
-    if (zone.isFinished) return const Color(0xFFE6FAF0); // vert pastel
-    if (zone.isPartial)  return const Color(0xFFFFF4E5); // amber pastel
+    if (zone.isDisapproved) return const Color(0xFFFFECE9);
+    if (zone.isApproved) return const Color(0xFFE6FAF0);
+    if (_hasLocalPending || zone.isSubmitted) return const Color(0xFFFFF4E5);
     return const Color(0xFFF4F9FF);                       // bleu pâle
   }
 
   Color get _borderColor {
-    if (_hasLocalPending && !zone.isFinished) return const Color(0xFFFCD34D);
-    if (zone.isFinished) return const Color(0xFFB0E8CC);
-    if (zone.isPartial)  return const Color(0xFFFCD34D);
+    if (zone.isDisapproved) return const Color(0xFFF3A9A0);
+    if (zone.isApproved) return const Color(0xFFB0E8CC);
+    if (_hasLocalPending || zone.isSubmitted) return const Color(0xFFFCD34D);
     return const Color(0xFFE2EEF8);
   }
 
   // L'icône de statut en bas de la tuile
   Widget get _statusIcon {
-    if (zone.isFinished) {
+    if (zone.isDisapproved) {
+      return const Text('❌', style: TextStyle(fontSize: 12));
+    }
+    if (zone.isApproved) {
       return const Text('✅', style: TextStyle(fontSize: 12));
     }
-    if (_hasLocalPending) {
-      return const Text('⏳', style: TextStyle(fontSize: 12));
-    }
-    if (zone.isPartial) {
+    if (_hasLocalPending || zone.isSubmitted) {
       return const Text('⏳', style: TextStyle(fontSize: 12));
     }
     return const Icon(Icons.circle_outlined, size: 14, color: Color(0xFFB0C8E0));
@@ -90,9 +90,13 @@ class ZoneTile extends StatelessWidget {
             vmPhotosLabel(l10n, _displayPhotoCount),
             style: TextStyle(
               fontSize: 9,
-              color: _hasLocalPending
+              color: zone.isDisapproved
+                  ? const Color(0xFFC62828)
+                  : (_hasLocalPending || zone.isSubmitted)
                   ? const Color(0xFFB86B00)
-                  : const Color(0xFF7BACD8),
+                  : zone.isApproved
+                      ? const Color(0xFF1A7A4A)
+                      : const Color(0xFF7BACD8),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

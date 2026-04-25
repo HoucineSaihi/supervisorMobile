@@ -8,7 +8,7 @@ import 'package:supervisormobile/utils/Helpers/helper_functions.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-// import 'features/VisualMerchandising/campaign_screen.dart';
+import 'features/VisualMerchandising/campaign_screen.dart';
 
 class NavigationMenu extends StatelessWidget {
   const NavigationMenu({super.key});
@@ -39,11 +39,11 @@ class NavigationMenu extends StatelessWidget {
               label: AppLocalizations.of(context)!.incidents,
             ),
 
-            // // ── Nouveau : Campagnes ──────────────────────
-            // NavigationDestination(
-            //   icon: const Icon(Iconsax.shopping_bag),  // icône VM
-            //   label: AppLocalizations.of(context)!.campaigns,
-            // ),
+            // ── Nouveau : Campagnes ──────────────────────
+            NavigationDestination(
+              icon: const Icon(Iconsax.shopping_bag),  // icône VM
+              label: AppLocalizations.of(context)!.campaigns,
+            ),
 
             NavigationDestination(
               icon: const Icon(Iconsax.user),
@@ -65,7 +65,7 @@ class NavigationController extends GetxController {
   final List<Widget> screens = [
     const CalendarPlanning(),
     AllIncidentsWidget(),
-    // const CampaignScreen(), // ← nouveau
+    const CampaignScreen(), // ← nouveau
     ProfileInfo(),
   ];
 

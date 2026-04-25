@@ -9,6 +9,7 @@ import '../dtos/vm_campaign_dto.dart';
 import '../dtos/vm_campaign_execution_dto.dart';
 import '../dtos/vm_campaign_submit_dto.dart';
 import '../dtos/vm_guideline_asset_dto.dart';
+import '../dtos/vm_submission_comment_dto.dart';
 import '../../calendar/models/boutiqueModel.dart';
 import 'guideline_cache_manager.dart';
 
@@ -407,6 +408,66 @@ class VmService {
       throw Exception('An error occurred while fetching boutiques: ${e.message}');
     } catch (e) {
       throw Exception('An error occurred while fetching boutiques: $e');
+    }
+  }
+
+  /// GET /api/VmCompaign/{campaignId}/sites/{siteId}/submission-comments
+  Future<List<VmSubmissionCommentDto>> getSubmissionComments({
+    required int campaignId,
+    required int siteId,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/VmCompaign/$campaignId/sites/$siteId/submission-comments',
+      );
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is List) {
+          return data
+              .whereType<Map<String, dynamic>>()
+              .map(VmSubmissionCommentDto.fromJson)
+              .toList();
+        }
+        return [];
+      }
+      throw Exception('Failed to load comments. Status: ${response.statusCode}');
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) throw Exception('Request cancelled');
+      final message = (e.response?.data is Map<String, dynamic>)
+          ? e.response!.data['message'] as String?
+          : null;
+      throw Exception(message ?? 'Failed to load comments: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to load comments: $e');
+    }
+  }
+
+  /// POST /api/VmCompaign/{campaignId}/sites/{siteId}/submission-comments
+  Future<VmSubmissionCommentDto> postSubmissionComment({
+    required int campaignId,
+    required int siteId,
+    required String message,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/VmCompaign/$campaignId/sites/$siteId/submission-comments',
+        data: {'message': message},
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          return VmSubmissionCommentDto.fromJson(data);
+        }
+      }
+      throw Exception('Failed to post comment. Status: ${response.statusCode}');
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) throw Exception('Request cancelled');
+      final message = (e.response?.data is Map<String, dynamic>)
+          ? e.response!.data['message'] as String?
+          : null;
+      throw Exception(message ?? 'Failed to post comment: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to post comment: $e');
     }
   }
 

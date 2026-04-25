@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_dto.dart';
 import 'package:supervisormobile/features/VisualMerchandising/execution_controller.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/guideline_handler.dart';
+import 'package:supervisormobile/features/VisualMerchandising/widgets/submission_comments_sheet.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/zone_row.dart';
 import 'package:supervisormobile/features/VisualMerchandising/vm_l10n_helpers.dart';
 import 'package:supervisormobile/features/VisualMerchandising/zone_detail_screen.dart';
@@ -53,14 +54,17 @@ class ExecutionScreen extends StatelessWidget {
       (photos) => photos.isNotEmpty,
     );
     final isLocalPendingOnly =
-        hasLocalPending && status != CampaignStatus.submitted;
+        hasLocalPending &&
+            status != CampaignStatus.submitted &&
+            status != CampaignStatus.approved &&
+            status != CampaignStatus.disapproved;
     final isFrench = Localizations.localeOf(context).languageCode == 'fr';
 
     Color dotColor;
     String statusLabel;
     if (isLocalPendingOnly) {
       dotColor = const Color(0xFFF5A623);
-      statusLabel = isFrench ? 'En cours localement' : 'In progress locally';
+      statusLabel = _localPendingCampaignStatusLabel(isFrench);
     } else {
       switch (status) {
         case CampaignStatus.inProgress:
@@ -68,8 +72,16 @@ class ExecutionScreen extends StatelessWidget {
           statusLabel = l10n.inProgress;
           break;
         case CampaignStatus.submitted:
-          dotColor = const Color(0xFF27AE73);
+          dotColor = const Color(0xFFF5A623);
           statusLabel = l10n.completed;
+          break;
+        case CampaignStatus.approved:
+          dotColor = const Color(0xFF27AE73);
+          statusLabel = _approvedStatusLabel(isFrench);
+          break;
+        case CampaignStatus.disapproved:
+          dotColor = const Color(0xFFE74C3C);
+          statusLabel = _disapprovedStatusLabel(isFrench);
           break;
         case CampaignStatus.cancelled:
           dotColor = const Color(0xFFFF8A80);
@@ -99,23 +111,63 @@ class ExecutionScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
 
-          // Bouton retour
-          GestureDetector(
-            onTap: () => Get.back(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.chevron_left, color: Colors.white70, size: 20),
-                Text(
-                  l10n.vmBackToCampaigns,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white70,
+          // Bouton retour + bouton commentaires
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () => Get.back(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.chevron_left, color: Colors.white70, size: 20),
+                    Text(
+                      l10n.vmBackToCampaigns,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () => SubmissionCommentsSheet.show(
+                  context,
+                  campaignId: vm.campaignId,
+                  siteId: siteId,
+                  campaignName: vm.libelle,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.25)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: Colors.white,
+                        size: 13,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        l10n.vmComments,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 10),
@@ -432,6 +484,7 @@ class ExecutionScreen extends StatelessWidget {
                           isZoneValidated: controller.isZoneValidated(zone),
                           hasLocalPending: controller.hasLocalPending(zone),
                           totalPhotoCount: controller.totalPhotoCount(zone),
+                          issueText: controller.zoneIssues[zone.zoneId],
                           onTap: () {
                             Get.to(
                               () => ZoneDetailScreen(
@@ -542,6 +595,18 @@ class ExecutionScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _localPendingCampaignStatusLabel(bool isFrench) {
+    return isFrench ? 'En cours localement' : 'In progress locally';
+  }
+
+  String _approvedStatusLabel(bool isFrench) {
+    return isFrench ? 'Approuvee' : 'Approved';
+  }
+
+  String _disapprovedStatusLabel(bool isFrench) {
+    return isFrench ? 'Desapprouvee' : 'Disapproved';
   }
 }
 

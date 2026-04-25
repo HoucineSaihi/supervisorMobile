@@ -23,6 +23,8 @@ class ExecutionController extends GetxController {
   final RxList<ZoneStatDto> zones = <ZoneStatDto>[].obs;
   final RxMap<int, List<VmExecutionPhotoDto>> remotePhotosByZone =
       <int, List<VmExecutionPhotoDto>>{}.obs;
+  /// Rejection issue text per zone (null when zone is not disapproved or has no message).
+  final RxMap<int, String?> zoneIssues = <int, String?>{}.obs;
   final ImagePicker _picker = ImagePicker();
   VmCampaignDto? _campaign;
   int? _loadedCampaignId;
@@ -109,13 +111,16 @@ class ExecutionController extends GetxController {
   int totalPhotoCount(ZoneStatDto zone) =>
       backendPhotoCount(zone) + localPhotoCount(zone.zoneId);
 
-  bool isZoneValidated(ZoneStatDto zone) => zone.isFinished;
+  bool isZoneValidated(ZoneStatDto zone) => zone.isApproved;
 
   bool hasLocalPending(ZoneStatDto zone) =>
-      localPhotoCount(zone.zoneId) > 0 && !zone.isFinished;
+      localPhotoCount(zone.zoneId) > 0 && !zone.isApproved && !zone.isDisapproved;
 
   bool isZoneComplete(ZoneStatDto zone) =>
-      zone.isFinished || localPhotoCount(zone.zoneId) > 0;
+      zone.isApproved ||
+      zone.isDisapproved ||
+      zone.isSubmitted ||
+      localPhotoCount(zone.zoneId) > 0;
 
   double get globalProgress {
     if (zones.isEmpty) return 0.0;
@@ -126,7 +131,9 @@ class ExecutionController extends GetxController {
   /// True when the campaign is already submitted (drives button disabled state).
   bool get isCampaignSubmitted {
     final s = liveCampaign.value?.status ?? _campaign?.status;
-    return s == CampaignStatus.submitted;
+    return s == CampaignStatus.submitted ||
+        s == CampaignStatus.approved ||
+        s == CampaignStatus.disapproved;
   }
 
   bool get canSubmit {
@@ -163,9 +170,12 @@ class ExecutionController extends GetxController {
       );
       zones.assignAll(result.zoneStats);
       remotePhotosByZone.clear();
+      zoneIssues.clear();
       for (final zone in result.zones) {
         remotePhotosByZone[zone.zoneId] = zone.allPhotos;
         zonePhotos.putIfAbsent(zone.zoneId, () => <String>[]);
+        final issues = zone.rejectionIssues;
+        if (issues != null) zoneIssues[zone.zoneId] = issues;
       }
 
       // #region agent log

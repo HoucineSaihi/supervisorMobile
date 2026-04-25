@@ -24,8 +24,14 @@ class CampaignCard extends StatelessWidget {
 
   bool get _hasLocalPending {
     return pendingLocalPhotosCount > 0 &&
-        campaign.status != CampaignStatus.submitted;
+        campaign.status != CampaignStatus.submitted &&
+        campaign.status != CampaignStatus.approved &&
+        campaign.status != CampaignStatus.disapproved;
   }
+
+  bool get _isSubmittedPending => campaign.status == CampaignStatus.submitted;
+  bool get _isApproved => campaign.status == CampaignStatus.approved;
+  bool get _isDisapproved => campaign.status == CampaignStatus.disapproved;
 
   double get _displayProgress {
     if (!_hasLocalPending) return campaign.completionRatio;
@@ -34,16 +40,28 @@ class CampaignCard extends StatelessWidget {
   }
 
   Color get _displayProgressColor {
+    if (_isDisapproved) return const Color(0xFFE74C3C);
+    if (_isApproved) return const Color(0xFF27AE73);
+    if (_isSubmittedPending) return const Color(0xFFF5A623);
     if (_hasLocalPending) return const Color(0xFFF5A623);
     return _ringColor(campaign.completionRatio);
   }
 
-  int get _displayCompletedZones {
-    final base = campaign.totalCompletedZones;
-    if (!_hasLocalPending) return base;
-    final merged = base + pendingLocalZonesCount;
-    return merged > campaign.totalZones ? campaign.totalZones : merged;
+  List<Color> get _headerGradientColors {
+    if (_isDisapproved) {
+      return const [Color(0xFF8B0000), Color(0xFFB71C1C), Color(0xFFE74C3C)];
+    }
+    if (_isApproved) {
+      return const [Color(0xFF1A7A4A), Color(0xFF27AE73), Color(0xFF4FD38E)];
+    }
+    if (_isSubmittedPending) {
+      return const [Color(0xFFB86B00), Color(0xFFF5A623), Color(0xFFFFC55C)];
+    }
+    return const [Color(0xFF1B3F72), Color(0xFF1E5FAA), Color(0xFF4A9EDD)];
   }
+
+  // Only server-approved zones count — local pending photos are not yet approved
+  int get _displayApprovedZones => campaign.totalApprovedZones;
 
   int get _displayPhotoCount {
     if (!_hasLocalPending) return campaign.totalImages;
@@ -81,9 +99,9 @@ class CampaignCard extends StatelessWidget {
   Widget _buildBanner(AppLocalizations l10n) {
     return Container(
       height: 110,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1B3F72), Color(0xFF1E5FAA), Color(0xFF4A9EDD)],
+          colors: _headerGradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -246,8 +264,8 @@ class CampaignCard extends StatelessWidget {
               children: [
                 _MetaRow(
                   icon: Icons.grid_view_rounded,
-                  label: l10n.vmMetaZonesComplete(
-                    _displayCompletedZones,
+                  label: l10n.vmMetaZonesApproved(
+                    _displayApprovedZones,
                     campaign.totalZones,
                   ),
                   color: _hasLocalPending
@@ -365,6 +383,7 @@ class CampaignCard extends StatelessWidget {
   // ── 4. Barre de progression globale ─────────────────
   Widget _buildProgressBar(AppLocalizations l10n) {
     final pct = (_displayProgress * 100).toInt();
+    final isFrench = l10n.localeName.toLowerCase().startsWith('fr');
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -398,7 +417,7 @@ class CampaignCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '${l10n.vmZoneStatusPending} • ${pendingLocalPhotosCount} local',
+                '${l10n.vmZoneStatusPending} • ${pendingLocalPhotosCount} ${isFrench ? 'locales' : 'local'}',
                 style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -466,7 +485,13 @@ class CampaignCard extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: campaign.canSubmit
                     ? const Color(0xFF27AE73)
-                    : const Color(0xFF1E5FAA),
+                    : _isDisapproved
+                        ? const Color(0xFFE74C3C)
+                        : _isApproved
+                            ? const Color(0xFF27AE73)
+                            : _isSubmittedPending
+                                ? const Color(0xFFF5A623)
+                                : const Color(0xFF1E5FAA),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -480,7 +505,9 @@ class CampaignCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                campaign.status == CampaignStatus.submitted
+                campaign.status == CampaignStatus.submitted ||
+                        campaign.status == CampaignStatus.approved ||
+                        campaign.status == CampaignStatus.disapproved
                     ? l10n.vmViewExecution
                     : campaign.canSubmit
                         ? l10n.vmSubmitCampaignEmailCta
@@ -554,7 +581,10 @@ class _StatusBadge extends StatelessWidget {
     String label;
     Color  bg;
 
-    if (hasLocalPending && status != CampaignStatus.submitted) {
+    if (hasLocalPending &&
+        status != CampaignStatus.submitted &&
+        status != CampaignStatus.approved &&
+        status != CampaignStatus.disapproved) {
       label = isFrench ? '⏳ En cours localement' : '⏳ In progress locally';
       bg = const Color(0xFFF5A623).withOpacity(0.28);
       return Container(
@@ -586,7 +616,15 @@ class _StatusBadge extends StatelessWidget {
         break;
       case CampaignStatus.submitted:
         label = '✓ ${l10n.completed}';
+        bg    = const Color(0xFFF5A623).withOpacity(0.3);
+        break;
+      case CampaignStatus.approved:
+        label = isFrench ? '✓ Approuvee' : '✓ Approved';
         bg    = const Color(0xFF27AE73).withOpacity(0.3);
+        break;
+      case CampaignStatus.disapproved:
+        label = isFrench ? '✕ Desapprouvee' : '✕ Disapproved';
+        bg    = const Color(0xFF8B0000).withOpacity(0.25);
         break;
       case CampaignStatus.cancelled:
         label = '✕ ${l10n.cancelled}';
@@ -716,7 +754,10 @@ class _GuidelineSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = (guideline.completionRatio * 100).toInt();
+    final pct = (guideline.approvedAndSubmittedZones /
+            (guideline.totalZones == 0 ? 1 : guideline.totalZones) *
+            100)
+        .toInt();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -802,7 +843,7 @@ class _GuidelineSection extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '(${guideline.completedZones}/${guideline.totalZones})',
+                      '(${guideline.approvedZones}/${guideline.totalZones})',
                       style: const TextStyle(
                         fontSize: 9,
                         color: Color(0xFF7BACD8),
