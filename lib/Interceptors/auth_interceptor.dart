@@ -1,8 +1,47 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:supervisormobile/features/authentification/screens/login/login.dart';
+import 'package:supervisormobile/utils/Keys/navigation_key.dart';
 
 class AuthInterceptor extends Interceptor {
   final _storage = FlutterSecureStorage();
+
+  static bool _sessionExpiryInProgress = false;
+
+  static bool _isLoginRequest(RequestOptions options) {
+    final path = options.path;
+    return path.contains('Caisses/login');
+  }
+
+  void _disconnectOnUnauthorized(RequestOptions request) {
+    if (_isLoginRequest(request)) return;
+    unawaited(_disconnectExpiredSession());
+  }
+
+  Future<void> _disconnectExpiredSession() async {
+    if (_sessionExpiryInProgress) return;
+    _sessionExpiryInProgress = true;
+    try {
+      final token = await _storage.read(key: 'token');
+      if (token == null || token.isEmpty) return;
+
+      await _storage.deleteAll();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final nav = navigatorKey.currentState;
+        if (nav != null && nav.mounted) {
+          nav.pushAndRemoveUntil(
+            MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+            (_) => false,
+          );
+        }
+      });
+    } finally {
+      _sessionExpiryInProgress = false;
+    }
+  }
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
@@ -29,12 +68,11 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    // Handle 401 Unauthorized responses
     if (err.response?.statusCode == 401) {
-      print('🚫 AuthInterceptor: 401 Unauthorized - Token may be expired');
-      // You could add logic here to redirect to login or refresh token
+      print('🚫 AuthInterceptor: 401 Unauthorized - clearing session and returning to login');
+      _disconnectOnUnauthorized(err.requestOptions);
     }
-    
+
     super.onError(err, handler);
   }
 }
