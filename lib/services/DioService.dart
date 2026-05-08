@@ -1,4 +1,3 @@
-
 import 'package:dio/dio.dart';
 import 'package:supervisormobile/interceptors/ClientIdInterceptor.dart';
 import 'package:supervisormobile/interceptors/accept_language_interceptor.dart';
@@ -7,25 +6,25 @@ import 'package:supervisormobile/interceptors/auth_interceptor.dart';
 class DioService {
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.2.57:7070/api', //
+      baseUrl: 'http://shopconnect.exoticgroup.net:8080/api', //
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
     ),
   )..interceptors.addAll([
-    AuthInterceptor(), // Add authentication interceptor first
-    ClientIdInterceptor(),
-    AcceptLanguageInterceptor(),
-    LogInterceptor(
-      request: true,
-      requestHeader: true,
-      requestBody: true,
-      responseHeader: false,
-      responseBody: true,
-      error: true,
-    ),
-  ]);
+      AuthInterceptor(), // Add authentication interceptor first
+      ClientIdInterceptor(),
+      AcceptLanguageInterceptor(),
+      LogInterceptor(
+        request: true,
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: false,
+        responseBody: true,
+        error: true,
+      ),
+    ]);
 
   /// Returns API host without `/api` suffix.
   /// Example: `https://host/api` -> `https://host`
@@ -37,11 +36,11 @@ class DioService {
     if (parsed == null || parsed.host.isEmpty) return rawBase;
 
     final path = parsed.path;
-    final normalizedPath = path.endsWith('/api')
-        ? path.substring(0, path.length - 4)
-        : path;
+    final normalizedPath =
+        path.endsWith('/api') ? path.substring(0, path.length - 4) : path;
 
-    final rebuilt = parsed.replace(path: normalizedPath, query: '', fragment: '');
+    final rebuilt =
+        parsed.replace(path: normalizedPath, query: '', fragment: '');
     final rebuiltString = rebuilt.toString();
     final noSuffix = rebuiltString
         .replaceFirst(RegExp(r'[?#]+$'), '')

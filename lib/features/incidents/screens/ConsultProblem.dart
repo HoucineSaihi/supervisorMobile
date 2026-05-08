@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';  // To format date
@@ -29,18 +28,11 @@ class _ConsultProblemState extends State<ConsultProblem> {
   bool _isLoading = true;
   bool _hasError = false;
 
-  // Map for statut colors
-  final Map<int, Color> statutColors = {
-    0: Colors.blue,
-    1: Colors.green,  // Statut 1: Green
-    2: Colors.orange, // Statut 2: Orange
-    3: Colors.red,    // Statut 3: Red
-  };
   String fullImageUrl(String filename) {
     return '$_baseUrl/Files/getImage/$filename';
   }
 
-  final Map<int, Map<int, String>> statusTypeMap = {
+  final Map<int, Map<int, String>> statusTypeMap = const {
     1: {
       1: 'Declared',
       2: 'Solved',
@@ -51,17 +43,70 @@ class _ConsultProblemState extends State<ConsultProblem> {
       3: 'Solved',
     },
     3: {
-      1: 'Pending',
+      0: 'Pending',
+      1: 'Acknowledged',
       2: 'Planned',
       3: 'InProgress',
-      4: 'Finished',
+      4: 'NeedsReview',
       5: 'Solved',
     },
   };
 
-// Example function to get status string:
-  String? getStatusLabel(int statusType, int statusNumber) {
+  final Map<String, Map<String, String>> statusColors = const {
+    'Declared': {'background': '#f8d7da', 'color': '#721c24'},
+    'Solved': {'background': '#d4edda', 'color': '#155724'},
+    'Pending': {'background': '#fff3cd', 'color': '#856404'},
+    'Acknowledged': {'background': '#d1ecf1', 'color': '#0c5460'},
+    'Planned': {'background': '#e2e3e5', 'color': '#383d41'},
+    'InProgress': {'background': '#f5c6cb', 'color': '#721c24'},
+    'NeedsReview': {'background': '#fff3cd', 'color': '#856404'},
+  };
+
+  String? _getStatusKey(int? statusType, int? statusNumber) {
+    if (statusType == null || statusNumber == null) return null;
     return statusTypeMap[statusType]?[statusNumber];
+  }
+
+  String _translateStatus(String statusKey) {
+    final isFrench = Localizations.localeOf(context).languageCode
+        .toLowerCase()
+        .startsWith('fr');
+
+    if (!isFrench) {
+      return switch (statusKey) {
+        'Declared' => 'Declared',
+        'Solved' => 'Solved',
+        'Pending' => 'Pending',
+        'Acknowledged' => 'Acknowledged',
+        'Planned' => 'Planned',
+        'InProgress' => 'In Progress',
+        'NeedsReview' => 'Needs Review',
+        _ => statusKey,
+      };
+    }
+
+    return switch (statusKey) {
+      'Declared' => 'Declare',
+      'Solved' => 'Resolu',
+      'Pending' => 'En attente',
+      'Acknowledged' => 'Accuse',
+      'Planned' => 'Planifie',
+      'InProgress' => 'En cours',
+      'NeedsReview' => 'A revoir',
+      _ => statusKey,
+    };
+  }
+
+  String _priorityLabel(Problem problem) {
+    if (problem.coefficient?.libelle != null &&
+        problem.coefficient!.libelle!.trim().isNotEmpty) {
+      return problem.coefficient!.libelle!;
+    }
+    if (problem.coefficientName != null &&
+        problem.coefficientName!.trim().isNotEmpty) {
+      return problem.coefficientName!;
+    }
+    return AppLocalizations.of(context)!.nA;
   }
 
   @override
@@ -111,7 +156,7 @@ class _ConsultProblemState extends State<ConsultProblem> {
 
       // Move the file to the Downloads directory
       String destinationPath = "${downloadsDir.path}/$fileName";
-      File destinationFile = tempFile.copySync(destinationPath);
+      tempFile.copySync(destinationPath);
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -136,21 +181,6 @@ class _ConsultProblemState extends State<ConsultProblem> {
       print('${AppLocalizations.of(context)!.errorDownloadingFile} $e');
     }
   }
-
-  final Map<String, Map<String, String>> statusColors = {
-    'Declared': {'background': '#f8d7da', 'color': '#721c24'},
-    // Light red background, dark red text
-    'Solved': {'background': '#d4edda', 'color': '#155724'},
-    // Light green background, dark green text
-    'Pending': {'background': '#fff3cd', 'color': '#856404'},
-    // Light yellow background, dark yellow text
-    'Planned': {'background': '#e2e3e5', 'color': '#383d41'},
-    // Light gray background, dark gray text
-    'InProgress': {'background': '#f5c6cb', 'color': '#721c24'},
-    // Light red background, dark red text
-    'Finished': {'background': '#f8d7da', 'color': '#721c24'},
-    // Light red background, dark red text
-  };
 
   Color hexToColor(String hex) {
     hex = hex.replaceAll('#', '');
@@ -183,353 +213,230 @@ class _ConsultProblemState extends State<ConsultProblem> {
             }
 
             final problem = snapshot.data!;
-            String formattedDeclarationDate = DateFormat('dd/MM/yyyy').format(problem.declaration_date ?? DateTime.now());
-            String? formattedClosedDate = problem.closed_date != null
+            final String formattedDeclarationDate = DateFormat('dd/MM/yyyy')
+                .format(problem.declaration_date ?? DateTime.now());
+            final String formattedClosedDate = problem.closed_date != null
                 ? DateFormat('dd/MM/yyyy').format(problem.closed_date!)
-                : 'N/A';
-
-            // Get the status color based on the statut
-            Color statusColor = statutColors[problem.Status] ?? Colors.grey;
+                : AppLocalizations.of(context)!.nA;
+            final String statusKey =
+                _getStatusKey(problem.StatusType, problem.Status) ?? 'Pending';
+            final String statusLabel = _translateStatus(statusKey);
+            final colorInfo = statusColors[statusKey];
+            final Color chipBackground = colorInfo != null
+                ? hexToColor(colorInfo['background']!)
+                : Colors.grey.shade200;
+            final Color chipText = colorInfo != null
+                ? hexToColor(colorInfo['color']!)
+                : Colors.black87;
+            final String priority = _priorityLabel(problem);
 
             return ListView(
+              padding: const EdgeInsets.only(bottom: 24),
               children: [
-                // First Row: Declaration Date, Status and Closing Date
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.calendar_today, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.declaredOn(formattedDeclarationDate),
-                          style: const TextStyle(fontSize: 16),
+                Card(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          problem.description,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700),
                         ),
-                      ),
-                      const Icon(Icons.arrow_forward, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.closedOn(formattedClosedDate ?? 'N/A'),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Description Row
-                Row(
-                  children: [
-                    const Icon(Icons.comment, size: 24),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          String? label = getStatusLabel(problem.StatusType!, problem.Status!);
-                          if (label == null) {
-                            return const Text('Statut: N/A', style: TextStyle(fontSize: 16));
-                          }
-
-                          final colorInfo = statusColors[label];
-                          final backgroundColor = colorInfo != null ? hexToColor(colorInfo['background']!) : Colors.grey[200]!;
-                          final textColor = colorInfo != null ? hexToColor(colorInfo['color']!) : Colors.black;
-
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: backgroundColor,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              AppLocalizations.of(context)!.statusColon(label),
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: textColor,
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            Chip(
+                              backgroundColor: chipBackground,
+                              label: Text(
+                                AppLocalizations.of(context)!
+                                    .statusLabel(statusLabel),
+                                style: TextStyle(color: chipText),
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    const Icon(Icons.description, size: 24),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        problem.description ?? AppLocalizations.of(context)!.nA,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Commentaire
-                Row(
-                  children: [
-                    const Icon(Icons.comment, size: 24),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.commentColon(problem.commentaire ?? AppLocalizations.of(context)!.nA),
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Problem Images Before and After
-                if (problem.problem_image_before != null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.camera_alt, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.photoBeforeAvailable,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.visibility, size: 18),
-                        onPressed: () {
-                          String imageUrl = fullImageUrl(problem.problem_image_before!);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ShowImageViewer(imageUrl: '$_baseUrl/Files/getImage/${problem.problem_image_before!}'),
+                            Chip(
+                              avatar: const Icon(Icons.trending_up, size: 18),
+                              label: Text(
+                                AppLocalizations.of(context)!.coefficient(priority),
+                              ),
                             ),
-                          );
-                        },
-                      ),
-
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ] else if (problem.problem_image_before == null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.camera_alt, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.photoBeforeNotAvailable,
-                          style: const TextStyle(fontSize: 16),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                if (problem.problem_image_after != null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.camera_alt, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.photoAfterAvailable,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.visibility, size: 18),
-                        onPressed: () {
-                          String imageUrl = fullImageUrl(problem.problem_image_after!);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ShowImageViewer(imageUrl: '$_baseUrl/Files/getImage/${problem.problem_image_after!}'),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ] else if (problem.problem_image_after == null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.camera_alt, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.photoAfterNotAvailable,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Files Before and After
-                if (problem.joint_file_before != null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.attach_file, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.fileBeforeAvailable,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.download, size: 18),
-                        onPressed: () {
-                          _downloadFile(problem.joint_file_before!,context);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ] else if (problem.joint_file_before == null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.attach_file, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.fileBeforeNotAvailable,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                if (problem.joint_file_after != null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.attach_file, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.fileAfterAvailable,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.download, size: 18),
-                        onPressed: () {
-                          _downloadFile(problem.joint_file_after!,context);
-
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ] else if (problem.joint_file_after == null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.attach_file, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.fileAfterNotAvailable,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Coefficient Info
-                if (problem.coefficient != null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.trending_up, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          AppLocalizations.of(context)!.coefficient(problem.coefficient?.libelle ?? AppLocalizations.of(context)!.nA),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ] else if (problem.coefficient == null) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.trending_up, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Coefficient: N/A',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Cluster (Retail or Hospitality)
-                Row(
-                  children: [
-                    const Icon(Icons.store, size: 24),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.cluster(
-                          problem.cluster == 0 ? AppLocalizations.of(context)!.retail : problem.cluster == 1 ? AppLocalizations.of(context)!.hospitality : problem.cluster == 2 ? AppLocalizations.of(context)!.production : AppLocalizations.of(context)!.office
-                        ),
-                        style: const TextStyle(fontSize: 16),
-                      ),
+                        const SizedBox(height: 10),
+                        if (problem.commentaire != null &&
+                            problem.commentaire!.trim().isNotEmpty)
+                          Text(
+                            AppLocalizations.of(context)!
+                                .commentColon(problem.commentaire!),
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-
-                // Origin (Checklist or Libre)
-                Row(
-                  children: [
-                    const Icon(Icons.assignment, size: 24),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.originColon(
-                          problem.origin == 0 ? AppLocalizations.of(context)!.checklist : AppLocalizations.of(context)!.free
+                const SizedBox(height: 12),
+                Card(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _infoRow(Icons.calendar_today,
+                            AppLocalizations.of(context)!.declaredOn(formattedDeclarationDate)),
+                        _infoRow(Icons.event_available,
+                            AppLocalizations.of(context)!.closedOn(formattedClosedDate)),
+                        _infoRow(
+                          Icons.store,
+                          AppLocalizations.of(context)!.cluster(
+                            problem.cluster == 0
+                                ? AppLocalizations.of(context)!.retail
+                                : problem.cluster == 1
+                                    ? AppLocalizations.of(context)!.hospitality
+                                    : problem.cluster == 2
+                                        ? AppLocalizations.of(context)!.production
+                                        : AppLocalizations.of(context)!.office,
+                          ),
                         ),
-                        style: const TextStyle(fontSize: 16),
-                      ),
+                        _infoRow(
+                          Icons.assignment,
+                          AppLocalizations.of(context)!.originColon(
+                            problem.origin == 0
+                                ? AppLocalizations.of(context)!.checklist
+                                : AppLocalizations.of(context)!.free,
+                          ),
+                        ),
+                        _infoRow(
+                          Icons.monetization_on,
+                          AppLocalizations.of(context)!.cost(
+                              problem.cost?.toStringAsFixed(2) ??
+                                  AppLocalizations.of(context)!.nA),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-
-                // Cost Info
-                Row(
-                  children: [
-                    const Icon(Icons.monetization_on, size: 24),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.cost(problem.cost?.toStringAsFixed(2) ?? AppLocalizations.of(context)!.nA),
-                        style: const TextStyle(fontSize: 16),
-                      ),
+                const SizedBox(height: 12),
+                Card(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Media',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        _mediaImageRow(
+                          labelWhenExists:
+                              AppLocalizations.of(context)!.photoBeforeAvailable,
+                          labelWhenMissing:
+                              AppLocalizations.of(context)!.photoBeforeNotAvailable,
+                          filename: problem.problem_image_before,
+                        ),
+                        _mediaImageRow(
+                          labelWhenExists:
+                              AppLocalizations.of(context)!.photoAfterAvailable,
+                          labelWhenMissing:
+                              AppLocalizations.of(context)!.photoAfterNotAvailable,
+                          filename: problem.problem_image_after,
+                        ),
+                        _fileRow(
+                          labelWhenExists:
+                              AppLocalizations.of(context)!.fileBeforeAvailable,
+                          labelWhenMissing:
+                              AppLocalizations.of(context)!.fileBeforeNotAvailable,
+                          filename: problem.joint_file_before,
+                        ),
+                        _fileRow(
+                          labelWhenExists:
+                              AppLocalizations.of(context)!.fileAfterAvailable,
+                          labelWhenMissing:
+                              AppLocalizations.of(context)!.fileAfterNotAvailable,
+                          filename: problem.joint_file_after,
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
               ],
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 15))),
+        ],
+      ),
+    );
+  }
+
+  Widget _mediaImageRow({
+    required String labelWhenExists,
+    required String labelWhenMissing,
+    required String? filename,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.camera_alt, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(filename != null ? labelWhenExists : labelWhenMissing)),
+          if (filename != null)
+            IconButton(
+              icon: const Icon(Icons.visibility, size: 18),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ShowImageViewer(
+                        imageUrl: fullImageUrl(filename)),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fileRow({
+    required String labelWhenExists,
+    required String labelWhenMissing,
+    required String? filename,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.attach_file, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(filename != null ? labelWhenExists : labelWhenMissing)),
+          if (filename != null)
+            IconButton(
+              icon: const Icon(Icons.download, size: 18),
+              onPressed: () => _downloadFile(filename, context),
+            ),
+        ],
       ),
     );
   }

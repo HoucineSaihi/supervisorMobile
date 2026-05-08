@@ -12,6 +12,8 @@ class Mission {
   DateTime? startedAT;
   DateTime? planifiedAt;
   DateTime? endedAt;
+  String? startTime;
+  String? endTime;
   int? boutiqueId;
   BoutiqueModel? boutique;
   int? userId;
@@ -39,6 +41,8 @@ class Mission {
     this.startedAT,
     this.planifiedAt,
     this.endedAt,
+    this.startTime,
+    this.endTime,
     this.boutiqueId,
     this.boutique,
     this.userId,
@@ -74,6 +78,8 @@ class Mission {
       if (json['startedAT'] == null) nullFields.add('startedAT');
       if (json['planifiedAt'] == null) nullFields.add('planifiedAt');
       if (json['endedAt'] == null) nullFields.add('endedAt');
+      if (json['startTime'] == null) nullFields.add('startTime');
+      if (json['endTime'] == null) nullFields.add('endTime');
       if (json['boutiqueId'] == null) nullFields.add('boutiqueId');
       if (json['boutique'] == null) nullFields.add('boutique');
       if (json['userId'] == null) nullFields.add('userId');
@@ -146,6 +152,12 @@ class Mission {
         print('❌ Mission.fromJson: Error parsing endedAt: $e');
         endedAt = null;
       }
+
+      final startTime = json['startTime'] as String?;
+      print('✅ Mission.fromJson: startTime = $startTime');
+
+      final endTime = json['endTime'] as String?;
+      print('✅ Mission.fromJson: endTime = $endTime');
 
       final boutiqueId = json['boutiqueId'] as int?;
       print('✅ Mission.fromJson: boutiqueId = $boutiqueId');
@@ -233,6 +245,8 @@ class Mission {
         startedAT: startedAT,
         planifiedAt: planifiedAt,
         endedAt: endedAt,
+        startTime: startTime,
+        endTime: endTime,
         boutiqueId: boutiqueId,
         boutique: boutique,
         userId: userId,
@@ -265,6 +279,8 @@ class Mission {
       'startedAT': startedAT?.toIso8601String(),
       'planifiedAt': planifiedAt?.toIso8601String(),
       'endedAt': endedAt?.toIso8601String(),
+      'startTime': startTime,
+      'endTime': endTime,
       'boutiqueId': boutiqueId,
       'boutique': boutique?.toJson(),
       'userId': userId,

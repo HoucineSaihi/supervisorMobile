@@ -83,11 +83,12 @@ class IncidentService {
 
 
   Future<AllProblemsLazy> getFilteredProblems(
-      int? boutiqueId,
-      int? coefId,
-      int? origin,
-      int? statut,
+      List<int>? boutiqueIds,
+      List<int>? coefIds,
+      List<int>? origins,
+      List<int>? statuts,
       int? first, {
+      int rows = 10,
       CancelToken? cancelToken,
     }) async {
 
@@ -95,14 +96,14 @@ class IncidentService {
     int? currentUserID = userIdString != null ? int.tryParse(userIdString) : null;
 
     final Map<String, dynamic> requestBody = {
-      "requester_id": currentUserID,
-      "boutique_id": boutiqueId,
-      "coef_id": coefId,
-      "origin": origin,
-      "statut": statut,
+      "requester_ids": currentUserID != null ? [currentUserID] : null,
+      "boutique_ids": boutiqueIds,
+      "coef_ids": coefIds,
+      "origins": origins,
+      "statuts": statuts,
       "first": first,
-      "rows": 10
-    }..removeWhere((key, value) => value == null);
+      "rows": rows
+    }..removeWhere((key, value) => value == null || (value is List && value.isEmpty));
 
     print(requestBody);
 

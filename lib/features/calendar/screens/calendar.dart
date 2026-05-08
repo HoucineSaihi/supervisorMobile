@@ -481,6 +481,25 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
     return (answeredQuestions / totalQuestions) * 100;
   }
 
+  String _formatHour(DateTime? dateTime) {
+    if (dateTime == null) return '--:--';
+    return DateFormat('HH:mm').format(dateTime.toLocal());
+  }
+
+  String _missionStartHour(Mission mission) {
+    if (mission.startTime != null && mission.startTime!.trim().isNotEmpty) {
+      return mission.startTime!;
+    }
+    return _formatHour(mission.planifiedAt);
+  }
+
+  String _missionEndHour(Mission mission) {
+    if (mission.endTime != null && mission.endTime!.trim().isNotEmpty) {
+      return mission.endTime!;
+    }
+    return _formatHour(mission.endedAt);
+  }
+
   Future<void> _handleRefresh() async {
     loadMissions(resetPagination: true);
   }
@@ -960,6 +979,38 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                                                   color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
                                                   fontWeight: FontWeight.bold,
                                                 ),
+                                              ),
+                                              SizedBox(height: 8),
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.play_circle_outline,
+                                                    size: 18,
+                                                    color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    _missionStartHour(mission),
+                                                    style: TextStyle(
+                                                      color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: 16),
+                                                  Icon(
+                                                    Icons.stop_circle_outlined,
+                                                    size: 18,
+                                                    color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    _missionEndHour(mission),
+                                                    style: TextStyle(
+                                                      color: Color(int.parse(colors['secondary']!.replaceFirst('0x', '0xff'))),
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),

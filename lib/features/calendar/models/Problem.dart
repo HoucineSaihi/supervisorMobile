@@ -25,6 +25,7 @@ class Problem {
   String? joint_file_after;  // Renamed to match C# field 'joint_file_after'
   int? coef_id;  // Renamed to match C# field 'coef_id'
   Coefficient? coefficient;  // Renamed to match C# field 'coefficient'
+  String? coefficientName;
   int? cluster;  // Unchanged, as it's already matching
   int? origin;  // Unchanged, as it's already matching
   DateTime? declaration_date;  // Renamed to match C# field 'declaration_date'
@@ -57,6 +58,7 @@ class Problem {
     this.joint_file_after,
     this.coef_id,
     this.coefficient,
+    this.coefficientName,
     this.cluster,
     this.origin,
     this.declaration_date,
@@ -91,6 +93,7 @@ class Problem {
       joint_file_after: json['joint_file_after'] as String?,
       coef_id: json['coef_id'] != null ? (json['coef_id'] as num?)?.toInt() : null,
       coefficient: json['coefficient'] != null ? Coefficient.fromJson(json['coefficient']) : null,
+      coefficientName: json['coefficientName'] as String?,
       cluster: json['cluster'] != null ? (json['cluster'] as num?)?.toInt() : null,
       origin: json['origin'] != null ? (json['origin'] as num?)?.toInt() : null,
       declaration_date: json['declaration_date'] != null ? DateTime.tryParse(json['declaration_date']) : null,
@@ -126,6 +129,7 @@ class Problem {
       'joint_file_after': joint_file_after,
       'coef_id': coef_id,
       'coefficient': coefficient?.toJson(),
+      'coefficientName': coefficientName,
       'cluster': cluster,
       'origin': origin,
       'declaration_date': declaration_date?.toIso8601String(),

@@ -53,15 +53,15 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
 
-  var _selectedStatus;
+  final List<int> _selectedStatuses = [];
 
-  var _selectedOrigin;
+  final List<int> _selectedOrigins = [];
 
   var _selectedCluster;
 
-  var _selectedPriority;
+  final List<int> _selectedPriorities = [];
 
-  var _selectedBoutiqueId;
+  final List<int> _selectedBoutiqueIds = [];
 
   bool _hasMoreData = true;
 
@@ -74,7 +74,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   final int _rows = 10; // Number of items per page
   bool _isFetchingMore = false; // Flag to prevent multiple calls
 
-  var _alowedStatus;
+  List<dynamic> _alowedStatus = [];
 
   @override
   void initState() {
@@ -133,7 +133,13 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       return;
     }
 
-    setState(() => _isFetchingMore = true);
+    setState(() {
+      if (isLoadMore) {
+        _isFetchingMore = true;
+      } else {
+        _isLoading = true;
+      }
+    });
     if (isLoadMore == true) {
       _first += _rows;
     } else {
@@ -142,11 +148,12 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
     try {
       final response = await IncidentService().getFilteredProblems(
-        _selectedBoutiqueId,
-        _selectedPriority,
-        _selectedOrigin,
-        _selectedStatus,
+        _selectedBoutiqueIds,
+        _selectedPriorities,
+        _selectedOrigins,
+        _selectedStatuses,
         _first,
+        rows: _rows,
       );
 
       // Ensure response matches expected structure
@@ -169,7 +176,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           problem_image_after: incident.problem_image_after,
           joint_file_before: incident.joint_file_before,
           joint_file_after: incident.joint_file_after,
-          coef_id: incident.coef_id ?? 0,
+          coef_id: incident.coef_id,
+          coefficientName: incident.coefficientName,
           coefficient: (incident.coefficient is Map<String, dynamic>)
               ? Coefficient.fromJson(incident.coefficient as Map<String, dynamic>)
               : incident.coefficient as Coefficient?,
@@ -180,6 +188,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
               : DateTime.now(),
           closed_date:
               incident.closed_date != null ? incident.closed_date : null,
+          StatusType: incident.StatusType,
           Status: incident.Status ?? 0,
           closing_comment: incident.closing_comment ?? 'No comment',
           cost: incident.cost ?? 0.0,
@@ -202,7 +211,11 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       debugPrint('Error fetching incidents: $e');
     } finally {
       setState(() {
-        _isFetchingMore = false;
+        if (isLoadMore) {
+          _isFetchingMore = false;
+        } else {
+          _isLoading = false;
+        }
       });
     }
   }
@@ -232,7 +245,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
 
 
-  final Map<int, Map<int, String>> statusTypeMap = {
+  final Map<int, Map<int, String>> statusTypeMap = const {
     1: {
       1: 'Declared',
       2: 'Solved',
@@ -243,17 +256,48 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       3: 'Solved',
     },
     3: {
-      1: 'Pending',
+      0: 'Pending',
+      1: 'Acknowledged',
       2: 'Planned',
       3: 'InProgress',
-      4: 'Finished',
+      4: 'NeedsReview',
       5: 'Solved',
     },
   };
 
-// Example function to get status string:
-  String? getStatusLabel(int statusType, int statusNumber) {
+  String? _getStatusKey(int? statusType, int? statusNumber) {
+    if (statusType == null || statusNumber == null) return null;
     return statusTypeMap[statusType]?[statusNumber];
+  }
+
+  String _translateStatus(String statusKey) {
+    final isFrench = Localizations.localeOf(context).languageCode
+        .toLowerCase()
+        .startsWith('fr');
+
+    if (!isFrench) {
+      return switch (statusKey) {
+        'Declared' => 'Declared',
+        'Solved' => 'Solved',
+        'Pending' => 'Pending',
+        'Acknowledged' => 'Acknowledged',
+        'Planned' => 'Planned',
+        'InProgress' => 'In Progress',
+        'NeedsReview' => 'Needs Review',
+        _ => statusKey,
+      };
+    }
+
+    return switch (statusKey) {
+      'Declared' => 'Déclaré',
+      'Solved' => 'Résolu',
+      'Pending' => 'En attente',
+      'Acknowledged' => 'Accusé',
+      'Planned' => 'Planifié',
+      'InProgress' => 'En cours',
+      'NeedsReview' => 'À revoir',
+      _ => statusKey,
+    };
   }
 
 
@@ -274,55 +318,41 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
       children: [
-        // Boutique Dropdown
-        DropdownButtonFormField<int>(
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.chooseBoutique,
-            border: OutlineInputBorder(),
-          ),
-          items: [
-            DropdownMenuItem<int>(
-              value: null,
-              child: Text(AppLocalizations.of(context)!.all),
-            ),
-            ..._boutiques.map((boutique) {
-              return DropdownMenuItem<int>(
-                value: boutique.id, // Store the boutique ID
-                child: Text(
-                    boutique.libelle ?? AppLocalizations.of(context)!.noName), // Display boutique name
-              );
-            }).toList(),
-          ],
-          onChanged: (int? newValue) {
-            setState(() {
-              _selectedBoutiqueId = newValue;
-            });
+        _buildMultiSelectField(
+          label: AppLocalizations.of(context)!.chooseBoutique,
+          selectedCount: _selectedBoutiqueIds.length,
+          onTap: () async {
+            await _showMultiSelectDialog<int>(
+              title: AppLocalizations.of(context)!.chooseBoutique,
+              allLabel: AppLocalizations.of(context)!.all,
+              options: _boutiques
+                  .map((boutique) => MapEntry(
+                        boutique.id,
+                        boutique.libelle ?? AppLocalizations.of(context)!.noName,
+                      ))
+                  .toList(),
+              selectedValues: _selectedBoutiqueIds,
+            );
           },
-          value: _selectedBoutiqueId,
         ),
         SizedBox(height: 10), // Spacing
 
-        // Priorities Dropdown
-        DropdownButtonFormField<int>(
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.priority,
-            border: OutlineInputBorder(),
-          ),
-          items: [
-            DropdownMenuItem<int>(value: null, child: Text(AppLocalizations.of(context)!.all)),
-            ..._priorities.map((priority) {
-              return DropdownMenuItem<int>(
-                value: priority.coefId, // Store priority ID
-                child: Text(priority.libelle!), // Display priority name
-              );
-            }).toList(),
-          ],
-          onChanged: (int? newValue) {
-            setState(() {
-              _selectedPriority = newValue;
-            });
+        _buildMultiSelectField(
+          label: AppLocalizations.of(context)!.priority,
+          selectedCount: _selectedPriorities.length,
+          onTap: () async {
+            await _showMultiSelectDialog<int>(
+              title: AppLocalizations.of(context)!.priority,
+              allLabel: AppLocalizations.of(context)!.all,
+              options: _priorities
+                  .map((priority) => MapEntry(
+                        priority.coefId,
+                        priority.libelle ?? AppLocalizations.of(context)!.unknown,
+                      ))
+                  .toList(),
+              selectedValues: _selectedPriorities,
+            );
           },
-          value: _selectedPriority,
         ),
         /* SizedBox(height: 10), // Spacing
 
@@ -346,76 +376,41 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         ),*/
         SizedBox(height: 10), // Spacing
 
-        // Origin Dropdown
-        DropdownButtonFormField<int>(
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.origin,
-            border: OutlineInputBorder(),
-          ),
-          items: [
-            DropdownMenuItem<int>(value: null, child: Text(AppLocalizations.of(context)!.all)),
-            DropdownMenuItem<int>(value: 1, child: Text(AppLocalizations.of(context)!.manual)),
-            DropdownMenuItem<int>(value: 0, child: Text(AppLocalizations.of(context)!.checklist)),
-          ],
-          onChanged: (int? newValue) {
-            setState(() {
-              _selectedOrigin = newValue;
-            });
+        _buildMultiSelectField(
+          label: AppLocalizations.of(context)!.origin,
+          selectedCount: _selectedOrigins.length,
+          onTap: () async {
+            await _showMultiSelectDialog<int>(
+              title: AppLocalizations.of(context)!.origin,
+              allLabel: AppLocalizations.of(context)!.all,
+              options: [
+                MapEntry(1, AppLocalizations.of(context)!.manual),
+                MapEntry(0, AppLocalizations.of(context)!.checklist),
+              ],
+              selectedValues: _selectedOrigins,
+            );
           },
-          value: _selectedOrigin,
         ),
         SizedBox(height: 10), // Spacing
 
-        // Status Dropdown
         SizedBox(height: 10), // Spacing
-
-        // Status Dropdown
-        DropdownButtonFormField<int>(
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.status,
-            border: OutlineInputBorder(),
-          ),
-          items: [
-            DropdownMenuItem<int>(
-              value: null,
-              child: Text(AppLocalizations.of(context)!.all),
-            ),
-            ..._alowedStatus.map((status) {
-              int statusId = status['identifier'];
-              String statusName = status['name'] ?? AppLocalizations.of(context)!.unknown;
-
-              // Use 'color' from statusColors instead of 'background'
-              final String? hexColor = statusColors[statusName]?['color'];
-              final Color colorDot = hexColor != null ? hexToColor(hexColor) : Colors.grey;
-
-              return DropdownMenuItem<int>(
-                value: statusId,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: colorDot,
-                      ),
-                    ),
-                    Text(statusName),
-                  ],
-                ),
-              );
-            }).toList(),
-
-
-
-          ],
-          onChanged: (int? newValue) {
-            setState(() {
-              _selectedStatus = newValue;
-            });
+        _buildMultiSelectField(
+          label: AppLocalizations.of(context)!.status,
+          selectedCount: _selectedStatuses.length,
+          onTap: () async {
+            await _showMultiSelectDialog<int>(
+              title: AppLocalizations.of(context)!.status,
+              allLabel: AppLocalizations.of(context)!.all,
+              options: _alowedStatus
+                  .where((status) => status['identifier'] != null)
+                  .map<MapEntry<int, String>>((status) => MapEntry(
+                        status['identifier'] as int,
+                        status['name'] ?? AppLocalizations.of(context)!.unknown,
+                      ))
+                  .toList(),
+              selectedValues: _selectedStatuses,
+            );
           },
-          value: _selectedStatus,
         ),
 
         SizedBox(height: 10), // Spacing
@@ -443,23 +438,123 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     // Light green background, dark green text
     'Pending': {'background': '#fff3cd', 'color': '#856404'},
     // Light yellow background, dark yellow text
+    'Acknowledged': {'background': '#d1ecf1', 'color': '#0c5460'},
+    // Light yellow background, dark yellow text
     'Planned': {'background': '#e2e3e5', 'color': '#383d41'},
     // Light gray background, dark gray text
     'InProgress': {'background': '#f5c6cb', 'color': '#721c24'},
     // Light red background, dark red text
-    'Finished': {'background': '#f8d7da', 'color': '#721c24'},
-    // Light red background, dark red text
+    'NeedsReview': {'background': '#fff3cd', 'color': '#856404'},
+    // Light yellow background, dark yellow text
   };
+
+  Widget _buildMultiSelectField({
+    required String label,
+    required int selectedCount,
+    required VoidCallback onTap,
+  }) {
+    final String valueText =
+        selectedCount == 0 ? AppLocalizations.of(context)!.all : '$selectedCount';
+
+    return InkWell(
+      onTap: onTap,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(valueText),
+            const Icon(Icons.arrow_drop_down),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showMultiSelectDialog<T>({
+    required String title,
+    required String allLabel,
+    required List<MapEntry<T, String>> options,
+    required List<T> selectedValues,
+  }) async {
+    final Set<T> tempSelection = selectedValues.toSet();
+
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            return AlertDialog(
+              title: Text(title),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    CheckboxListTile(
+                      value: tempSelection.isEmpty,
+                      title: Text(allLabel),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      onChanged: (_) {
+                        setDialogState(() => tempSelection.clear());
+                      },
+                    ),
+                    ...options.map((entry) {
+                      return CheckboxListTile(
+                        value: tempSelection.contains(entry.key),
+                        title: Text(entry.value),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        onChanged: (bool? checked) {
+                          setDialogState(() {
+                            if (checked ?? false) {
+                              tempSelection.add(entry.key);
+                            } else {
+                              tempSelection.remove(entry.key);
+                            }
+                          });
+                        },
+                      );
+                    }),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(AppLocalizations.of(context)!.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedValues
+                        ..clear()
+                        ..addAll(tempSelection);
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(AppLocalizations.of(context)!.applyFilters),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
 
   Widget _listItem(Problem problem) {
-    // Get status label
-    final String? statusLabel =
-    getStatusLabel(problem.StatusType ?? 3, problem.Status ?? 5);
+    final String? statusKey = _getStatusKey(problem.StatusType, problem.Status);
+    final String displayStatus = statusKey != null
+        ? _translateStatus(statusKey)
+        : AppLocalizations.of(context)!.unknown;
 
     // Get background color for the left border using status label
     final String? hexBackground =
-    statusColors[statusLabel]?['background'];
+    statusColors[statusKey]?['background'];
 
     final Color borderColor = hexBackground != null
         ? hexToColor(hexBackground)
@@ -469,6 +564,15 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     final String formattedDate = problem.declaration_date != null
         ? DateFormat('yyyy-MM-dd').format(problem.declaration_date!)
         : AppLocalizations.of(context)!.noDateLower;
+
+    final String priorityLabel = _priorities
+            .where((coef) => coef.coefId == problem.coef_id)
+            .map((coef) => coef.libelle)
+            .whereType<String>()
+            .firstOrNull ??
+        problem.coefficientName ??
+        problem.coefficient?.libelle ??
+        AppLocalizations.of(context)!.noPriority;
 
     return Stack(
       children: [
@@ -496,7 +600,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                   children: [
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context)!.statusLabel(statusLabel ?? 'N/A'),
+                        AppLocalizations.of(context)!.statusLabel(displayStatus),
                         style: TextStyle(
                           color: TColors.black,
                           fontWeight: FontWeight.bold, // Make the text bold
@@ -504,7 +608,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                       ),
                     ),
                     Text(
-                      problem.coefficient?.libelle ?? AppLocalizations.of(context)!.noPriority,
+                      priorityLabel,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -762,39 +866,41 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
               const SizedBox(height: 16.0),
               Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  // Attach scroll listener
-                  itemCount: _incidents.length + (_isFetchingMore ? 1 : 0),
-                  // Add extra item for loader
-                  itemBuilder: (context, index) {
-                    if (index == _incidents.length) {
-                      return _hasMoreData
-                          ? const Center(
-                              child:
-                                  CircularProgressIndicator()) // Show loading if more data
-                          : const SizedBox(); // No more data, show nothing
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: OpenContainer(
-                        transitionType: ContainerTransitionType.fadeThrough,
-                        openBuilder: (context, _) =>
-                            ConsultProblem(problemId: _incidents[index].id),
-                        closedElevation: 0.0,
-                        closedShape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0)),
-                        closedColor: Colors.transparent,
-                        closedBuilder: (context, openContainer) {
-                          return GestureDetector(
-                            onTap: openContainer,
-                            child: _listItem(_incidents[index]),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        controller: _scrollController,
+                        // Attach scroll listener
+                        itemCount: _incidents.length + (_isFetchingMore ? 1 : 0),
+                        // Add extra item for loader
+                        itemBuilder: (context, index) {
+                          if (index == _incidents.length) {
+                            return _hasMoreData
+                                ? const Center(
+                                    child:
+                                        CircularProgressIndicator()) // Show loading if more data
+                                : const SizedBox(); // No more data, show nothing
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: OpenContainer(
+                              transitionType: ContainerTransitionType.fadeThrough,
+                              openBuilder: (context, _) =>
+                                  ConsultProblem(problemId: _incidents[index].id),
+                              closedElevation: 0.0,
+                              closedShape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.0)),
+                              closedColor: Colors.transparent,
+                              closedBuilder: (context, openContainer) {
+                                return GestureDetector(
+                                  onTap: openContainer,
+                                  child: _listItem(_incidents[index]),
+                                );
+                              },
+                            ),
                           );
                         },
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           ),
