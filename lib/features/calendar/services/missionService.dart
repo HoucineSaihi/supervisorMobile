@@ -25,7 +25,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../../dtos/questions/questionAnswerDto.dart';
 
 class MissionService {
-  final dio.Dio _dio = DioService.dio; // ✅ Correct way: reuse existing Dio instance
+  final dio.Dio _dio =
+      DioService.dio; // ✅ Correct way: reuse existing Dio instance
 
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
@@ -35,7 +36,6 @@ class MissionService {
 
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-
   }
 
   final String baseURL = '${dotenv.env['BASE_URL']}';
@@ -48,11 +48,13 @@ class MissionService {
   MissionService() {
     apiUrl = '/Missions/getMissionsForAreaManager';
     missionDetailsUrl = '/Missions/missionAllQuestion';
-    actionsUrl = '/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
+    actionsUrl =
+        '/ActionMs?description=Tous&code=Tous&responsable=Tous&mail=Tous';
   }
   Future<void> deleteImage(String fileName) async {
     try {
-      final response = await _dio.delete('/Files/deleteImage/$fileName'); // ✅ use _dio
+      final response =
+          await _dio.delete('/Files/deleteImage/$fileName'); // ✅ use _dio
 
       if (response.statusCode != 200) {
         final responseBody = response.data;
@@ -63,7 +65,6 @@ class MissionService {
       throw Exception('Error deleting image: $e');
     }
   }
-
 
   Future<String> downloadFile(String fileName) async {
     try {
@@ -94,8 +95,6 @@ class MissionService {
     }
   }
 
-
-
   Future<void> deleteFile(String fileName) async {
     try {
       final response = await _dio.delete(
@@ -119,8 +118,6 @@ class MissionService {
       throw Exception('Error deleting file: $e');
     }
   }
-
-
 
   Future<String> uploadJointure(File file) async {
     try {
@@ -147,7 +144,8 @@ class MissionService {
         final responseData = response.data;
         return responseData['fileName'];
       } else {
-        throw Exception('Failed to upload file. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to upload file. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error uploading file: $e');
@@ -156,18 +154,19 @@ class MissionService {
   }
 
   Future<MissionResponseModel> getPlanifiedMissions(
-      List<int> userIds,
-      List<int> boutiqueIds,
-      DateTime planifiedAt, {
-        int pageNumber = 1,
-        int pageSize = 50,
-        dio.CancelToken? cancelToken,
-      }) async {
+    List<int> userIds,
+    List<int> boutiqueIds,
+    DateTime planifiedAt, {
+    int pageNumber = 1,
+    int pageSize = 50,
+    dio.CancelToken? cancelToken,
+  }) async {
     try {
       final String formattedDate = planifiedAt.toIso8601String();
 
       print('🚀 MissionService: Fetching missions for date: $formattedDate');
-      print('📋 MissionService: Request params - userIds: $userIds, boutiqueIds: $boutiqueIds, pageNumber: $pageNumber, pageSize: $pageSize');
+      print(
+          '📋 MissionService: Request params - userIds: $userIds, boutiqueIds: $boutiqueIds, pageNumber: $pageNumber, pageSize: $pageSize');
 
       final response = await _dio.post(
         '/Missions/getMissionsForAreaManager', // ✅ use your actual relative path if known
@@ -186,13 +185,15 @@ class MissionService {
         cancelToken: cancelToken, // ✅ Add cancel token support
       );
 
-      print('✅ MissionService: API call successful. Status: ${response.statusCode}');
+      print(
+          '✅ MissionService: API call successful. Status: ${response.statusCode}');
       print('📄 MissionService: Raw response data: ${response.data}');
 
       if (response.statusCode == 200) {
         return MissionResponseModel.fromJson(response.data);
       } else {
-        throw Exception('Failed to load missions. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load missions. Status code: ${response.statusCode}');
       }
     } catch (e) {
       // Handle cancellation specifically
@@ -200,7 +201,7 @@ class MissionService {
         print('🚫 MissionService: Request was cancelled');
         throw Exception('Request was cancelled');
       }
-      
+
       // Handle 404 error gracefully (no missions found)
       if (e is dio.DioException && e.response?.statusCode == 404) {
         print('📭 No missions found for the selected date');
@@ -221,20 +222,23 @@ class MissionService {
           ),
         );
       }
-      
+
       print('❌ MissionService: Error fetching missions: $e');
       throw Exception('Error fetching missions: $e');
     }
   }
 
   Future<MissionResponseModel> getPlanifiedMissionsWithPagination(
-      List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt, {int pageNumber = 1, int pageSize = 20}) async {
+      List<int> userIds, List<int> boutiqueIds, DateTime planifiedAt,
+      {int pageNumber = 1, int pageSize = 20}) async {
     try {
       final String formattedDate = planifiedAt.toIso8601String();
 
-      print('🔍 MissionService.getPlanifiedMissionsWithPagination: Request parameters');
+      print(
+          '🔍 MissionService.getPlanifiedMissionsWithPagination: Request parameters');
       print('📊 PageSize: $pageSize, PageNumber: $pageNumber');
-      print('📄 UserIds: $userIds, BoutiqueIds: $boutiqueIds, Date: $formattedDate');
+      print(
+          '📄 UserIds: $userIds, BoutiqueIds: $boutiqueIds, Date: $formattedDate');
 
       final response = await _dio.post(
         apiUrl,
@@ -252,13 +256,16 @@ class MissionService {
         ),
       );
 
-      print('✅ MissionService.getPlanifiedMissionsWithPagination: API call successful');
-      print('📄 MissionService.getPlanifiedMissionsWithPagination: Raw response data: ${response.data}');
+      print(
+          '✅ MissionService.getPlanifiedMissionsWithPagination: API call successful');
+      print(
+          '📄 MissionService.getPlanifiedMissionsWithPagination: Raw response data: ${response.data}');
 
       if (response.statusCode == 200) {
         return MissionResponseModel.fromJson(response.data);
       } else {
-        throw Exception('Failed to load missions. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load missions. Status code: ${response.statusCode}');
       }
     } catch (e) {
       // Handle DioException specifically
@@ -283,14 +290,15 @@ class MissionService {
             ),
           );
         }
-        
+
         // Handle other Dio errors
         print('❌ Dio error fetching missions (pagination): ${e.message}');
         throw Exception('Error fetching missions: ${e.message}');
       }
-      
+
       // Handle other errors
-      print('❌ MissionService.getPlanifiedMissionsWithPagination: Error fetching missions: $e');
+      print(
+          '❌ MissionService.getPlanifiedMissionsWithPagination: Error fetching missions: $e');
       throw Exception('Error fetching missions: $e');
     }
   }
@@ -311,7 +319,8 @@ class MissionService {
         print(body);
         return Mission.fromJson(body); // ✅ Directly create the Mission object
       } else {
-        throw Exception('Failed to load mission details. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load mission details. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching mission details: $e');
@@ -331,10 +340,12 @@ class MissionService {
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> json = response.data; // ✅ Already parsed by Dio
+        final Map<String, dynamic> json =
+            response.data; // ✅ Already parsed by Dio
         return QuestionMission.fromJson(json);
       } else {
-        throw Exception('Failed to load question details. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load question details. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching question details: $e');
@@ -355,17 +366,21 @@ class MissionService {
 
       if (response.statusCode == 200) {
         List<dynamic> body = response.data; // ✅ Already parsed automatically
-        List<ActionM> actions = body.map((dynamic item) => ActionM.fromJson(item)).toList();
+        List<ActionM> actions =
+            body.map((dynamic item) => ActionM.fromJson(item)).toList();
         return actions;
       } else {
-        throw Exception('Failed to load actions. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load actions. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching actions: $e');
       throw Exception('Error fetching actions: $e');
     }
   }
-  Future<void> updateMissionQuestion(int questionId, questionAnswerDto updatedQuestion, BuildContext context) async {
+
+  Future<void> updateMissionQuestion(int questionId,
+      questionAnswerDto updatedQuestion, BuildContext context) async {
     try {
       // Get current location
       Position? currentPosition;
@@ -390,11 +405,13 @@ class MissionService {
         }
 
         // Get current position if permissions are granted
-        if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        if (permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always) {
           currentPosition = await Geolocator.getCurrentPosition(
             desiredAccuracy: LocationAccuracy.high,
           );
-          print('Current position: ${currentPosition.latitude}, ${currentPosition.longitude}');
+          print(
+              'Current position: ${currentPosition.latitude}, ${currentPosition.longitude}');
         }
       } catch (e) {
         print('Error getting location: $e');
@@ -432,7 +449,8 @@ class MissionService {
     }
   }
 
-  Future<void> updateMission(int missionId, Mission updatedMission, int status) async {
+  Future<void> updateMission(
+      int missionId, Mission updatedMission, int status) async {
     try {
       updatedMission.status = status; // ✅ Update the status field
 
@@ -462,27 +480,20 @@ class MissionService {
 
   Future<List<BoutiqueModel>> getBoutiques() async {
     try {
-      String? userIdString = await _storage.read(key: 'currentUserId');
-      _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-
-      List<int> userIdArray = [_currentUserID]; // ✅ simpler array creation
-
-      final response = await _dio.post(
-        '/Boutiques/getBoutiquesByUserIDs', // ✅ Only relative path
-        data: userIdArray, // ✅ Dio automatically encodes this to JSON
-        options: dio.Options(
-          headers: {
-            'Content-Type': 'application/json; charset=UTF-8',
-          },
-        ),
+      final response = await _dio.get(
+        '/Boutiques/GetBoutiquesByUserRole',
       );
+      print(
+          '[DEBUG][MissionService.getBoutiques] status=${response.statusCode} data=${response.data}');
 
       if (response.statusCode == 200) {
         List<dynamic> body = response.data; // ✅ Already parsed JSON
-        List<BoutiqueModel> boutiques = body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
+        List<BoutiqueModel> boutiques =
+            body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
         return boutiques;
       } else {
-        throw Exception('Failed to load boutiques. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load boutiques. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching boutiques: $e');
@@ -493,7 +504,8 @@ class MissionService {
   Future<List<Mission>> getAllNotPlanifiedMissions() async {
     try {
       String? userIdString = await _storage.read(key: 'currentUserId');
-      _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+      _currentUserID =
+          userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
 
       final response = await _dio.get(
         '/Missions/GetAllNotPlanifiedMissions/$_currentUserID', // ✅ Only relative path
@@ -506,10 +518,12 @@ class MissionService {
 
       if (response.statusCode == 200) {
         List<dynamic> body = response.data; // ✅ Already parsed automatically
-        List<Mission> missions = body.map((dynamic item) => Mission.fromJson(item)).toList();
+        List<Mission> missions =
+            body.map((dynamic item) => Mission.fromJson(item)).toList();
         return missions;
       } else {
-        throw Exception('Failed to load missions. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load missions. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching missions: $e');
@@ -567,7 +581,8 @@ class MissionService {
           SnackBar(
             content: AwesomeSnackbarContent(
               title: AppLocalizations.of(context)!.error,
-              message: AppLocalizations.of(context)!.serverErrorWithCode(response.statusCode ?? 0),
+              message: AppLocalizations.of(context)!
+                  .serverErrorWithCode(response.statusCode ?? 0),
               contentType: ContentType.failure,
             ),
             behavior: SnackBarBehavior.floating,
@@ -582,7 +597,8 @@ class MissionService {
         SnackBar(
           content: AwesomeSnackbarContent(
             title: AppLocalizations.of(context)!.error,
-            message: AppLocalizations.of(context)!.unexpectedErrorOccurred(e.toString()),
+            message: AppLocalizations.of(context)!
+                .unexpectedErrorOccurred(e.toString()),
             contentType: ContentType.failure,
           ),
           behavior: SnackBarBehavior.floating,
@@ -592,7 +608,6 @@ class MissionService {
       );
     }
   }
-
 
   Future<String> uploadFile(File file) async {
     try {
@@ -622,7 +637,8 @@ class MissionService {
         final responseData = response.data;
         return responseData['file']; // ✅ Return the filename from response
       } else {
-        throw Exception('Failed to upload file. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to upload file. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error uploading file: $e');
@@ -635,7 +651,8 @@ class MissionService {
       final response = await _dio.get(
         '/Files/getImage/$filename', // ✅ Only relative path
         options: dio.Options(
-          responseType: dio.ResponseType.bytes, // ✅ Important: get the bytes directly
+          responseType:
+              dio.ResponseType.bytes, // ✅ Important: get the bytes directly
           headers: {
             'accept': 'image/jpeg', // ✅ Accepting images
           },
@@ -662,12 +679,14 @@ class MissionService {
     }
   }
 
-  Future<List<QuestionMission>> getQuestionsForSousMission(int sousMissionId) async {
+  Future<List<QuestionMission>> getQuestionsForSousMission(
+      int sousMissionId) async {
     try {
       final response = await _dio.get(
         '/MissionQuestions', // ✅ Relative path only
         queryParameters: {
-          'idSousMission': sousMissionId, // ✅ Clean way to add query parameters with Dio
+          'idSousMission':
+              sousMissionId, // ✅ Clean way to add query parameters with Dio
         },
         options: dio.Options(
           headers: {
@@ -678,10 +697,12 @@ class MissionService {
 
       if (response.statusCode == 200) {
         List<dynamic> body = response.data; // ✅ Already parsed JSON
-        List<QuestionMission> questions = body.map((dynamic item) => QuestionMission.fromJson(item)).toList();
+        List<QuestionMission> questions =
+            body.map((dynamic item) => QuestionMission.fromJson(item)).toList();
         return questions;
       } else {
-        throw Exception('Failed to load questions for sousMission. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load questions for sousMission. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching questions: $e');
@@ -689,7 +710,8 @@ class MissionService {
     }
   }
 
-  Future<List<ChoixReponseQuestion>> getAllChoixReponse(int modeleReponseID) async {
+  Future<List<ChoixReponseQuestion>> getAllChoixReponse(
+      int modeleReponseID) async {
     try {
       final response = await _dio.get(
         '/ChoixReponseQuestion/$modeleReponseID', // ✅ Only relative path
@@ -702,10 +724,13 @@ class MissionService {
 
       if (response.statusCode == 200) {
         List<dynamic> body = response.data; // ✅ Already parsed
-        List<ChoixReponseQuestion> allChoix = body.map((dynamic item) => ChoixReponseQuestion.fromJson(item)).toList();
+        List<ChoixReponseQuestion> allChoix = body
+            .map((dynamic item) => ChoixReponseQuestion.fromJson(item))
+            .toList();
         return allChoix;
       } else {
-        throw Exception('Failed to load choix reponse. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load choix reponse. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching choix reponse: $e');
@@ -726,10 +751,12 @@ class MissionService {
 
       if (response.statusCode == 200) {
         List<dynamic> body = response.data; // ✅ Already parsed
-        List<IncidentType> incidentTypes = body.map((dynamic item) => IncidentType.fromJson(item)).toList();
+        List<IncidentType> incidentTypes =
+            body.map((dynamic item) => IncidentType.fromJson(item)).toList();
         return incidentTypes;
       } else {
-        throw Exception('Failed to load incident types. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load incident types. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching incident types: $e');
@@ -750,18 +777,16 @@ class MissionService {
 
       if (response.statusCode == 200) {
         List<dynamic> body = response.data; // ✅ Already parsed
-        List<Departement> departements = body.map((dynamic item) => Departement.fromJson(item)).toList();
+        List<Departement> departements =
+            body.map((dynamic item) => Departement.fromJson(item)).toList();
         return departements;
       } else {
-        throw Exception('Failed to load departements. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load departements. Status code: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching departements: $e');
       throw Exception('Error fetching departements: $e');
     }
   }
-
-
-
-
 }

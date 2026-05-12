@@ -13,8 +13,7 @@ import '../../../services/DioService.dart';
 import '../../../utils/Helpers/secure_storage_data.dart';
 
 class IncidentService {
-
-  static final Dio dio =DioService.dio;// Adjust your base URL
+  static final Dio dio = DioService.dio; // Adjust your base URL
 
   final String _problemBaseUrl = '/Problem';
 
@@ -22,11 +21,11 @@ class IncidentService {
 
   final String _paramsBaseUrl = '/Parameters';
 
-
   final _storage = FlutterSecureStorage();
   int _currentUserID = 0;
 
-  Future<List<Coefficient>> getAllCoefficients({CancelToken? cancelToken}) async {
+  Future<List<Coefficient>> getAllCoefficients(
+      {CancelToken? cancelToken}) async {
     try {
       final response = await DioService.dio.get(
         _coefficientBaseUrl,
@@ -37,7 +36,8 @@ class IncidentService {
         List<dynamic> jsonResponse = response.data;
         return jsonResponse.map((data) => Coefficient.fromJson(data)).toList();
       } else {
-        throw Exception('Failed to load coefficients. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load coefficients. Status code: ${response.statusCode}');
       }
     } catch (e) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
@@ -52,7 +52,6 @@ class IncidentService {
     // Retrieve the user ID from secure storage
     String? userIdString = await _storage.read(key: 'currentUserId');
     _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-
   }
 
   Future<List<dynamic>> getAllowedStatus({CancelToken? cancelToken}) async {
@@ -66,7 +65,8 @@ class IncidentService {
         final List<dynamic> statuses = response.data;
         return statuses;
       } else {
-        throw Exception('Failed to load allowed statuses. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load allowed statuses. Status code: ${response.statusCode}');
       }
     } catch (e) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
@@ -78,22 +78,18 @@ class IncidentService {
     }
   }
 
-
-
-
-
   Future<AllProblemsLazy> getFilteredProblems(
-      List<int>? boutiqueIds,
-      List<int>? coefIds,
-      List<int>? origins,
-      List<int>? statuts,
-      int? first, {
-      int rows = 10,
-      CancelToken? cancelToken,
-    }) async {
-
+    List<int>? boutiqueIds,
+    List<int>? coefIds,
+    List<int>? origins,
+    List<int>? statuts,
+    int? first, {
+    int rows = 10,
+    CancelToken? cancelToken,
+  }) async {
     String? userIdString = await _storage.read(key: 'currentUserId');
-    int? currentUserID = userIdString != null ? int.tryParse(userIdString) : null;
+    int? currentUserID =
+        userIdString != null ? int.tryParse(userIdString) : null;
 
     final Map<String, dynamic> requestBody = {
       "requester_ids": currentUserID != null ? [currentUserID] : null,
@@ -103,7 +99,8 @@ class IncidentService {
       "statuts": statuts,
       "first": first,
       "rows": rows
-    }..removeWhere((key, value) => value == null || (value is List && value.isEmpty));
+    }..removeWhere(
+        (key, value) => value == null || (value is List && value.isEmpty));
 
     print(requestBody);
 
@@ -120,7 +117,8 @@ class IncidentService {
         final Map<String, dynamic> responseData = response.data;
 
         // Debugging: Check first problem item
-        if (responseData["problems"] is List && responseData["problems"].isNotEmpty) {
+        if (responseData["problems"] is List &&
+            responseData["problems"].isNotEmpty) {
           print("First problem item: ${responseData["problems"].first}");
         } else {
           print("Problems list is empty or invalid.");
@@ -129,7 +127,8 @@ class IncidentService {
         if (responseData["problems"] is List) {
           return AllProblemsLazy(
             problems: (responseData["problems"] as List<dynamic>)
-                .map((incident) => Problem.fromJson(incident as Map<String, dynamic>))
+                .map((incident) =>
+                    Problem.fromJson(incident as Map<String, dynamic>))
                 .toList(),
             totalRecords: responseData["totalRecords"] ?? 0,
           );
@@ -137,7 +136,8 @@ class IncidentService {
           throw Exception("Invalid API response: 'problems' is not a list.");
         }
       } else {
-        throw Exception("Failed to load filtered problems: ${response.statusCode}");
+        throw Exception(
+            "Failed to load filtered problems: ${response.statusCode}");
       }
     } catch (e) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
@@ -149,11 +149,8 @@ class IncidentService {
     }
   }
 
-
-
-
-
-  Future<void> cloturerIncident(int questionId, {CancelToken? cancelToken}) async {
+  Future<void> cloturerIncident(int questionId,
+      {CancelToken? cancelToken}) async {
     try {
       final response = await DioService.dio.put(
         '$_problemBaseUrl/updateClouture/$questionId',
@@ -172,8 +169,6 @@ class IncidentService {
       throw Exception('Error occurred while updating clouture: $e');
     }
   }
-
-
 
   // Fetch problem by ID
   Future<Problem?> getProblemById(int id, {CancelToken? cancelToken}) async {
@@ -202,29 +197,25 @@ class IncidentService {
     }
   }
 
-
-
   Future<List<BoutiqueModel>> getBoutiques({CancelToken? cancelToken}) async {
-    String? userIdString = await _storage.read(key: 'currentUserId');
-    _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-
-    List<int> userIdArray = [_currentUserID];
-
-    final String boutiquesUrl = '/Boutiques/getBoutiquesByUserIDs';
+    final String boutiquesUrl = '/Boutiques/GetBoutiquesByUserRole';
 
     try {
-      final response = await DioService.dio.post(
+      final response = await DioService.dio.get(
         boutiquesUrl,
-        data: userIdArray,
         cancelToken: cancelToken,
       );
+      print(
+          '[DEBUG][IncidentService.getBoutiques] status=${response.statusCode} data=${response.data}');
 
       if (response.statusCode == 200) {
         List<dynamic> body = response.data; // ✅ No manual decoding needed
-        List<BoutiqueModel> boutiques = body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
+        List<BoutiqueModel> boutiques =
+            body.map((dynamic item) => BoutiqueModel.fromJson(item)).toList();
         return boutiques;
       } else {
-        throw Exception('Failed to load boutiques. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load boutiques. Status code: ${response.statusCode}');
       }
     } catch (e) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
@@ -236,7 +227,8 @@ class IncidentService {
     }
   }
 
-  Future<Problem> addProblem(Problem problem, {CancelToken? cancelToken}) async {
+  Future<Problem> addProblem(Problem problem,
+      {CancelToken? cancelToken}) async {
     try {
       final response = await DioService.dio.post(
         _problemBaseUrl,
@@ -246,7 +238,8 @@ class IncidentService {
 
       if (response.statusCode == 201) {
         print("gooooooooooood");
-        return Problem.fromJson(response.data); // ✅ response.data already parsed
+        return Problem.fromJson(
+            response.data); // ✅ response.data already parsed
       } else {
         throw Exception(
             'Failed to add problem. Status code: ${response.statusCode}, Response: ${response.data}');
@@ -260,6 +253,3 @@ class IncidentService {
     }
   }
 }
-
-
-

@@ -7,6 +7,7 @@ class BoutiqueModel {
   String? country;
   String? adress;
   DateTime? dateCreation;
+  int? idGroup;
 
   BoutiqueModel({
     required this.id,
@@ -17,6 +18,7 @@ class BoutiqueModel {
     this.country,
     this.adress,
     this.dateCreation,
+    this.idGroup,
   });
 
   // Factory method to create an instance from JSON
@@ -32,6 +34,7 @@ class BoutiqueModel {
       dateCreation: json['dateCreation'] != null
           ? DateTime.parse(json['dateCreation'] as String)
           : null,
+      idGroup: (json['idGroup'] ?? json['groupId']) as int?,
     );
   }
 
@@ -46,6 +49,7 @@ class BoutiqueModel {
       'country': country,
       'adress': adress,
       'dateCreation': dateCreation?.toIso8601String(),
+      'idGroup': idGroup,
     };
   }
 
@@ -59,6 +63,7 @@ class BoutiqueModel {
     String? country,
     String? adress,
     DateTime? dateCreation,
+    int? idGroup,
   }) {
     return BoutiqueModel(
       id: id ?? this.id,
@@ -69,6 +74,7 @@ class BoutiqueModel {
       country: country ?? this.country,
       adress: adress ?? this.adress,
       dateCreation: dateCreation ?? this.dateCreation,
+      idGroup: idGroup ?? this.idGroup,
     );
   }
 }
