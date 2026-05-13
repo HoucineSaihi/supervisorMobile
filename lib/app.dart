@@ -34,19 +34,38 @@ class _AppState extends State<App> {
   }
 
   Future<void> _checkLaunchStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final storedData = await _secureStorage.read(key: 'currentUserId');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedData = await _secureStorage.read(key: 'currentUserId');
 
-    if (mounted) {
-      setState(() {
-        _isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
-        _hasStoredData = storedData != null;
-        _isInitialized = true;
-      });
-    }
+      if (mounted) {
+        setState(() {
+          _isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
+          _hasStoredData = storedData != null;
+          _isInitialized = true;
+        });
+      }
 
-    if (_isFirstLaunch) {
-      await prefs.setBool('isFirstLaunch', false);
+      if (_isFirstLaunch) {
+        await prefs.setBool('isFirstLaunch', false);
+      }
+    } catch (e) {
+      // Si la lecture du secure storage échoue (corruption/chiffrement),
+      // vider complètement le stockage sécurisé et forcer la déconnexion
+      try {
+        await _secureStorage.deleteAll();
+        print('Secure storage cleared due to error: $e');
+      } catch (_) {
+        // Ignorer les erreurs de suppression
+      }
+
+      if (mounted) {
+        setState(() {
+          _isFirstLaunch = false;
+          _hasStoredData = false;
+          _isInitialized = true;
+        });
+      }
     }
   }
 

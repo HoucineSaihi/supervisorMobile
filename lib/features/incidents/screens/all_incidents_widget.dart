@@ -45,6 +45,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   final TextEditingController _statusValidationController =
       TextEditingController();
   List<BoutiqueModel> _boutiques = [];
+  Future<void>? _boutiquesLoadFuture;
+  bool _isLoadingBoutiques = false;
 
   DateTime? _dateDb;
   DateTime? _dateF;
@@ -81,11 +83,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     super.initState();
     _incidentService = IncidentService();
 
-    _missionService.getBoutiques().then((boutiques) {
-      setState(() {
-        _boutiques = boutiques;
-      });
-    });
+    _ensureBoutiquesLoaded();
     IncidentService().getAllCoefficients().then((coef) {
       setState(() {
         _priorities = coef;
@@ -122,6 +120,31 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     _boutiqueLibelleController.dispose();
     _statusValidationController.dispose();
     super.dispose();
+  }
+
+  /// Charge les boutiques une seule fois à la fois ; même Future si [initState] et l’utilisateur ouvrent le sélecteur en parallèle.
+  Future<void> _ensureBoutiquesLoaded() async {
+    if (_boutiques.isNotEmpty) return;
+    if (_boutiquesLoadFuture == null) {
+      setState(() => _isLoadingBoutiques = true);
+      _boutiquesLoadFuture = _loadBoutiquesOnce();
+    }
+    await _boutiquesLoadFuture;
+  }
+
+  Future<void> _loadBoutiquesOnce() async {
+    try {
+      final boutiques = await _missionService.getBoutiques();
+      if (!mounted) return;
+      setState(() => _boutiques = boutiques);
+    } catch (e) {
+      debugPrint('Error loading boutiques: $e');
+    } finally {
+      _boutiquesLoadFuture = null;
+      if (mounted) {
+        setState(() => _isLoadingBoutiques = false);
+      }
+    }
   }
 
   int _totalIncidents = 0;
@@ -179,7 +202,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           coef_id: incident.coef_id,
           coefficientName: incident.coefficientName,
           coefficient: (incident.coefficient is Map<String, dynamic>)
-              ? Coefficient.fromJson(incident.coefficient as Map<String, dynamic>)
+              ? Coefficient.fromJson(
+                  incident.coefficient as Map<String, dynamic>)
               : incident.coefficient as Coefficient?,
           cluster: incident.cluster ?? 0,
           origin: incident.origin ?? 0,
@@ -243,8 +267,6 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
 
   var _statusValidation = null;
 
-
-
   final Map<int, Map<int, String>> statusTypeMap = const {
     1: {
       1: 'Declared',
@@ -271,7 +293,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
   }
 
   String _translateStatus(String statusKey) {
-    final isFrench = Localizations.localeOf(context).languageCode
+    final isFrench = Localizations.localeOf(context)
+        .languageCode
         .toLowerCase()
         .startsWith('fr');
 
@@ -300,9 +323,6 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     };
   }
 
-
-
-
   Color hexToColor(String hex) {
     hex = hex.replaceAll('#', '');
     if (hex.length == 6) {
@@ -311,9 +331,6 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     return Color(int.parse('0x$hex'));
   }
 
-
-
-
   Widget _buildFilterForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start, // Align items to the start
@@ -321,14 +338,19 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         _buildMultiSelectField(
           label: AppLocalizations.of(context)!.chooseBoutique,
           selectedCount: _selectedBoutiqueIds.length,
+          isLoading: _isLoadingBoutiques,
+          loadingMessage: AppLocalizations.of(context)!.vmLoadingBoutiques,
           onTap: () async {
+            await _ensureBoutiquesLoaded();
+            if (!mounted) return;
             await _showMultiSelectDialog<int>(
               title: AppLocalizations.of(context)!.chooseBoutique,
               allLabel: AppLocalizations.of(context)!.all,
               options: _boutiques
                   .map((boutique) => MapEntry(
                         boutique.id,
-                        boutique.libelle ?? AppLocalizations.of(context)!.noName,
+                        boutique.libelle ??
+                            AppLocalizations.of(context)!.noName,
                       ))
                   .toList(),
               selectedValues: _selectedBoutiqueIds,
@@ -347,7 +369,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
               options: _priorities
                   .map((priority) => MapEntry(
                         priority.coefId,
-                        priority.libelle ?? AppLocalizations.of(context)!.unknown,
+                        priority.libelle ??
+                            AppLocalizations.of(context)!.unknown,
                       ))
                   .toList(),
               selectedValues: _selectedPriorities,
@@ -452,12 +475,25 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     required String label,
     required int selectedCount,
     required VoidCallback onTap,
+    bool isLoading = false,
+    String? loadingMessage,
   }) {
-    final String valueText =
-        selectedCount == 0 ? AppLocalizations.of(context)!.all : '$selectedCount';
+    final String valueText = selectedCount == 0
+        ? AppLocalizations.of(context)!.all
+        : '$selectedCount';
+
+    late final String displayLeftText;
+    late final bool showLoadingHint;
+    if (isLoading && loadingMessage != null) {
+      showLoadingHint = true;
+      displayLeftText = loadingMessage;
+    } else {
+      showLoadingHint = false;
+      displayLeftText = valueText;
+    }
 
     return InkWell(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
@@ -466,8 +502,25 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(valueText),
-            const Icon(Icons.arrow_drop_down),
+            Expanded(
+              child: Text(
+                displayLeftText,
+                overflow: TextOverflow.ellipsis,
+                style: showLoadingHint
+                    ? Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).hintColor,
+                        )
+                    : null,
+              ),
+            ),
+            if (isLoading)
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              const Icon(Icons.arrow_drop_down),
           ],
         ),
       ),
@@ -545,7 +598,6 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     );
   }
 
-
   Widget _listItem(Problem problem) {
     final String? statusKey = _getStatusKey(problem.StatusType, problem.Status);
     final String displayStatus = statusKey != null
@@ -553,8 +605,7 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
         : AppLocalizations.of(context)!.unknown;
 
     // Get background color for the left border using status label
-    final String? hexBackground =
-    statusColors[statusKey]?['background'];
+    final String? hexBackground = statusColors[statusKey]?['background'];
 
     final Color borderColor = hexBackground != null
         ? hexToColor(hexBackground)
@@ -600,7 +651,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                   children: [
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context)!.statusLabel(displayStatus),
+                        AppLocalizations.of(context)!
+                            .statusLabel(displayStatus),
                         style: TextStyle(
                           color: TColors.black,
                           fontWeight: FontWeight.bold, // Make the text bold
@@ -629,12 +681,12 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                         fontSize: 14,
                       ),
                     ),
-
                   ],
                 ),
                 const SizedBox(height: 4.0),
                 Text(
-                  problem.description ?? AppLocalizations.of(context)!.noDescription,
+                  problem.description ??
+                      AppLocalizations.of(context)!.noDescription,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey[600],
@@ -648,13 +700,13 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 Text(
-                  problem.commentaire ?? AppLocalizations.of(context)!.noComment,
+                  problem.commentaire ??
+                      AppLocalizations.of(context)!.noComment,
                   style: TextStyle(
                     color: Colors.grey[600],
                   ),
                 ),
                 const SizedBox(height: 8.0),
-
 
                 // Date déclaration
                 Text(
@@ -696,7 +748,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     AwesomeBottomSheet().show(
       context: context,
       title: Text(AppLocalizations.of(context)!.consultIncident),
-      description: Text(AppLocalizations.of(context)!.chooseOptionToModifyIncident),
+      description:
+          Text(AppLocalizations.of(context)!.chooseOptionToModifyIncident),
       color: CustomSheetColor(
         mainColor: TColors.primary,
         accentColor: TColors.secondary,
@@ -723,7 +776,9 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
           Navigator.of(context).pop(); // Close the bottom sheet
           _showConfirmationDialog(item);
         },
-        title: item["clouture"] != null ? AppLocalizations.of(context)!.unclose : AppLocalizations.of(context)!.close,
+        title: item["clouture"] != null
+            ? AppLocalizations.of(context)!.unclose
+            : AppLocalizations.of(context)!.close,
         icon: item["clouture"] != null
             ? Iconsax.close_circle
             : Iconsax.tick_circle,
@@ -735,7 +790,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
     AwesomeBottomSheet().show(
       context: context,
       title: Text(AppLocalizations.of(context)!.confirmClosure),
-      description: Text(AppLocalizations.of(context)!.areYouSureChangeClosureState(item['questionLibelle'] ?? '')),
+      description: Text(AppLocalizations.of(context)!
+          .areYouSureChangeClosureState(item['questionLibelle'] ?? '')),
       color: CustomSheetColor(
         mainColor: const Color(0xAD0BB819),
         accentColor: const Color(0xFF0BB819),
@@ -761,7 +817,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                 SnackBar(
                   content: AwesomeSnackbarContent(
                     title: AppLocalizations.of(context)!.success,
-                    message: AppLocalizations.of(context)!.incidentClosedSuccessfully,
+                    message: AppLocalizations.of(context)!
+                        .incidentClosedSuccessfully,
                     contentType: ContentType.success,
                   ),
                   behavior: SnackBarBehavior.floating,
@@ -829,7 +886,6 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
             });
           }
         },
-
         backgroundColor: TColors.primary,
         child: const Icon(Iconsax.add_circle, color: Colors.white),
       ),
@@ -871,7 +927,8 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                     : ListView.builder(
                         controller: _scrollController,
                         // Attach scroll listener
-                        itemCount: _incidents.length + (_isFetchingMore ? 1 : 0),
+                        itemCount:
+                            _incidents.length + (_isFetchingMore ? 1 : 0),
                         // Add extra item for loader
                         itemBuilder: (context, index) {
                           if (index == _incidents.length) {
@@ -884,9 +941,10 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: OpenContainer(
-                              transitionType: ContainerTransitionType.fadeThrough,
-                              openBuilder: (context, _) =>
-                                  ConsultProblem(problemId: _incidents[index].id),
+                              transitionType:
+                                  ContainerTransitionType.fadeThrough,
+                              openBuilder: (context, _) => ConsultProblem(
+                                  problemId: _incidents[index].id),
                               closedElevation: 0.0,
                               closedShape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8.0)),

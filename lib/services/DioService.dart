@@ -4,16 +4,21 @@ import 'package:supervisormobile/interceptors/accept_language_interceptor.dart';
 import 'package:supervisormobile/interceptors/auth_interceptor.dart';
 
 class DioService {
+  static const String _baseUrl = 'http://192.168.2.57:7070';
+
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.168.200:7060/api', //
+      baseUrl: '$_baseUrl/api',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     ),
   )..interceptors.addAll([
-      AuthInterceptor(), // Add authentication interceptor first
+      AuthInterceptor(),
       ClientIdInterceptor(),
       AcceptLanguageInterceptor(),
       LogInterceptor(
@@ -26,27 +31,7 @@ class DioService {
       ),
     ]);
 
-  /// Returns API host without `/api` suffix.
-  /// Example: `https://host/api` -> `https://host`
-  static String get assetsBaseUrl {
-    final rawBase = dio.options.baseUrl.trim();
-    if (rawBase.isEmpty) return rawBase;
-
-    final parsed = Uri.tryParse(rawBase);
-    if (parsed == null || parsed.host.isEmpty) return rawBase;
-
-    final path = parsed.path;
-    final normalizedPath =
-        path.endsWith('/api') ? path.substring(0, path.length - 4) : path;
-
-    final rebuilt =
-        parsed.replace(path: normalizedPath, query: '', fragment: '');
-    final rebuiltString = rebuilt.toString();
-    final noSuffix = rebuiltString
-        .replaceFirst(RegExp(r'[?#]+$'), '')
-        .replaceAll(RegExp(r'/$'), '');
-    return noSuffix;
-  }
+  static String get assetsBaseUrl => _baseUrl;
 
   // Test method to demonstrate API call
   static Future<void> testApiCall() async {

@@ -49,16 +49,14 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
   final _storage = FlutterSecureStorage();
   bool _isLoading = false;
 
-
+  final MissionService _missionService = MissionService();
+  Future<void>? _boutiquesLoadFuture;
+  bool _isLoadingBoutiques = false;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
-    MissionService().getBoutiques().then((boutiques) {
-      setState(() {
-        _boutiques = boutiques; // Update the boutique list
-      });
-    });
+    _ensureBoutiquesLoaded();
 
     IncidentService().getAllCoefficients().then((coefficients) {
       setState(() {
@@ -73,10 +71,43 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
     });
   }
 
+  Future<void> _ensureBoutiquesLoaded() async {
+    if (_boutiques.isNotEmpty) return;
+    if (_boutiquesLoadFuture == null) {
+      setState(() => _isLoadingBoutiques = true);
+      _boutiquesLoadFuture = _loadBoutiquesOnce();
+    }
+    await _boutiquesLoadFuture;
+  }
+
+  Future<void> _loadBoutiquesOnce() async {
+    try {
+      final boutiques = await _missionService.getBoutiques();
+      if (!mounted) return;
+      setState(() => _boutiques = boutiques);
+    } catch (e) {
+      debugPrint('Error loading boutiques: $e');
+    } finally {
+      _boutiquesLoadFuture = null;
+      if (mounted) {
+        setState(() => _isLoadingBoutiques = false);
+      }
+    }
+  }
+
   void selectFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'csv', 'zip'], // ✅ Only allow safe types
+      allowedExtensions: [
+        'pdf',
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+        'txt',
+        'csv',
+        'zip'
+      ], // ✅ Only allow safe types
     );
 
     if (result != null && result.files.isNotEmpty) {
@@ -85,7 +116,8 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       // ✅ Size check: max 10MB
       const int maxSizeInBytes = 5 * 1024 * 1024; // 5MB
       if (infoFichier!.size > maxSizeInBytes) {
-        print("❌ Selected file is too large (${infoFichier!.size} bytes). Maximum allowed size is 5MB.");
+        print(
+            "❌ Selected file is too large (${infoFichier!.size} bytes). Maximum allowed size is 5MB.");
         return;
       }
 
@@ -106,12 +138,11 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
     }
   }
 
-
   Future<String> uploadFile(File file) async {
     try {
       // Call the MissionService's uploadJointure method to upload the file
       final String uploadedFileName =
-      await MissionService().uploadJointure(file);
+          await MissionService().uploadJointure(file);
 
       // Return the uploaded file's name
       return uploadedFileName; // No need to access as a Map, just return the file name
@@ -121,7 +152,6 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       return ''; // Return an empty string or a custom error message if needed
     }
   }
-
 
   Future<void> _pickImages() async {
     final List<XFile>? selectedImages = await _picker.pickMultiImage();
@@ -137,11 +167,13 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
         final isValidExtension = allowedExtensions.contains(extension);
 
         if (isValidExtension) {
-          final fileSize = await image.length(); // ✅ Async: await correct file size
+          final fileSize =
+              await image.length(); // ✅ Async: await correct file size
           if (fileSize <= maxImageSizeInBytes) {
             filteredImages.add(image);
           } else {
-            print("❌ Image ${image.name} is too large (${fileSize} bytes). Skipped.");
+            print(
+                "❌ Image ${image.name} is too large (${fileSize} bytes). Skipped.");
           }
         } else {
           print("❌ Image ${image.name} has unsupported format. Skipped.");
@@ -149,7 +181,8 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       }
 
       if (filteredImages.isEmpty) {
-        print("❌ No valid images selected. Only JPG, JPEG, PNG under 5MB are allowed.");
+        print(
+            "❌ No valid images selected. Only JPG, JPEG, PNG under 5MB are allowed.");
         return;
       }
 
@@ -162,8 +195,6 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
       print("❌ No images selected.");
     }
   }
-
-
 
   void _showImageViewer(int index) {
     if (_imageFiles != null && _imageFiles!.isNotEmpty) {
@@ -230,98 +261,103 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
     });
   }
 
-
-
   void _submitForm() async {
-
-
-
-
-    if(_selectedBoutique != null && _selectedPriority != null && _selectedDepartement != null && _commentController.text.isNotEmpty && _descriptionController.text.isNotEmpty ){
+    if (_selectedBoutique != null &&
+        _selectedPriority != null &&
+        _selectedDepartement != null &&
+        _commentController.text.isNotEmpty &&
+        _descriptionController.text.isNotEmpty) {
       setState(() => _isLoading = true);
 
       String? imageName;
       String? fileName;
       try {
-      if (_imageFiles != null && _imageFiles!.isNotEmpty) {
-        try {
-          final firstFile = _imageFiles!.first;
-          imageName = await MissionService().uploadFile(File(firstFile.path));
-          print("\n File Name ----------------------------------------------- \n" + imageName);
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.failedToUploadImageFile)),
-          );
-          return; // Stop execution if image upload fails
+        if (_imageFiles != null && _imageFiles!.isNotEmpty) {
+          try {
+            final firstFile = _imageFiles!.first;
+            imageName = await MissionService().uploadFile(File(firstFile.path));
+            print(
+                "\n File Name ----------------------------------------------- \n" +
+                    imageName);
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(
+                      AppLocalizations.of(context)!.failedToUploadImageFile)),
+            );
+            return; // Stop execution if image upload fails
+          }
         }
-      }
 
-      // Check if a file is selected and upload it if present
-      if (jointureFichier != null) {
-        try {
-          fileName = await MissionService().uploadJointure(jointureFichier!);
-          print("\n Jointure Fichier ----------------------------------------- \n" + fileName);
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.failedToUploadJointureFile)),
-          );
-          return; // Stop execution if jointure fichier upload fails
+        // Check if a file is selected and upload it if present
+        if (jointureFichier != null) {
+          try {
+            fileName = await MissionService().uploadJointure(jointureFichier!);
+            print(
+                "\n Jointure Fichier ----------------------------------------- \n" +
+                    fileName);
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(AppLocalizations.of(context)!
+                      .failedToUploadJointureFile)),
+            );
+            return; // Stop execution if jointure fichier upload fails
+          }
         }
-      }
-      int _currentUserID = 0;
-      String? userIdString = await _storage.read(key: 'currentUserId');
-      _currentUserID = userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
-      final declaredProblem = Problem(id: 0,
-          user_id: _currentUserID,
-          boutique_id: _selectedBoutique!.id,
-          coef_id: _selectedPriority!.coefId,
-          problem_image_before: imageName,
-          joint_file_before: fileName,
-          commentaire:_commentController.text,
-          description: _descriptionController.text ,
-        cluster: _selectedBoutique!.cluster != null 
-            ? int.tryParse(_selectedBoutique!.cluster!) 
-            : null,
-          IncidentTypeId: null,
-          departement_id: _selectedDepartement?.id,
-          type: IncidentCategory.all
+        int _currentUserID = 0;
+        String? userIdString = await _storage.read(key: 'currentUserId');
+        _currentUserID =
+            userIdString != null ? int.tryParse(userIdString) ?? 0 : 0;
+        final declaredProblem = Problem(
+            id: 0,
+            user_id: _currentUserID,
+            boutique_id: _selectedBoutique!.id,
+            coef_id: _selectedPriority!.coefId,
+            problem_image_before: imageName,
+            joint_file_before: fileName,
+            commentaire: _commentController.text,
+            description: _descriptionController.text,
+            cluster: _selectedBoutique!.cluster != null
+                ? int.tryParse(_selectedBoutique!.cluster!)
+                : null,
+            IncidentTypeId: null,
+            departement_id: _selectedDepartement?.id,
+            type: IncidentCategory.all);
 
-      );
+        print(declaredProblem.toJson());
 
-      print(declaredProblem.toJson());
-
-
-     await IncidentService().addProblem(declaredProblem);
-     ScaffoldMessenger.of(context).showSnackBar(
-       SnackBar(content: Text(AppLocalizations.of(context)!.incidentAddedSuccessfully)),
-     );
-     Navigator.pop(context, true); // Navigate back
-      }catch (e) {
+        await IncidentService().addProblem(declaredProblem);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  AppLocalizations.of(context)!.incidentAddedSuccessfully)),
+        );
+        Navigator.pop(context, true); // Navigate back
+      } catch (e) {
         print(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.failedToSubmitIncident)),
+          SnackBar(
+              content:
+                  Text(AppLocalizations.of(context)!.failedToSubmitIncident)),
         );
         setState(() => _isLoading = false);
-      }
-      finally {
+      } finally {
         setState(() => _isLoading = false); // Stop loader
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context)!.allFieldsAreRequired)));
     }
-    else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.allFieldsAreRequired))) ;
-    }
-
   }
-
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.addIncident,),
-
+        title: Text(
+          AppLocalizations.of(context)!.addIncident,
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -332,26 +368,56 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16.0),
-                DropdownButtonFormField<BoutiqueModel>(
-                  decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context)!.boutique,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
+                if (_isLoadingBoutiques)
+                  InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!.boutique,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                     ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            AppLocalizations.of(context)!.vmLoadingBoutiques,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<BoutiqueModel>(
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!.boutique,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                    items: _boutiques
+                        .map((boutique) => DropdownMenuItem<BoutiqueModel>(
+                              value: boutique,
+                              child: Text(
+                                  boutique.libelle!), // Display boutique name
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedBoutique =
+                            value; // Store selected boutique name or any unique identifier
+                      });
+                    },
+                    validator: (value) => value == null
+                        ? AppLocalizations.of(context)!.pleaseSelectBoutique
+                        : null,
                   ),
-                  items: _boutiques
-                      .map((boutique) => DropdownMenuItem<BoutiqueModel>(
-                    value: boutique,
-                    child: Text(boutique.libelle!), // Display boutique name
-                  ))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedBoutique = value; // Store selected boutique name or any unique identifier
-                    });
-                  },
-                  validator: (value) => value == null ? AppLocalizations.of(context)!.pleaseSelectBoutique : null,
-                ),
 
                 const SizedBox(height: 16.0),
 
@@ -381,15 +447,15 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                  validator: (value) =>
-                  value!.isEmpty ? AppLocalizations.of(context)!.pleaseProvideComment : null,
+                  validator: (value) => value!.isEmpty
+                      ? AppLocalizations.of(context)!.pleaseProvideComment
+                      : null,
                 ),
                 const SizedBox(height: 16.0),
 
-
                 Text(AppLocalizations.of(context)!.attachImages,
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: _pickImages,
@@ -433,8 +499,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                               Icon(
                                 Icons.attach_file,
                                 // Attach file icon
-                                color:
-                                Colors.blue, // Color for the icon
+                                color: Colors.blue, // Color for the icon
                               ),
                               SizedBox(width: 8),
                               // Bold text for the "Fichier joint" label
@@ -444,14 +509,13 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                                   fontWeight: FontWeight.bold,
                                   // Bolder text
                                   fontSize:
-                                  16, // Optional: Adjust the font size for emphasis
+                                      16, // Optional: Adjust the font size for emphasis
                                 ),
                               ),
                               Spacer(),
                               // Pushes the "X" button to the right
                               IconButton(
-                                icon: Icon(Icons.close,
-                                    color: Colors.red),
+                                icon: Icon(Icons.close, color: Colors.red),
                                 onPressed: () {
                                   setState(() {
                                     jointureFichier = null;
@@ -462,7 +526,8 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                             ],
                           ),
                           SizedBox(height: 8),
-                          Text("${AppLocalizations.of(context)!.name} ${infoFichier?.name}"),
+                          Text(
+                              "${AppLocalizations.of(context)!.name} ${infoFichier?.name}"),
                           Text(
                               "${AppLocalizations.of(context)!.size} ${(infoFichier!.size / 1024).toStringAsFixed(2)} KB"),
                           Text(
@@ -492,8 +557,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                       return Stack(
                         children: [
                           Container(
-                            margin:
-                            EdgeInsets.symmetric(horizontal: 8.0),
+                            margin: EdgeInsets.symmetric(horizontal: 8.0),
                             child: GestureDetector(
                               onTap: () => _showImageViewer(index),
                               child: Image.file(
@@ -507,8 +571,7 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                             right: 8,
                             top: 8,
                             child: IconButton(
-                              icon: Icon(Iconsax.trash,
-                                  color: Colors.red),
+                              icon: Icon(Iconsax.trash, color: Colors.red),
                               onPressed: () {
                                 _removeImage(index);
                               },
@@ -533,7 +596,8 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                   items: _departements
                       .map((departement) => DropdownMenuItem<Departement>(
                             value: departement,
-                            child: Text('${departement.code ?? ''} - ${departement.libelle ?? ''}'),
+                            child: Text(
+                                '${departement.code ?? ''} - ${departement.libelle ?? ''}'),
                           ))
                       .toList(),
                   onChanged: (value) {
@@ -558,16 +622,20 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                   ),
                   items: _priorities
                       .map((priority) => DropdownMenuItem<Coefficient>(
-                    value: priority,
-                    child: Text(priority.libelle ?? "Unknown"), // Display priority label
-                  ))
+                            value: priority,
+                            child: Text(priority.libelle ??
+                                "Unknown"), // Display priority label
+                          ))
                       .toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedPriority = value; // Store selected priority name or any unique identifier
+                      _selectedPriority =
+                          value; // Store selected priority name or any unique identifier
                     });
                   },
-                  validator: (value) => value == null ? AppLocalizations.of(context)!.pleaseSelectPriority : null,
+                  validator: (value) => value == null
+                      ? AppLocalizations.of(context)!.pleaseSelectPriority
+                      : null,
                 ),
 
                 const SizedBox(height: 24.0),
@@ -580,8 +648,8 @@ class _IncidentFormWidgetState extends State<IncidentFormWidget> {
                     // Disable button when loading
                     child: _isLoading
                         ? CircularProgressIndicator(
-                      color: Colors.white,
-                    )
+                            color: Colors.white,
+                          )
                         : Text(AppLocalizations.of(context)!.submit),
                     style: ElevatedButton.styleFrom(
                       minimumSize: Size(double.infinity, 48),
