@@ -242,15 +242,46 @@ String _deriveZoneStatus({
   return 'not_started';
 }
 
+enum SubmissionStatus {
+  pending,
+  processing,
+  submitted,
+  validated,
+  rejected,
+  unknown;
+
+  static SubmissionStatus fromString(String? value) {
+    switch (value?.toLowerCase()) {
+      case 'pending':
+        return SubmissionStatus.pending;
+      case 'processing':
+        return SubmissionStatus.processing;
+      case 'submitted':
+        return SubmissionStatus.submitted;
+      case 'validated':
+        return SubmissionStatus.validated;
+      case 'rejected':
+        return SubmissionStatus.rejected;
+      default:
+        return SubmissionStatus.unknown;
+    }
+  }
+
+  bool get isLocked =>
+      this == SubmissionStatus.submitted || this == SubmissionStatus.validated;
+}
+
 class VmCampaignExecutionDto {
   final int campaignId;
   final int siteId;
   final List<VmExecutionZoneDto> zones;
+  final SubmissionStatus submissionStatus;
 
   const VmCampaignExecutionDto({
     required this.campaignId,
     required this.siteId,
     required this.zones,
+    this.submissionStatus = SubmissionStatus.unknown,
   });
 
   factory VmCampaignExecutionDto.fromJson(Map<String, dynamic> json) {
@@ -261,6 +292,7 @@ class VmCampaignExecutionDto {
       zones: rawZones
           .map((z) => VmExecutionZoneDto.fromJson(z as Map<String, dynamic>))
           .toList(),
+      submissionStatus: SubmissionStatus.fromString(json['submissionStatus'] as String?),
     );
   }
 

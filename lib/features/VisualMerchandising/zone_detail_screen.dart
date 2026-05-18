@@ -25,10 +25,6 @@ class ZoneDetailScreen extends StatelessWidget {
     // Get.find() récupère le controller déjà créé dans ExecutionScreen
     // On n'en crée pas un nouveau !
     final controller = Get.find<ExecutionController>();
-    final isCampaignCompleted =
-        campaign.status == CampaignStatus.submitted ||
-        campaign.status == CampaignStatus.approved ||
-        campaign.status == CampaignStatus.disapproved;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F6FF),
@@ -39,16 +35,8 @@ class ZoneDetailScreen extends StatelessWidget {
             // _buildGuidelineRef(l10n),
             _buildDisapprovalBanner(controller),
             _buildInstructions(context, l10n),
-            _buildPhotoGrid(
-              controller,
-              l10n,
-              isCampaignCompleted: isCampaignCompleted,
-            ),
-            _buildActionBar(
-              controller,
-              l10n,
-              isCampaignCompleted: isCampaignCompleted,
-            ),
+            _buildPhotoGrid(controller, l10n),
+            _buildActionBar(controller, l10n),
           ],
         ),
       ),
@@ -169,7 +157,7 @@ class ZoneDetailScreen extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // Barre de progression de la zone
+          // Photo counter only
           Obx(() {
             final currentZone = _resolveCurrentZone(controller);
             final localPhotos = controller.zonePhotos[currentZone.zoneId] ?? const <String>[];
@@ -179,42 +167,18 @@ class ZoneDetailScreen extends StatelessWidget {
                 remotePhotos.length >= currentZone.imagesCount
                     ? remotePhotos.length
                     : currentZone.imagesCount;
-            final localCount = localPhotos.length;
-            final total = backendCount + localCount;
-            final hasLocalPending =
-                localCount > 0 && !currentZone.isApproved && !currentZone.isDisapproved;
-            final isApproved = currentZone.isApproved;
-            final isDisapproved = currentZone.isDisapproved;
-            final isSubmitted = currentZone.isSubmitted || hasLocalPending;
-            final isComplete = isApproved || isDisapproved || isSubmitted;
-            final progressColor = _zoneStatusColor(currentZone, hasLocalPending);
-            final progressValue = (isApproved || isDisapproved)
-                ? 1.0
-                : (isSubmitted ? 0.5 : 0.0);
+            final total = backendCount + localPhotos.length;
+            final isComplete = currentZone.isApproved ||
+                currentZone.isDisapproved ||
+                currentZone.isSubmitted;
 
-            return Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: progressValue,
-                      minHeight: 4,
-                      backgroundColor: Colors.white.withOpacity(0.2),
-                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  vmPhotosLabelWithCheck(l10n, total, isComplete),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+            return Text(
+              vmPhotosLabelWithCheck(l10n, total, isComplete),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
             );
           }),
         ],
@@ -436,9 +400,8 @@ class ZoneDetailScreen extends StatelessWidget {
   // ── 4. Grille de photos ─────────────────────────────
   Widget _buildPhotoGrid(
     ExecutionController controller,
-    AppLocalizations l10n, {
-    required bool isCampaignCompleted,
-  }) {
+    AppLocalizations l10n,
+  ) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,6 +430,10 @@ class ZoneDetailScreen extends StatelessWidget {
           }),
           Expanded(
             child: Obx(() {
+              final locked = campaign.status == CampaignStatus.submitted ||
+                  campaign.status == CampaignStatus.approved ||
+                  campaign.status == CampaignStatus.disapproved ||
+                  controller.submissionStatus.value.isLocked;
               final localPhotos = controller.zonePhotos[zone.zoneId] ?? const <String>[];
               final remotePhotos =
                   controller.remotePhotosByZone[zone.zoneId] ?? const <VmExecutionPhotoDto>[];
@@ -494,12 +461,27 @@ class ZoneDetailScreen extends StatelessWidget {
                   if (index < existingCount) {
                     final maybeUrl =
                         index < remotePhotos.length ? remotePhotos[index].url : null;
-                    return _ExistingPhotoTile(
-                      l10n: l10n,
-                      number: index + 1,
-                      zoneCode: zone.zoneCode,
-                      imageUrl: maybeUrl,
-                    );
+                    final photoId =
+                        index < remotePhotos.length ? remotePhotos[index].photoId : 0;
+                    return Obx(() {
+                      final marked =
+                          !controller.isRemotePhotoKept(zone.zoneId, photoId);
+                      return _ExistingPhotoTile(
+                        l10n: l10n,
+                        number: index + 1,
+                        zoneCode: zone.zoneCode,
+                        imageUrl: maybeUrl,
+                        photoId: photoId,
+                        zoneId: zone.zoneId,
+                        isMarkedForDeletion: marked,
+                        onDelete: locked
+                            ? null
+                            : () => controller.toggleRemotePhotoKeep(
+                                  zone.zoneId,
+                                  photoId,
+                                ),
+                      );
+                    });
                   }
 
                   // Photos locales ajoutées dans cette session
@@ -508,8 +490,7 @@ class ZoneDetailScreen extends StatelessWidget {
                     return _LocalPhotoTile(
                       path: localPhotos[localIndex],
                       number: index + 1,
-                      // La campagne terminée ne doit pas permettre d'ajouts/modifs.
-                      onDelete: isCampaignCompleted
+                      onDelete: locked
                           ? () {}
                           : () => controller.removePhoto(
                                 zone.zoneId,
@@ -521,7 +502,7 @@ class ZoneDetailScreen extends StatelessWidget {
                   // Bouton "Ajouter"
                   return _AddPhotoTile(
                     l10n: l10n,
-                    enabled: !isCampaignCompleted,
+                    enabled: !locked,
                     onCameraPressed: () =>
                         controller.pickFromCamera(zone.zoneId),
                     onGalleryPressed: () =>
@@ -539,47 +520,53 @@ class ZoneDetailScreen extends StatelessWidget {
   // ── 5. Barre d'actions en bas ───────────────────────
   Widget _buildActionBar(
     ExecutionController controller,
-    AppLocalizations l10n, {
-    required bool isCampaignCompleted,
-  }) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE8F1FB))),
-      ),
-      child: Row(
-        children: [
-          // Bouton caméra
-          _SourceButton(
-            icon: Icons.camera_alt_outlined,
-            label: l10n.vmCamera,
-            onTap: isCampaignCompleted ? null : () => controller.pickFromCamera(zone.zoneId),
-          ),
-          const SizedBox(width: 10),
+    AppLocalizations l10n,
+  ) {
+    return Obx(() {
+      final locked = campaign.status == CampaignStatus.submitted ||
+          campaign.status == CampaignStatus.approved ||
+          campaign.status == CampaignStatus.disapproved ||
+          controller.submissionStatus.value.isLocked;
+      final localCount = (controller.zonePhotos[zone.zoneId] ?? const <String>[]).length;
+      final currentZone = _resolveCurrentZone(controller);
+      final hasLocalPending =
+          localCount > 0 && !currentZone.isApproved && !currentZone.isDisapproved;
+      final isComplete = currentZone.isApproved ||
+          currentZone.isDisapproved ||
+          currentZone.isSubmitted ||
+          hasLocalPending;
+      final canValidate = isComplete && !locked;
 
-          // Bouton galerie
-          _SourceButton(
-            icon: Icons.photo_library_outlined,
-            label: l10n.vmGallery,
-            onTap: isCampaignCompleted ? null : () => controller.pickFromGallery(zone.zoneId),
-          ),
-          const SizedBox(width: 10),
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFE8F1FB))),
+        ),
+        child: Row(
+          children: [
+            // Bouton caméra
+            _SourceButton(
+              icon: Icons.camera_alt_outlined,
+              label: l10n.vmCamera,
+              onTap: locked ? null : () => controller.pickFromCamera(zone.zoneId),
+            ),
+            const SizedBox(width: 10),
 
-          // Bouton valider
-          Expanded(
-            child: Obx(() {
-              final localCount = (controller.zonePhotos[zone.zoneId] ?? const <String>[]).length;
-              final currentZone = _resolveCurrentZone(controller);
-              final hasLocalPending =
-                  localCount > 0 && !currentZone.isApproved && !currentZone.isDisapproved;
-              final isComplete = currentZone.isApproved ||
-                  currentZone.isDisapproved ||
-                  currentZone.isSubmitted ||
-                  hasLocalPending;
-              final canValidate = isComplete && !isCampaignCompleted;
-              return ElevatedButton(
-                onPressed: canValidate ? () => Get.back() : null,
+            // Bouton galerie
+            _SourceButton(
+              icon: Icons.photo_library_outlined,
+              label: l10n.vmGallery,
+              onTap: locked ? null : () => controller.pickFromGallery(zone.zoneId),
+            ),
+            const SizedBox(width: 10),
+
+            // Bouton valider
+            Expanded(
+              child: ElevatedButton(
+                onPressed: canValidate
+                    ? () => _submitZoneAndGoBack(controller, l10n)
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: canValidate
                       ? const Color(0xFF1E5FAA)
@@ -593,23 +580,36 @@ class ZoneDetailScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   elevation: canValidate ? 4 : 0,
                 ),
-                child: Text(
-                  isCampaignCompleted
-                      ? l10n.vmCampaignCompleted
-                      : isComplete
-                          ? l10n.vmValidateZone
-                          : l10n.vmAddPhotosHint,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
+                child: Obx(() {
+                  final isSubmitting = controller.isUploading.value;
+                  return isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          locked
+                              ? l10n.vmCampaignCompleted
+                              : isComplete
+                                  ? l10n.vmValidateZone
+                                  : l10n.vmAddPhotosHint,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        );
+                }),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   // ── État vide ────────────────────────────────────────
@@ -652,6 +652,96 @@ class ZoneDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // ── Zone Submission ──────────────────────────────────
+  Future<void> _submitZoneAndGoBack(
+    ExecutionController controller,
+    AppLocalizations l10n,
+  ) async {
+    final newLocalPhotoPaths = controller.photosForZone(zone.zoneId);
+    final remotePhotos = controller.remotePhotosByZone[zone.zoneId] ?? const <VmExecutionPhotoDto>[];
+
+    if (newLocalPhotoPaths.isEmpty && remotePhotos.isEmpty) {
+      Get.snackbar(
+        l10n.error,
+        'No photos to submit',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+      );
+      return;
+    }
+
+    final keptRemotePhotoIds = controller.getKeptRemotePhotoIds(zone.zoneId);
+
+    if (newLocalPhotoPaths.isEmpty && keptRemotePhotoIds.isEmpty) {
+      Get.snackbar(
+        l10n.error,
+        'At least one photo is required',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+      );
+      return;
+    }
+
+    controller.isUploading.value = true;
+    try {
+      final response = await controller.submitZoneWithDelta(
+        zoneId: zone.zoneId,
+        zoneCode: zone.zoneCode,
+        keepPhotoIds: keptRemotePhotoIds,
+        newLocalPhotoPaths: newLocalPhotoPaths,
+      );
+
+      if (!response.success) {
+        Get.snackbar(
+          l10n.error,
+          response.message ?? 'Failed to submit zone',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade600,
+          colorText: Colors.white,
+          margin: const EdgeInsets.all(12),
+        );
+        return;
+      }
+
+      controller.removeAllPhotosForZone(zone.zoneId);
+      controller.clearRemovedRemotePhotos(zone.zoneId);
+      final siteId = controller.getCurrentSiteId();
+      if (siteId != null) {
+        await controller.loadExecution(
+          campaignId: campaign.campaignId,
+          siteId: siteId,
+        );
+      }
+
+      Get.snackbar(
+        'Success',
+        response.message ?? 'Zone submitted successfully',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      Get.back();
+    } catch (e) {
+      Get.snackbar(
+        l10n.error,
+        e.toString().replaceFirst('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(12),
+      );
+    } finally {
+      controller.isUploading.value = false;
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────
@@ -737,12 +827,20 @@ class _ExistingPhotoTile extends StatelessWidget {
   final int number;
   final String zoneCode;
   final String? imageUrl;
+  final int photoId;
+  final int zoneId;
+  final VoidCallback? onDelete;
+  final bool isMarkedForDeletion;
 
   const _ExistingPhotoTile({
     required this.l10n,
     required this.number,
     required this.zoneCode,
+    required this.photoId,
+    required this.zoneId,
     this.imageUrl,
+    this.onDelete,
+    this.isMarkedForDeletion = false,
   });
 
   @override
@@ -750,9 +848,15 @@ class _ExistingPhotoTile extends StatelessWidget {
     final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFDBEEFF),
+        color: isMarkedForDeletion
+            ? const Color(0xFFFFECE9)
+            : const Color(0xFFDBEEFF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF4A9EDD).withOpacity(0.3)),
+        border: Border.all(
+          color: isMarkedForDeletion
+              ? const Color(0xFFF3A9A0)
+              : const Color(0xFF4A9EDD).withOpacity(0.3),
+        ),
       ),
       child: Stack(
         children: [
@@ -765,16 +869,22 @@ class _ExistingPhotoTile extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholder(),
+                  child: Opacity(
+                    opacity: isMarkedForDeletion ? 0.5 : 1.0,
+                    child: Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    ),
                   ),
                 ),
               ),
             )
           else
-            _placeholder(),
+            Opacity(
+              opacity: isMarkedForDeletion ? 0.5 : 1.0,
+              child: _placeholder(),
+            ),
           Positioned(
             top: 8, left: 8,
             child: Container(
@@ -795,18 +905,23 @@ class _ExistingPhotoTile extends StatelessWidget {
           ),
           Positioned(
             top: 8, right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFF27AE73).withOpacity(0.9),
-                borderRadius: BorderRadius.circular(7),
-              ),
-              child: Text(
-                l10n.vmPhotoOkBadge,
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+            child: GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: isMarkedForDeletion
+                      ? const Color(0xFFE74C3C).withOpacity(0.9)
+                      : Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isMarkedForDeletion ? Icons.close : Icons.delete_outline,
+                  size: 14,
+                  color: isMarkedForDeletion
+                      ? Colors.white
+                      : const Color(0xFFE74C3C),
                 ),
               ),
             ),

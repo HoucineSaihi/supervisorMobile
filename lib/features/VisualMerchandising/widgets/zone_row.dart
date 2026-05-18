@@ -192,38 +192,14 @@ class ZoneRow extends StatelessWidget {
 
                     const SizedBox(height: 6),
 
-                    // Barre de progression
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: isZoneValidated
-                                  ? 1.0
-                                  : zone.isDisapproved
-                                  ? 1.0
-                                  : (hasLocalPending || zone.isSubmitted)
-                                  ? 0.5
-                                  : 0.0,
-                              minHeight: 5,
-                              backgroundColor: const Color(0xFFE2EEF8),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                _progressColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          vmPhotosLabel(l10n, totalPhotoCount),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF4A6D96),
-                          ),
-                        ),
-                      ],
+                    // Photo counter only
+                    Text(
+                      vmPhotosLabel(l10n, totalPhotoCount),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF4A6D96),
+                      ),
                     ),
 
                     // Issue snippet (disapproved only)

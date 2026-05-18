@@ -205,11 +205,12 @@ class VmService {
     }
   }
 
-  Future<VmCampaignSubmitResponseDto> submitCampaign({
+  /// POST /api/VmCompaign/{campaignId}/sites/{siteId}/submit
+  /// Declares execution complete for a site. Zones and photos must already be
+  /// saved via individual zone PUT calls before calling this.
+  Future<VmCampaignSubmitResponseDto> finalizeSiteExecution({
     required int campaignId,
     required int siteId,
-    required List<ZoneStatDto> zones,
-    required Map<int, List<String>> localZonePhotos,
     required String platform,
     required String appVersion,
   }) async {
@@ -219,100 +220,16 @@ class VmService {
           message: 'campaignId/siteId invalides.',
         );
       }
-      if (zones.isEmpty) {
-        throw const VmSubmitApiException(
-          message: 'Aucune zone a soumettre.',
-        );
-      }
 
-      final zonePayload = <VmSubmitZoneDto>[];
-
-      for (final zone in zones) {
-        final paths = localZonePhotos[zone.zoneId] ?? const <String>[];
-        if (paths.isEmpty) {
-          continue;
-        }
-        final photos = <VmSubmitPhotoDto>[];
-        for (final path in paths) {
-          final file = File(path);
-          if (!await file.exists()) {
-            throw VmSubmitApiException(
-              message: 'Photo introuvable pour la zone ${zone.zoneCode}.',
-            );
-          }
-          final bytes = await file.readAsBytes();
-          if (bytes.isEmpty) {
-            throw VmSubmitApiException(
-              message: 'Photo vide detectee pour la zone ${zone.zoneCode}.',
-            );
-          }
-          final fileName = file.uri.pathSegments.isNotEmpty
-              ? file.uri.pathSegments.last
-              : 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          final mimeType = lookupMimeType(path) ?? 'image/jpeg';
-          if (!_allowedMimeTypes.contains(mimeType)) {
-            throw VmSubmitApiException(
-              message: 'Format image non supporte ($mimeType) pour ${zone.zoneCode}.',
-            );
-          }
-          final encoded = base64Encode(bytes);
-          if (encoded.isEmpty) {
-            throw VmSubmitApiException(
-              message: 'Base64 invalide pour la zone ${zone.zoneCode}.',
-            );
-          }
-          try {
-            base64Decode(encoded);
-          } catch (_) {
-            throw VmSubmitApiException(
-              message: 'Base64 invalide pour la zone ${zone.zoneCode}.',
-            );
-          }
-          photos.add(
-            VmSubmitPhotoDto(
-              fileName: fileName,
-              mimeType: mimeType,
-              contentBase64: encoded,
-              capturedAt: DateTime.now().toUtc().toIso8601String(),
-            ),
-          );
-        }
-
-        if (photos.isEmpty) {
-          throw VmSubmitApiException(
-            message: 'Chaque zone doit contenir au moins une photo (${zone.zoneCode}).',
-          );
-        }
-        zonePayload.add(
-          VmSubmitZoneDto(
-            zoneId: zone.zoneId,
-            zoneCode: zone.zoneCode,
-            photos: photos,
-          ),
-        );
-      }
-
-      if (zonePayload.isEmpty) {
-        throw const VmSubmitApiException(
-          message: 'Aucune zone valide a soumettre (photos requises).',
-        );
-      }
-
-      final payload = VmCampaignSubmitRequestDto(
+      final payload = VmFinalizeSiteExecutionRequestDto(
         campaignId: campaignId,
         siteId: siteId,
         submittedAt: DateTime.now().toUtc().toIso8601String(),
-        zones: zonePayload,
         meta: <String, dynamic>{
           'appVersion': appVersion,
           'platform': platform,
         },
       );
-      if (payload.campaignId != campaignId || payload.siteId != siteId) {
-        throw const VmSubmitApiException(
-          message: 'Mismatch entre URL et body (campaignId/siteId).',
-        );
-      }
 
       final response = await _dio.post(
         '/VmCompaign/$campaignId/sites/$siteId/submit',
@@ -327,7 +244,7 @@ class VmService {
       }
 
       throw Exception(
-        'Failed to submit campaign. Status code: ${response.statusCode}',
+        'Failed to finalize campaign. Status code: ${response.statusCode}',
       );
     } on VmSubmitApiException {
       rethrow;
@@ -341,10 +258,9 @@ class VmService {
         final statusCode = e.response?.statusCode;
         final data = e.response?.data;
         if (data is Map<String, dynamic>) {
-          final message = data['message'] as String?;
           final parsed = VmCampaignSubmitResponseDto.fromJson(data);
           throw VmSubmitApiException(
-            message: message ?? parsed.message ?? 'Echec de soumission.',
+            message: data['message'] as String? ?? parsed.message ?? 'Echec de soumission.',
             statusCode: statusCode,
             response: parsed,
           );
@@ -507,6 +423,143 @@ class VmService {
       throw Exception('An error occurred while fetching guideline assets: ${e.message}');
     } catch (e) {
       throw Exception('An error occurred while fetching guideline assets: $e');
+    }
+  }
+
+  /// Submit a single zone's execution using delta mode
+  /// Keeps selected existing photos and adds new ones
+  /// PUT /api/VmCompaign/{campaignId}/sites/{siteId}/zones/{zoneId}/execution
+  Future<VmZoneSubmitResponseDto> submitZoneExecution({
+    required int campaignId,
+    required int siteId,
+    required int zoneId,
+    required String zoneCode,
+    required List<int> keepPhotoIds,
+    required List<String> newPhotoPaths,
+    required String platform,
+    required String appVersion,
+  }) async {
+    try {
+      if (campaignId <= 0 || siteId <= 0 || zoneId <= 0) {
+        throw const VmSubmitApiException(
+          message: 'campaignId/siteId/zoneId invalides.',
+        );
+      }
+      if (keepPhotoIds.isEmpty && newPhotoPaths.isEmpty) {
+        throw VmSubmitApiException(
+          message: 'Au moins une photo est requise pour la zone $zoneCode.',
+        );
+      }
+
+      final newPhotos = <VmSubmitPhotoDto>[];
+      for (final path in newPhotoPaths) {
+        final file = File(path);
+        if (!await file.exists()) {
+          throw VmSubmitApiException(
+            message: 'Photo introuvable pour la zone $zoneCode.',
+          );
+        }
+        final bytes = await file.readAsBytes();
+        if (bytes.isEmpty) {
+          throw VmSubmitApiException(
+            message: 'Photo vide detectee pour la zone $zoneCode.',
+          );
+        }
+        final fileName = file.uri.pathSegments.isNotEmpty
+            ? file.uri.pathSegments.last
+            : 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final mimeType = lookupMimeType(path) ?? 'image/jpeg';
+        if (!_allowedMimeTypes.contains(mimeType)) {
+          throw VmSubmitApiException(
+            message: 'Format image non supporte ($mimeType) pour $zoneCode.',
+          );
+        }
+        final encoded = base64Encode(bytes);
+        if (encoded.isEmpty) {
+          throw VmSubmitApiException(
+            message: 'Base64 invalide pour la zone $zoneCode.',
+          );
+        }
+        try {
+          base64Decode(encoded);
+        } catch (_) {
+          throw VmSubmitApiException(
+            message: 'Base64 invalide pour la zone $zoneCode.',
+          );
+        }
+        newPhotos.add(
+          VmSubmitPhotoDto(
+            fileName: fileName,
+            mimeType: mimeType,
+            contentBase64: encoded,
+            capturedAt: DateTime.now().toUtc().toIso8601String(),
+          ),
+        );
+      }
+
+      final payload = <String, dynamic>{
+        'keepPhotoIds': keepPhotoIds,
+        'newPhotos': newPhotos.map((p) => p.toJson()).toList(),
+        'submittedAt': DateTime.now().toUtc().toIso8601String(),
+        'meta': <String, dynamic>{
+          'appVersion': appVersion,
+          'platform': platform,
+        },
+      };
+
+      final response = await _dio.put(
+        '/VmCompaign/$campaignId/sites/$siteId/zones/$zoneId/execution',
+        data: payload,
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          return VmZoneSubmitResponseDto.fromJson(data);
+        }
+      }
+
+      throw Exception(
+        'Failed to submit zone. Status code: ${response.statusCode}',
+      );
+    } on VmSubmitApiException {
+      rethrow;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) {
+        throw const VmSubmitApiException(
+          message: 'La soumission a ete annulee.',
+        );
+      }
+      if (e.response != null) {
+        final statusCode = e.response?.statusCode;
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          final message = data['message'] as String?;
+          throw VmSubmitApiException(
+            message: message ?? 'Echec de soumission de zone.',
+            statusCode: statusCode,
+          );
+        }
+        if (statusCode == 404) {
+          throw const VmSubmitApiException(
+            message: 'Campagne, site ou zone introuvable.',
+            statusCode: 404,
+          );
+        }
+        if (statusCode == 500) {
+          throw const VmSubmitApiException(
+            message: 'Erreur serveur pendant la soumission.',
+            statusCode: 500,
+          );
+        }
+      }
+      throw VmSubmitApiException(
+        message: 'Erreur reseau pendant la soumission: ${e.message}',
+      );
+    } catch (e) {
+      throw VmSubmitApiException(
+        message: 'Erreur pendant la soumission: $e',
+      );
     }
   }
 

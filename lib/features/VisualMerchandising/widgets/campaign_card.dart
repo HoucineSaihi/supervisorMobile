@@ -215,47 +215,48 @@ class CampaignCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Row(
         children: [
-          // Anneau SVG custom via CustomPaint
-          SizedBox(
-            width: 64,
-            height: 64,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size(64, 64),
-                  painter: _RingPainter(
-                    progress: _displayProgress,
-                    color: _displayProgressColor,
+          // Anneau SVG custom via CustomPaint — hidden if locally pending
+          if (!_hasLocalPending)
+            SizedBox(
+              width: 64,
+              height: 64,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CustomPaint(
+                    size: const Size(64, 64),
+                    painter: _RingPainter(
+                      progress: _displayProgress,
+                      color: _displayProgressColor,
+                    ),
                   ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$pct',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1B3F72),
-                        height: 1,
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$pct',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1B3F72),
+                          height: 1,
+                        ),
                       ),
-                    ),
-                    const Text(
-                      '%',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF8AB2D4),
+                      const Text(
+                        '%',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF8AB2D4),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          const SizedBox(width: 14),
+          if (!_hasLocalPending) const SizedBox(width: 14),
 
           // Méta : zones + images + guidelines
           Expanded(
@@ -382,8 +383,11 @@ class CampaignCard extends StatelessWidget {
 
   // ── 4. Barre de progression globale ─────────────────
   Widget _buildProgressBar(AppLocalizations l10n) {
+    if (_hasLocalPending) {
+      return const SizedBox.shrink();
+    }
+
     final pct = (_displayProgress * 100).toInt();
-    final isFrench = l10n.localeName.toLowerCase().startsWith('fr');
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -402,30 +406,14 @@ class CampaignCard extends StatelessWidget {
               ),
               Text(
                 '$pct%',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: _hasLocalPending
-                      ? const Color(0xFFB86B00)
-                      : const Color(0xFF1E5FAA),
+                  color: Color(0xFF1E5FAA),
                 ),
               ),
             ],
           ),
-          if (_hasLocalPending) ...[
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${l10n.vmZoneStatusPending} • ${pendingLocalPhotosCount} ${isFrench ? 'locales' : 'local'}',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFFB86B00),
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),

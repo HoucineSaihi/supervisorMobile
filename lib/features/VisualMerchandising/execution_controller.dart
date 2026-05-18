@@ -33,6 +33,12 @@ class ExecutionController extends GetxController {
   /// Updated after submit and kept in sync with [_campaign]; drives [ExecutionScreen] UI.
   final Rx<VmCampaignDto?> liveCampaign = Rx<VmCampaignDto?>(null);
 
+  /// Submission status returned by the executions API.
+  final Rx<SubmissionStatus> submissionStatus = SubmissionStatus.unknown.obs;
+
+  /// True when the submission is locked and no further edits are allowed.
+  bool get isSubmissionLocked => submissionStatus.value.isLocked;
+
   // #region agent log
   Future<void> _logDebug({
     required String runId,
@@ -95,6 +101,8 @@ class ExecutionController extends GetxController {
     await loadExecution(campaignId: campaign.campaignId, siteId: siteId);
   }
 
+  int? getCurrentSiteId() => _loadedSiteId;
+
   List<String> photosForZone(int zoneId) => zonePhotos[zoneId] ?? <String>[];
   List<VmExecutionPhotoDto> remotePhotosForZone(int zoneId) =>
       remotePhotosByZone[zoneId] ?? <VmExecutionPhotoDto>[];
@@ -138,6 +146,7 @@ class ExecutionController extends GetxController {
 
   bool get canSubmit {
     if (isCampaignSubmitted) return false;
+    if (isSubmissionLocked) return false;
     if (zones.isEmpty) return false;
     return zones.every(isZoneComplete);
   }
@@ -168,6 +177,7 @@ class ExecutionController extends GetxController {
         campaignId: campaignId,
         siteId: siteId,
       );
+      submissionStatus.value = result.submissionStatus;
       zones.assignAll(result.zoneStats);
       remotePhotosByZone.clear();
       zoneIssues.clear();
@@ -215,19 +225,60 @@ class ExecutionController extends GetxController {
   }
 
   Future<void> pickFromCamera(int zoneId) async {
-    final picked = await _picker.pickImage(source: ImageSource.camera);
-    if (picked == null) return;
-    zonePhotos[zoneId] = [...photosForZone(zoneId), picked.path];
-    zonePhotos.refresh();
-    await _savePendingLocalPhotos();
+    bool keepShooting = true;
+    int addedCount = 0;
+    while (keepShooting) {
+      final picked = await _picker.pickImage(source: ImageSource.camera);
+      if (picked == null) break;
+      zonePhotos[zoneId] = [...photosForZone(zoneId), picked.path];
+      zonePhotos.refresh();
+      addedCount++;
+
+      final ctx = Get.context;
+      if (ctx == null) break;
+      keepShooting = await showDialog<bool>(
+            context: ctx,
+            barrierDismissible: false,
+            builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Another photo?',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              content: const Text('Do you want to take another photo for this zone?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Done'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E5FAA),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Take another'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+    }
+    if (addedCount > 0) await _savePendingLocalPhotos();
     // #region agent log
     _logDebug(
       runId: 'pre-fix',
       hypothesisId: 'H4',
       location: 'execution_controller.dart:pickFromCamera',
-      message: 'Photo added from camera',
+      message: 'Photos added from camera',
       data: {
         'zoneId': zoneId,
+        'addedCount': addedCount,
         'localPhotoCount': localPhotoCount(zoneId),
       },
     );
@@ -235,9 +286,9 @@ class ExecutionController extends GetxController {
   }
 
   Future<void> pickFromGallery(int zoneId) async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked == null) return;
-    zonePhotos[zoneId] = [...photosForZone(zoneId), picked.path];
+    final picked = await _picker.pickMultiImage();
+    if (picked.isEmpty) return;
+    zonePhotos[zoneId] = [...photosForZone(zoneId), ...picked.map((x) => x.path)];
     zonePhotos.refresh();
     await _savePendingLocalPhotos();
     // #region agent log
@@ -245,9 +296,10 @@ class ExecutionController extends GetxController {
       runId: 'pre-fix',
       hypothesisId: 'H4',
       location: 'execution_controller.dart:pickFromGallery',
-      message: 'Photo added from gallery',
+      message: 'Photos added from gallery',
       data: {
         'zoneId': zoneId,
+        'addedCount': picked.length,
         'localPhotoCount': localPhotoCount(zoneId),
       },
     );
@@ -263,28 +315,80 @@ class ExecutionController extends GetxController {
     _savePendingLocalPhotos();
   }
 
+  void removeAllPhotosForZone(int zoneId) {
+    zonePhotos[zoneId] = <String>[];
+    zonePhotos.refresh();
+    _savePendingLocalPhotos();
+  }
+
+  final RxMap<int, Set<int>> _removedRemotePhotoIds = <int, Set<int>>{}.obs;
+
+  bool isRemotePhotoKept(int zoneId, int photoId) {
+    final removedIds = _removedRemotePhotoIds[zoneId] ?? <int>{};
+    return !removedIds.contains(photoId);
+  }
+
+  void toggleRemotePhotoKeep(int zoneId, int photoId) {
+    final removedIds = _removedRemotePhotoIds[zoneId] ?? <int>{};
+    if (removedIds.contains(photoId)) {
+      removedIds.remove(photoId);
+    } else {
+      removedIds.add(photoId);
+    }
+    _removedRemotePhotoIds[zoneId] = removedIds;
+    _removedRemotePhotoIds.refresh();
+  }
+
+  List<int> getKeptRemotePhotoIds(int zoneId) {
+    final remotePhotos = remotePhotosByZone[zoneId] ?? <VmExecutionPhotoDto>[];
+    final removedIds = _removedRemotePhotoIds[zoneId] ?? <int>{};
+    return remotePhotos
+        .where((p) => !removedIds.contains(p.photoId))
+        .map((p) => p.photoId)
+        .toList();
+  }
+
+  void clearRemovedRemotePhotos(int zoneId) {
+    _removedRemotePhotoIds.remove(zoneId);
+  }
+
+  Future<VmZoneSubmitResponseDto> submitZoneWithDelta({
+    required int zoneId,
+    required String zoneCode,
+    required List<int> keepPhotoIds,
+    required List<String> newLocalPhotoPaths,
+  }) async {
+    final campaign = _campaign;
+    final siteId = _loadedSiteId;
+    if (campaign == null || siteId == null) {
+      throw Exception('Campaign or site not loaded');
+    }
+
+    return _vmService.submitZoneExecution(
+      campaignId: campaign.campaignId,
+      siteId: siteId,
+      zoneId: zoneId,
+      zoneCode: zoneCode,
+      keepPhotoIds: keepPhotoIds,
+      newPhotoPaths: newLocalPhotoPaths,
+      platform: _platformName(),
+      appVersion: '1.0.0',
+    );
+  }
+
   Future<void> submitCampaign() async {
     final ctx = Get.context;
     if (ctx == null) return;
     final l10n = AppLocalizations.of(ctx)!;
 
-    if (!canSubmit) {
-      Get.snackbar(
-        l10n.vmSubmitImpossibleTitle,
-        l10n.vmCompleteAllZonesBeforeSubmit,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orange.shade700,
-        colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
-      );
-      return;
-    }
     final campaign = _campaign;
     final siteId = _loadedSiteId;
-    if (campaign == null || siteId == null) {
+    if (campaign == null || siteId == null) return;
+
+    if (zones.isEmpty) {
       Get.snackbar(
         l10n.error,
-        l10n.vmCampaignNotFoundForSubmit,
+        l10n.vmNoZonesToSubmit,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade600,
         colorText: Colors.white,
@@ -292,77 +396,37 @@ class ExecutionController extends GetxController {
       );
       return;
     }
-    isUploading.value = true;
-    // #region agent log
-    _logDebug(
-      runId: 'pre-fix',
-      hypothesisId: 'H5',
-      location: 'execution_controller.dart:submitCampaign',
-      message: 'Submit tapped',
-      data: {
-        'canSubmit': canSubmit,
-        'globalProgress': globalProgress,
-        'zonesWithLocalPhotos': zonePhotos.values.where((v) => v.isNotEmpty).length,
-      },
-    );
-    // #endregion
-    try {
-      if (zones.isEmpty) {
-        throw VmSubmitApiException(
-          message: l10n.vmNoZonesToSubmit,
-        );
-      }
-      final zonesWithoutLocalPhoto = zones
-          .where((z) => photosForZone(z.zoneId).isEmpty)
-          .toList();
-      if (zonesWithoutLocalPhoto.isNotEmpty) {
-        throw VmSubmitApiException(
-          message: l10n.vmEachZoneNeedsLocalPhoto,
-        );
-      }
 
-      final response = await _vmService.submitCampaign(
+    isUploading.value = true;
+    try {
+      final result = await _vmService.finalizeSiteExecution(
         campaignId: campaign.campaignId,
         siteId: siteId,
-        zones: zones.toList(),
-        localZonePhotos: zonePhotos,
         platform: _platformName(),
         appVersion: '1.0.0',
       );
-      if (!response.success) {
-        throw Exception(response.message ?? l10n.vmSubmitFailed);
-      }
-
-      await _clearPendingLocalPhotos();
-      zonePhotos.clear();
-      for (final zone in zones) {
-        zonePhotos[zone.zoneId] = <String>[];
-      }
-      zonePhotos.refresh();
 
       await loadExecution(campaignId: campaign.campaignId, siteId: siteId);
-
-      final newStatus = response.campaignStatus != null
-          ? campaignStatusFromString(response.campaignStatus!)
-          : CampaignStatus.submitted;
-      _campaign = _campaign!.copyWith(status: newStatus);
-      liveCampaign.value = _campaign;
-
       await _refreshCampaignListIfAvailable();
 
-      Get.snackbar(
-        l10n.vmSubmitSuccessTitle,
-        response.message ?? l10n.vmCampaignSubmittedSuccess,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.shade600,
-        colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
-      );
+      if (result.success) {
+        Get.snackbar(
+          l10n.vmSubmitSuccessTitle,
+          result.message ?? 'Campaign submitted successfully.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade600,
+          colorText: Colors.white,
+          margin: const EdgeInsets.all(12),
+        );
+      }
     } on VmSubmitApiException catch (e) {
-      final detailedMessage = _buildSubmitErrorMessage(l10n, e);
+      final incompleteIds = e.response?.incompleteZoneIds ?? const <int>[];
+      final detail = incompleteIds.isNotEmpty
+          ? ' (zones: ${incompleteIds.join(', ')})'
+          : '';
       Get.snackbar(
         l10n.error,
-        detailedMessage,
+        '${e.message}$detail',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade600,
         colorText: Colors.white,

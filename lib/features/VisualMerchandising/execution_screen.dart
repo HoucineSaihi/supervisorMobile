@@ -218,7 +218,7 @@ class ExecutionScreen extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // Stats : 3 chips
+          // Stats : 3 chips (hide completion % if not submitted)
           Obx(() {
             final zones = controller.zones;
             final completed = zones
@@ -226,16 +226,21 @@ class ExecutionScreen extends StatelessWidget {
                 .length;
             final pct = (controller.globalProgress * 100).toInt();
             final limitDate = DateFormat('dd/MM/yyyy').format(vm.endDate);
+            final status = controller.liveCampaign.value?.status ?? vm.status;
+            final showCompletionPercentage = status == CampaignStatus.submitted ||
+                status == CampaignStatus.approved ||
+                status == CampaignStatus.disapproved;
 
             return Row(
               children: [
-                Expanded(
-                  child: _HeaderChip(
-                    value: '$pct%',
-                    label: l10n.vmCompletionLabel,
+                if (showCompletionPercentage)
+                  Expanded(
+                    child: _HeaderChip(
+                      value: '$pct%',
+                      label: l10n.vmCompletionLabel,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
+                if (showCompletionPercentage) const SizedBox(width: 8),
                 Expanded(
                   child: _HeaderChip(
                     value: '$completed/${zones.length}',
@@ -274,49 +279,60 @@ class ExecutionScreen extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // Barre de progression globale
-          Obx(() => Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.vmGlobalProgress,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w500,
+          // Barre de progression globale (hidden if not submitted)
+          Obx(() {
+            final status = controller.liveCampaign.value?.status ?? vm.status;
+            final showProgress = status == CampaignStatus.submitted ||
+                status == CampaignStatus.approved ||
+                status == CampaignStatus.disapproved;
+
+            if (!showProgress) {
+              return const SizedBox.shrink();
+            }
+
+            return Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.vmGlobalProgress,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  Text(
-                    vmPhotosLabel(
-                      l10n,
-                      controller.totalBackendPhotos +
-                          controller.zonePhotos.values
-                              .fold(0, (s, l) => s + l.length),
+                    Text(
+                      vmPhotosLabel(
+                        l10n,
+                        controller.totalBackendPhotos +
+                            controller.zonePhotos.values
+                                .fold(0, (s, l) => s + l.length),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+                  ],
+                ),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: controller.globalProgress,
+                    minHeight: 7,
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.white,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: LinearProgressIndicator(
-                  value: controller.globalProgress,
-                  minHeight: 7,
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Colors.white,
                   ),
                 ),
-              ),
-            ],
-          )),
+              ],
+            );
+          }),
         ],
       ),
     );
