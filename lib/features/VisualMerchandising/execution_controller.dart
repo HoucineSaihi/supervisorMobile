@@ -36,6 +36,9 @@ class ExecutionController extends GetxController {
   /// Submission status returned by the executions API.
   final Rx<SubmissionStatus> submissionStatus = SubmissionStatus.unknown.obs;
 
+  /// Unread submission comments for this campaign/site (from list API).
+  final RxInt unreadCommentCount = 0.obs;
+
   /// True when the submission is locked and no further edits are allowed.
   bool get isSubmissionLocked => submissionStatus.value.isLocked;
 
@@ -75,6 +78,7 @@ class ExecutionController extends GetxController {
     }
     _campaign = campaign;
     liveCampaign.value = campaign;
+    unreadCommentCount.value = campaign.unreadCommentCount;
     _loadedCampaignId = campaign.campaignId;
     _loadedSiteId = siteId;
     zonePhotos.clear();
@@ -122,13 +126,44 @@ class ExecutionController extends GetxController {
   bool isZoneValidated(ZoneStatDto zone) => zone.isApproved;
 
   bool hasLocalPending(ZoneStatDto zone) =>
-      localPhotoCount(zone.zoneId) > 0 && !zone.isApproved && !zone.isDisapproved;
+      localPhotoCount(zone.zoneId) > 0 && !zone.isApproved;
 
-  bool isZoneComplete(ZoneStatDto zone) =>
-      zone.isApproved ||
-      zone.isDisapproved ||
-      zone.isSubmitted ||
-      localPhotoCount(zone.zoneId) > 0;
+  /// Photos that will be sent on the next zone PUT (kept remote + local).
+  int effectivePhotoCountForZone(int zoneId) =>
+      getKeptRemotePhotoIds(zoneId).length + localPhotoCount(zoneId);
+
+  /// Whether the user can add/remove photos for this zone.
+  bool isZoneEditable(ZoneStatDto zone) {
+    if (zone.isApproved) return false;
+    if (submissionStatus.value == SubmissionStatus.validated) return false;
+    if (zone.isDisapproved) return true;
+
+    final status = liveCampaign.value?.status ?? _campaign?.status;
+    if (status == CampaignStatus.approved ||
+        status == CampaignStatus.cancelled) {
+      return false;
+    }
+    if (status == CampaignStatus.submitted ||
+        status == CampaignStatus.disapproved) {
+      return false;
+    }
+    if (isSubmissionLocked) return false;
+    return true;
+  }
+
+  bool isZoneComplete(ZoneStatDto zone) {
+    if (zone.isApproved) return true;
+    if (zone.isDisapproved) return false;
+    if (zone.isSubmitted) return true;
+    return localPhotoCount(zone.zoneId) > 0;
+  }
+
+  /// True when the campaign was rejected by review and zones may need correction.
+  bool get needsCampaignCorrection {
+    final status = liveCampaign.value?.status ?? _campaign?.status;
+    if (status == CampaignStatus.disapproved) return true;
+    return zones.any((z) => z.isDisapproved);
+  }
 
   double get globalProgress {
     if (zones.isEmpty) return 0.0;
@@ -136,18 +171,18 @@ class ExecutionController extends GetxController {
     return completed / zones.length;
   }
 
-  /// True when the campaign is already submitted (drives button disabled state).
+  /// True when the campaign is finalized and no merchandiser action is expected.
   bool get isCampaignSubmitted {
     final s = liveCampaign.value?.status ?? _campaign?.status;
-    return s == CampaignStatus.submitted ||
-        s == CampaignStatus.approved ||
-        s == CampaignStatus.disapproved;
+    return s == CampaignStatus.submitted || s == CampaignStatus.approved;
   }
 
   bool get canSubmit {
-    if (isCampaignSubmitted) return false;
-    if (isSubmissionLocked) return false;
     if (zones.isEmpty) return false;
+    final status = liveCampaign.value?.status ?? _campaign?.status;
+    if (status == CampaignStatus.approved) return false;
+    if (status == CampaignStatus.cancelled) return false;
+    if (submissionStatus.value == SubmissionStatus.validated) return false;
     return zones.every(isZoneComplete);
   }
 
@@ -307,12 +342,7 @@ class ExecutionController extends GetxController {
   }
 
   void removePhoto(int zoneId, int index) {
-    final current = photosForZone(zoneId);
-    if (index < 0 || index >= current.length) return;
-    final updated = [...current]..removeAt(index);
-    zonePhotos[zoneId] = updated;
-    zonePhotos.refresh();
-    _savePendingLocalPhotos();
+    tryRemoveLocalPhoto(zoneId, index);
   }
 
   void removeAllPhotosForZone(int zoneId) {
@@ -328,15 +358,32 @@ class ExecutionController extends GetxController {
     return !removedIds.contains(photoId);
   }
 
-  void toggleRemotePhotoKeep(int zoneId, int photoId) {
+  /// Returns false if removing this photo would leave fewer than one effective photo.
+  bool tryToggleRemotePhotoKeep(int zoneId, int photoId) {
     final removedIds = _removedRemotePhotoIds[zoneId] ?? <int>{};
     if (removedIds.contains(photoId)) {
       removedIds.remove(photoId);
-    } else {
-      removedIds.add(photoId);
+      _removedRemotePhotoIds[zoneId] = removedIds;
+      _removedRemotePhotoIds.refresh();
+      return true;
     }
+    if (effectivePhotoCountForZone(zoneId) <= 1) return false;
+    removedIds.add(photoId);
     _removedRemotePhotoIds[zoneId] = removedIds;
     _removedRemotePhotoIds.refresh();
+    return true;
+  }
+
+  /// Returns false if removing this local photo would leave fewer than one effective photo.
+  bool tryRemoveLocalPhoto(int zoneId, int index) {
+    final current = photosForZone(zoneId);
+    if (index < 0 || index >= current.length) return false;
+    if (effectivePhotoCountForZone(zoneId) <= 1) return false;
+    final updated = [...current]..removeAt(index);
+    zonePhotos[zoneId] = updated;
+    zonePhotos.refresh();
+    _savePendingLocalPhotos();
+    return true;
   }
 
   List<int> getKeptRemotePhotoIds(int zoneId) {
@@ -444,6 +491,19 @@ class ExecutionController extends GetxController {
     } finally {
       isUploading.value = false;
     }
+  }
+
+  /// Called after GET submission-comments (server marks thread as read).
+  void markSubmissionCommentsRead() {
+    unreadCommentCount.value = 0;
+    final current = liveCampaign.value ?? _campaign;
+    if (current != null) {
+      liveCampaign.value = current.copyWith(unreadCommentCount: 0);
+      _campaign = liveCampaign.value;
+    }
+    if (!Get.isRegistered<CampaignController>()) return;
+    final cc = Get.find<CampaignController>();
+    cc.markCampaignCommentsRead(_loadedCampaignId ?? 0);
   }
 
   Future<void> _refreshCampaignListIfAvailable() async {

@@ -6,6 +6,7 @@ import 'package:supervisormobile/features/VisualMerchandising/dtos/vm_campaign_d
 import 'package:supervisormobile/features/VisualMerchandising/execution_controller.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/guideline_handler.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/submission_comments_sheet.dart';
+import 'package:supervisormobile/features/VisualMerchandising/widgets/execution_comments_button.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/zone_row.dart';
 import 'package:supervisormobile/features/VisualMerchandising/vm_l10n_helpers.dart';
 import 'package:supervisormobile/features/VisualMerchandising/zone_detail_screen.dart';
@@ -34,7 +35,6 @@ class ExecutionScreen extends StatelessWidget {
               _buildHeader(context, controller, vm, l10n),
               _buildGuidelineBanner(context, l10n, vm),
               _buildZoneList(controller, l10n, vm),
-              _buildSubmitBar(controller, l10n),
             ],
           ),
         ),
@@ -132,41 +132,22 @@ class ExecutionScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: () => SubmissionCommentsSheet.show(
-                  context,
-                  campaignId: vm.campaignId,
-                  siteId: siteId,
-                  campaignName: vm.libelle,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.25)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.chat_bubble_outline_rounded,
-                        color: Colors.white,
-                        size: 13,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        l10n.vmComments,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              Obx(() {
+                final unread = controller.unreadCommentCount.value;
+                return ExecutionCommentsButton(
+                  unreadCount: unread,
+                  label: l10n.vmComments,
+                  onTap: () async {
+                    await SubmissionCommentsSheet.show(
+                      context,
+                      campaignId: vm.campaignId,
+                      siteId: siteId,
+                      campaignName: vm.libelle,
+                      onThreadOpened: controller.markSubmissionCommentsRead,
+                    );
+                  },
+                );
+              }),
             ],
           ),
 
@@ -518,96 +499,6 @@ class ExecutionScreen extends StatelessWidget {
               );
             }),
           ),
-        ],
-      ),
-    );
-  }
-
-  // ── 4. Bouton soumettre (sticky en bas) ────────────
-  Widget _buildSubmitBar(
-    ExecutionController controller,
-    AppLocalizations l10n,
-  ) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE8F1FB))),
-      ),
-      child: Column(
-        children: [
-          // Bouton soumettre — read isCampaignSubmitted / canSubmit inside Obx so they stay reactive
-          Obx(() {
-            final submitted = controller.isCampaignSubmitted;
-            final canSubmit = controller.canSubmit;
-            final isUploading = controller.isUploading.value;
-
-            return SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: canSubmit && !isUploading
-                    ? () => controller.submitCampaign()
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: canSubmit
-                      ? const Color(0xFF27AE73)
-                      : const Color(0xFFB0C8E0),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFFB0C8E0),
-                  disabledForegroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: canSubmit ? 4 : 0,
-                  shadowColor: const Color(0xFF27AE73).withOpacity(0.3),
-                ),
-                child: isUploading
-                    ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                    : Text(
-                        submitted
-                            ? l10n.vmCampaignCompleted
-                            : canSubmit
-                                ? l10n.vmSubmitCampaignEmailCta
-                                : l10n.vmCompleteAllZones,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-              ),
-            );
-          }),
-
-          // Hint sous le bouton
-          Obx(() {
-            if (controller.canSubmit || controller.isCampaignSubmitted) {
-              return const SizedBox.shrink();
-            }
-            final zones = controller.zones;
-            final remaining = zones
-                .where((z) => !controller.isZoneComplete(z))
-                .length;
-            return Padding(
-              padding: const EdgeInsets.only(top: 7),
-              child: Text(
-                vmZonesRemainingLabel(l10n, remaining),
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF8AB2D4),
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            );
-          }),
         ],
       ),
     );

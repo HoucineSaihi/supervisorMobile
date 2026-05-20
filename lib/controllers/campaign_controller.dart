@@ -41,6 +41,9 @@ class CampaignController extends GetxController {
   final RxMap<int, Map<int, int>> pendingLocalPhotosByZoneByCampaign =
       <int, Map<int, int>>{}.obs;
 
+  /// Global unread comment badge (from kpis or sum of campaigns).
+  final RxInt totalUnreadComments = 0.obs;
+
   void _resetPagination() {
     currentPage.value = 1;
     totalPages.value = 1;
@@ -49,6 +52,31 @@ class CampaignController extends GetxController {
     pendingLocalPhotosByCampaign.clear();
     pendingLocalZonesByCampaign.clear();
     pendingLocalPhotosByZoneByCampaign.clear();
+    totalUnreadComments.value = 0;
+  }
+
+  void _recomputeTotalUnreadComments() {
+    totalUnreadComments.value =
+        campaigns.fold<int>(0, (sum, c) => sum + c.unreadCommentCount);
+  }
+
+  void _applyUnreadCountsFromPage(VmCampaignsPageDto page, {required bool append}) {
+    if (!append && page.kpis != null) {
+      totalUnreadComments.value = page.kpis!.totalUnreadComments;
+      return;
+    }
+    _recomputeTotalUnreadComments();
+  }
+
+  void markCampaignCommentsRead(int campaignId) {
+    if (campaignId <= 0) return;
+    final index = campaigns.indexWhere((c) => c.campaignId == campaignId);
+    if (index < 0) return;
+    final previous = campaigns[index].unreadCommentCount;
+    if (previous <= 0) return;
+    campaigns[index] = campaigns[index].copyWith(unreadCommentCount: 0);
+    totalUnreadComments.value =
+        (totalUnreadComments.value - previous).clamp(0, 1 << 30);
   }
 
   @override
@@ -130,6 +158,7 @@ class CampaignController extends GetxController {
         pageNumber: 1,
       );
       campaigns.assignAll(response.data);
+      _applyUnreadCountsFromPage(response, append: false);
       currentPage.value = response.pagination.pageNumber;
       totalPages.value = response.pagination.totalPages;
       totalCount.value = response.pagination.totalCount;
@@ -164,6 +193,7 @@ class CampaignController extends GetxController {
         pageNumber: nextPage,
       );
       campaigns.addAll(response.data);
+      _applyUnreadCountsFromPage(response, append: true);
       currentPage.value = response.pagination.pageNumber;
       totalPages.value = response.pagination.totalPages;
       totalCount.value = response.pagination.totalCount;

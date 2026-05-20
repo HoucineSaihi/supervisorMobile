@@ -4,7 +4,7 @@ import 'package:supervisormobile/interceptors/accept_language_interceptor.dart';
 import 'package:supervisormobile/interceptors/auth_interceptor.dart';
 
 class DioService {
-  static const String _baseUrl = 'https://ee8a-102-157-196-141.ngrok-free.app';
+  static const String _baseUrl = 'https://3ab2-196-176-202-19.ngrok-free.app';
 
   static final Dio dio = Dio(
     BaseOptions(

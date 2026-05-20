@@ -10,6 +10,7 @@ import '../dtos/vm_campaign_execution_dto.dart';
 import '../dtos/vm_campaign_submit_dto.dart';
 import '../dtos/vm_guideline_asset_dto.dart';
 import '../dtos/vm_submission_comment_dto.dart';
+import '../dtos/vm_submission_comments_page_dto.dart';
 import '../../calendar/models/boutiqueModel.dart';
 import 'guideline_cache_manager.dart';
 
@@ -63,13 +64,27 @@ class VmCampaignsPaginationDto {
   }
 }
 
+class VmCampaignsKpisDto {
+  final int totalUnreadComments;
+
+  const VmCampaignsKpisDto({required this.totalUnreadComments});
+
+  factory VmCampaignsKpisDto.fromJson(Map<String, dynamic> json) {
+    return VmCampaignsKpisDto(
+      totalUnreadComments: (json['totalUnreadComments'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class VmCampaignsPageDto {
   final List<VmCampaignDto> data;
   final VmCampaignsPaginationDto pagination;
+  final VmCampaignsKpisDto? kpis;
 
   const VmCampaignsPageDto({
     required this.data,
     required this.pagination,
+    this.kpis,
   });
 }
 
@@ -126,10 +141,15 @@ class VmService {
             .map(VmCampaignDto.fromJson)
             .toList();
         final pagination = VmCampaignsPaginationDto.fromJson(rawPagination);
+        final rawKpis = jsonResponse['kpis'];
+        final kpis = rawKpis is Map<String, dynamic>
+            ? VmCampaignsKpisDto.fromJson(rawKpis)
+            : null;
 
         return VmCampaignsPageDto(
           data: campaigns,
           pagination: pagination,
+          kpis: kpis,
         );
       } else {
         throw Exception(
@@ -327,8 +347,32 @@ class VmService {
     }
   }
 
+  /// GET /api/VmCompaign/comments/unread-summary
+  Future<VmCommentsUnreadSummaryDto> getCommentsUnreadSummary() async {
+    try {
+      final response = await _dio.get('/VmCompaign/comments/unread-summary');
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        return VmCommentsUnreadSummaryDto.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+      }
+      throw Exception(
+        'Failed to load unread summary. Status: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) throw Exception('Request cancelled');
+      final message = (e.response?.data is Map<String, dynamic>)
+          ? e.response!.data['message'] as String?
+          : null;
+      throw Exception(message ?? 'Failed to load unread summary: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to load unread summary: $e');
+    }
+  }
+
   /// GET /api/VmCompaign/{campaignId}/sites/{siteId}/submission-comments
-  Future<List<VmSubmissionCommentDto>> getSubmissionComments({
+  /// Marks the thread as read for the current user (side effect on success).
+  Future<VmSubmissionCommentsPageDto> getSubmissionComments({
     required int campaignId,
     required int siteId,
   }) async {
@@ -338,13 +382,17 @@ class VmService {
       );
       if (response.statusCode == 200) {
         final data = response.data;
-        if (data is List) {
-          return data
-              .whereType<Map<String, dynamic>>()
-              .map(VmSubmissionCommentDto.fromJson)
-              .toList();
+        if (data is Map<String, dynamic>) {
+          return VmSubmissionCommentsPageDto.fromJson(data);
         }
-        return [];
+        if (data is List) {
+          return VmSubmissionCommentsPageDto.fromLegacyList(data);
+        }
+        return const VmSubmissionCommentsPageDto(
+          comments: [],
+          totalCount: 0,
+          unreadCount: 0,
+        );
       }
       throw Exception('Failed to load comments. Status: ${response.statusCode}');
     } on DioException catch (e) {

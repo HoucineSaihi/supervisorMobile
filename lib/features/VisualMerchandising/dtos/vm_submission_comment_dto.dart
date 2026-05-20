@@ -8,6 +8,7 @@ class VmSubmissionCommentDto {
   final String authorRole;
   final String message;
   final DateTime createdAt;
+  final bool isUnread;
 
   const VmSubmissionCommentDto({
     required this.id,
@@ -19,6 +20,7 @@ class VmSubmissionCommentDto {
     required this.authorRole,
     required this.message,
     required this.createdAt,
+    this.isUnread = false,
   });
 
   factory VmSubmissionCommentDto.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class VmSubmissionCommentDto {
       authorRole: json['authorRole'] as String? ?? '',
       message: json['message'] as String? ?? '',
       createdAt: DateTime.parse(json['createdAt'] as String),
+      isUnread: json['isUnread'] as bool? ?? false,
     );
   }
 }

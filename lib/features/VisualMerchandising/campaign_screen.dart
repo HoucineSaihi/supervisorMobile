@@ -91,6 +91,7 @@ class CampaignScreen extends StatelessWidget {
                                 // Refresh button
                                 Obx(() {
                                   final isLoading = controller.isLoading.value;
+                                  final unread = controller.totalUnreadComments.value;
                                   return GestureDetector(
                                     onTap: isLoading
                                         ? null
@@ -98,33 +99,64 @@ class CampaignScreen extends StatelessWidget {
                                     child: AnimatedOpacity(
                                       duration: const Duration(milliseconds: 200),
                                       opacity: isLoading ? 0.5 : 1.0,
-                                      child: Container(
-                                        width: 42,
-                                        height: 42,
-                                        margin: const EdgeInsets.only(right: 10),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFEAF3FD),
-                                          borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(
-                                            color: const Color(0xFFB8D9F5),
-                                          ),
-                                        ),
-                                        child: isLoading
-                                            ? const Center(
-                                                child: SizedBox(
-                                                  width: 16,
-                                                  height: 16,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Container(
+                                            width: 42,
+                                            height: 42,
+                                            margin: const EdgeInsets.only(right: 10),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEAF3FD),
+                                              borderRadius: BorderRadius.circular(14),
+                                              border: Border.all(
+                                                color: const Color(0xFFB8D9F5),
+                                              ),
+                                            ),
+                                            child: isLoading
+                                                ? const Center(
+                                                    child: SizedBox(
+                                                      width: 16,
+                                                      height: 16,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Color(0xFF1E5FAA),
+                                                      ),
+                                                    ),
+                                                  )
+                                                : const Icon(
+                                                    Icons.refresh_rounded,
                                                     color: Color(0xFF1E5FAA),
+                                                    size: 20,
+                                                  ),
+                                          ),
+                                          if (unread > 0)
+                                            Positioned(
+                                              top: -2,
+                                              right: 4,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 5,
+                                                  vertical: 2,
+                                                ),
+                                                constraints:
+                                                    const BoxConstraints(minWidth: 16),
+                                                decoration: const BoxDecoration(
+                                                  color: Color(0xFFE74C3C),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Text(
+                                                  unread > 99 ? '99+' : '$unread',
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: Colors.white,
                                                   ),
                                                 ),
-                                              )
-                                            : const Icon(
-                                                Icons.refresh_rounded,
-                                                color: Color(0xFF1E5FAA),
-                                                size: 20,
                                               ),
+                                            ),
+                                        ],
                                       ),
                                     ),
                                   );
@@ -266,6 +298,7 @@ class CampaignScreen extends StatelessWidget {
                                 ),
                                 transition: Transition.rightToLeft,
                               );
+                              await controller.loadCampaigns();
                               await controller.refreshPendingLocalPhotosForLoadedCampaigns();
                             },
                             onGuideline: () {

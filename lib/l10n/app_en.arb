@@ -1241,6 +1241,14 @@
   "vmCamera": "Camera",
   "vmGallery": "Gallery",
   "vmValidateZone": "Validate this zone ✓",
+  "vmAtLeastOnePhotoRequired": "At least one photo is required for this zone.",
+  "vmResubmitCampaign": "✉️  Resubmit campaign",
+  "vmFixDisapprovedZonesHint": "Fix and validate {count} disapproved zone(s), then resubmit.",
+  "@vmFixDisapprovedZonesHint": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "vmAddPhotosHint": "Add photos",
   "vmNoPhotosAdded": "No photo added",
   "vmEmptyPhotosHint": "Take a photo or choose one\nfrom your gallery to get started.",

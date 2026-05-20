@@ -8,18 +8,23 @@ class SubmissionCommentsSheet extends StatefulWidget {
   final int siteId;
   final String campaignName;
 
+  final VoidCallback? onThreadOpened;
+
   const SubmissionCommentsSheet({
     super.key,
     required this.campaignId,
     required this.siteId,
     required this.campaignName,
+    this.onThreadOpened,
   });
 
+  /// [onThreadOpened] is called after a successful GET (thread marked read server-side).
   static Future<void> show(
     BuildContext context, {
     required int campaignId,
     required int siteId,
     required String campaignName,
+    VoidCallback? onThreadOpened,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -29,6 +34,7 @@ class SubmissionCommentsSheet extends StatefulWidget {
         campaignId: campaignId,
         siteId: siteId,
         campaignName: campaignName,
+        onThreadOpened: onThreadOpened,
       ),
     );
   }
@@ -45,6 +51,7 @@ class _SubmissionCommentsSheetState extends State<SubmissionCommentsSheet> {
   final FocusNode _focusNode = FocusNode();
 
   List<VmSubmissionCommentDto> _comments = [];
+  int _unreadCountBeforeRead = 0;
   bool _isLoading = true;
   bool _hasError = false;
   bool _isSending = false;
@@ -75,9 +82,11 @@ class _SubmissionCommentsSheetState extends State<SubmissionCommentsSheet> {
       );
       if (!mounted) return;
       setState(() {
-        _comments = result;
+        _comments = result.comments;
+        _unreadCountBeforeRead = result.unreadCount;
         _isLoading = false;
       });
+      widget.onThreadOpened?.call();
       _scrollToBottom(jump: true);
     } catch (_) {
       if (!mounted) return;
@@ -180,7 +189,10 @@ class _SubmissionCommentsSheetState extends State<SubmissionCommentsSheet> {
       child: Column(
         children: [
           _SheetHandle(),
-          _SheetHeader(campaignName: widget.campaignName),
+          _SheetHeader(
+            campaignName: widget.campaignName,
+            unreadCount: _unreadCountBeforeRead,
+          ),
           Expanded(child: _buildBody()),
           _buildInputBar(bottomInset),
         ],
@@ -360,7 +372,11 @@ class _SheetHandle extends StatelessWidget {
 // ── En-tête dégradé ─────────────────────────────────────
 class _SheetHeader extends StatelessWidget {
   final String campaignName;
-  const _SheetHeader({required this.campaignName});
+  final int unreadCount;
+  const _SheetHeader({
+    required this.campaignName,
+    this.unreadCount = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -417,6 +433,23 @@ class _SheetHeader extends StatelessWidget {
               ],
             ),
           ),
+          if (unreadCount > 0)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE74C3C),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$unreadCount',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
@@ -516,12 +549,24 @@ class _CommentBubble extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+                      if (comment.isUnread && !_isOptimistic)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE74C3C),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                       Expanded(
                         child: Text(
                           comment.authorName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: comment.isUnread && !_isOptimistic
+                                ? FontWeight.w800
+                                : FontWeight.w700,
                             color: Color(0xFF0F2D5E),
                           ),
                           overflow: TextOverflow.ellipsis,

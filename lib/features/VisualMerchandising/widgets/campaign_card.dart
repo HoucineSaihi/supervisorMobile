@@ -125,6 +125,8 @@ class CampaignCard extends StatelessWidget {
                       status: campaign.status,
                       hasLocalPending: _hasLocalPending,
                     ),
+                    if (campaign.unreadCommentCount > 0)
+                      _UnreadCommentsBadge(count: campaign.unreadCommentCount),
                   ],
                 ),
               ),
@@ -547,6 +549,38 @@ class _MetaRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Badge commentaires non lus ─────────────────────────
+class _UnreadCommentsBadge extends StatelessWidget {
+  final int count;
+  const _UnreadCommentsBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE74C3C),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.chat_bubble_outline, size: 11, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(
+            count > 99 ? '99+' : '$count',
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

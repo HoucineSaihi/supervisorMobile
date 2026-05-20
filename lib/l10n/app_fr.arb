@@ -447,6 +447,14 @@
   "vmCamera": "Appareil",
   "vmGallery": "Galerie",
   "vmValidateZone": "Valider cette zone ✓",
+  "vmAtLeastOnePhotoRequired": "Au moins une photo est requise pour cette zone.",
+  "vmResubmitCampaign": "✉️  Resoumettre la campagne",
+  "vmFixDisapprovedZonesHint": "Corrigez et validez les {count} zone(s) refusée(s), puis resoumettez.",
+  "@vmFixDisapprovedZonesHint": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "vmAddPhotosHint": "Ajoutez des photos",
   "vmNoPhotosAdded": "Aucune photo ajoutée",
   "vmEmptyPhotosHint": "Prenez une photo ou choisissez\ndepuis votre galerie pour commencer.",

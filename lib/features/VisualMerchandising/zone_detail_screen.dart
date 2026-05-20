@@ -101,7 +101,7 @@ class ZoneDetailScreen extends StatelessWidget {
             final currentZone = _resolveCurrentZone(controller);
             final localCount = (controller.zonePhotos[currentZone.zoneId] ?? const <String>[]).length;
             final hasLocalPending =
-                localCount > 0 && !currentZone.isApproved && !currentZone.isDisapproved;
+                localCount > 0 && !currentZone.isApproved;
             final statusColor = _zoneStatusColor(currentZone, hasLocalPending);
             final statusLabel = _zoneStatusLabel(l10n, currentZone, hasLocalPending);
 
@@ -430,10 +430,8 @@ class ZoneDetailScreen extends StatelessWidget {
           }),
           Expanded(
             child: Obx(() {
-              final locked = campaign.status == CampaignStatus.submitted ||
-                  campaign.status == CampaignStatus.approved ||
-                  campaign.status == CampaignStatus.disapproved ||
-                  controller.submissionStatus.value.isLocked;
+              final currentZone = _resolveCurrentZone(controller);
+              final editable = controller.isZoneEditable(currentZone);
               final localPhotos = controller.zonePhotos[zone.zoneId] ?? const <String>[];
               final remotePhotos =
                   controller.remotePhotosByZone[zone.zoneId] ?? const <VmExecutionPhotoDto>[];
@@ -474,12 +472,16 @@ class ZoneDetailScreen extends StatelessWidget {
                         photoId: photoId,
                         zoneId: zone.zoneId,
                         isMarkedForDeletion: marked,
-                        onDelete: locked
-                            ? null
-                            : () => controller.toggleRemotePhotoKeep(
+                        onDelete: editable
+                            ? () {
+                                if (!controller.tryToggleRemotePhotoKeep(
                                   zone.zoneId,
                                   photoId,
-                                ),
+                                )) {
+                                  _showMinPhotoRequiredSnack(l10n);
+                                }
+                              }
+                            : null,
                       );
                     });
                   }
@@ -490,19 +492,23 @@ class ZoneDetailScreen extends StatelessWidget {
                     return _LocalPhotoTile(
                       path: localPhotos[localIndex],
                       number: index + 1,
-                      onDelete: locked
-                          ? () {}
-                          : () => controller.removePhoto(
-                                zone.zoneId,
-                                localIndex,
-                              ),
+                      showDelete: editable,
+                      onDelete: () {
+                        if (!editable) return;
+                        if (!controller.tryRemoveLocalPhoto(
+                          zone.zoneId,
+                          localIndex,
+                        )) {
+                          _showMinPhotoRequiredSnack(l10n);
+                        }
+                      },
                     );
                   }
 
                   // Bouton "Ajouter"
                   return _AddPhotoTile(
                     l10n: l10n,
-                    enabled: !locked,
+                    enabled: editable,
                     onCameraPressed: () =>
                         controller.pickFromCamera(zone.zoneId),
                     onGalleryPressed: () =>
@@ -523,19 +529,11 @@ class ZoneDetailScreen extends StatelessWidget {
     AppLocalizations l10n,
   ) {
     return Obx(() {
-      final locked = campaign.status == CampaignStatus.submitted ||
-          campaign.status == CampaignStatus.approved ||
-          campaign.status == CampaignStatus.disapproved ||
-          controller.submissionStatus.value.isLocked;
-      final localCount = (controller.zonePhotos[zone.zoneId] ?? const <String>[]).length;
       final currentZone = _resolveCurrentZone(controller);
-      final hasLocalPending =
-          localCount > 0 && !currentZone.isApproved && !currentZone.isDisapproved;
-      final isComplete = currentZone.isApproved ||
-          currentZone.isDisapproved ||
-          currentZone.isSubmitted ||
-          hasLocalPending;
-      final canValidate = isComplete && !locked;
+      final editable = controller.isZoneEditable(currentZone);
+      final photoCount =
+          controller.effectivePhotoCountForZone(currentZone.zoneId);
+      final canValidate = editable && photoCount >= 1;
 
       return Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
@@ -549,7 +547,7 @@ class ZoneDetailScreen extends StatelessWidget {
             _SourceButton(
               icon: Icons.camera_alt_outlined,
               label: l10n.vmCamera,
-              onTap: locked ? null : () => controller.pickFromCamera(zone.zoneId),
+              onTap: editable ? () => controller.pickFromCamera(zone.zoneId) : null,
             ),
             const SizedBox(width: 10),
 
@@ -557,7 +555,7 @@ class ZoneDetailScreen extends StatelessWidget {
             _SourceButton(
               icon: Icons.photo_library_outlined,
               label: l10n.vmGallery,
-              onTap: locked ? null : () => controller.pickFromGallery(zone.zoneId),
+              onTap: editable ? () => controller.pickFromGallery(zone.zoneId) : null,
             ),
             const SizedBox(width: 10),
 
@@ -593,9 +591,9 @@ class ZoneDetailScreen extends StatelessWidget {
                           ),
                         )
                       : Text(
-                          locked
+                          !editable
                               ? l10n.vmCampaignCompleted
-                              : isComplete
+                              : canValidate
                                   ? l10n.vmValidateZone
                                   : l10n.vmAddPhotosHint,
                           style: const TextStyle(
@@ -655,36 +653,29 @@ class ZoneDetailScreen extends StatelessWidget {
   }
 
   // ── Zone Submission ──────────────────────────────────
+  void _showMinPhotoRequiredSnack(AppLocalizations l10n) {
+    Get.snackbar(
+      l10n.error,
+      l10n.vmAtLeastOnePhotoRequired,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.shade600,
+      colorText: Colors.white,
+      margin: const EdgeInsets.all(12),
+    );
+  }
+
   Future<void> _submitZoneAndGoBack(
     ExecutionController controller,
     AppLocalizations l10n,
   ) async {
+    final currentZone = _resolveCurrentZone(controller);
+    if (!controller.isZoneEditable(currentZone)) return;
+
     final newLocalPhotoPaths = controller.photosForZone(zone.zoneId);
-    final remotePhotos = controller.remotePhotosByZone[zone.zoneId] ?? const <VmExecutionPhotoDto>[];
-
-    if (newLocalPhotoPaths.isEmpty && remotePhotos.isEmpty) {
-      Get.snackbar(
-        l10n.error,
-        'No photos to submit',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade600,
-        colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
-      );
-      return;
-    }
-
     final keptRemotePhotoIds = controller.getKeptRemotePhotoIds(zone.zoneId);
 
-    if (newLocalPhotoPaths.isEmpty && keptRemotePhotoIds.isEmpty) {
-      Get.snackbar(
-        l10n.error,
-        'At least one photo is required',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade600,
-        colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
-      );
+    if (controller.effectivePhotoCountForZone(zone.zoneId) < 1) {
+      _showMinPhotoRequiredSnack(l10n);
       return;
     }
 
@@ -960,11 +951,13 @@ class _ExistingPhotoTile extends StatelessWidget {
 class _LocalPhotoTile extends StatelessWidget {
   final String path;
   final int number;
+  final bool showDelete;
   final VoidCallback onDelete;
 
   const _LocalPhotoTile({
     required this.path,
     required this.number,
+    this.showDelete = true,
     required this.onDelete,
   });
 
@@ -1024,7 +1017,7 @@ class _LocalPhotoTile extends StatelessWidget {
             ),
           ),
 
-          // Bouton supprimer en haut à droite
+          if (showDelete)
             Positioned(
               top: 8, right: 8,
               child: GestureDetector(
