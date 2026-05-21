@@ -74,6 +74,7 @@ dependencies:
   url_launcher: ^6.2.5
   open_file: ^3.5.1
   package_info_plus: ^8.0.0
+  flutter_image_compress: ^2.3.0
 
 dev_dependencies:
   flutter_test:

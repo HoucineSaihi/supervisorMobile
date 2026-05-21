@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:mime/mime.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/services/DioService.dart';
@@ -507,7 +508,8 @@ class VmService {
             message: 'Photo introuvable pour la zone $zoneCode.',
           );
         }
-        final bytes = await file.readAsBytes();
+        final mimeType = lookupMimeType(path) ?? 'image/jpeg';
+        final bytes = await _compressImage(file, mimeType);
         if (bytes.isEmpty) {
           throw VmSubmitApiException(
             message: 'Photo vide detectee pour la zone $zoneCode.',
@@ -516,7 +518,6 @@ class VmService {
         final fileName = file.uri.pathSegments.isNotEmpty
             ? file.uri.pathSegments.last
             : 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final mimeType = lookupMimeType(path) ?? 'image/jpeg';
         if (!_allowedMimeTypes.contains(mimeType)) {
           throw VmSubmitApiException(
             message: 'Format image non supporte ($mimeType) pour $zoneCode.',
@@ -609,6 +610,28 @@ class VmService {
         message: 'Erreur pendant la soumission: $e',
       );
     }
+  }
+
+  /// Compress an image file before upload. Falls back to raw bytes on failure.
+  /// Target: 1080px max side, 85% quality, JPEG output.
+  Future<List<int>> _compressImage(File file, String mimeType) async {
+    try {
+      final CompressFormat format = mimeType == 'image/png'
+          ? CompressFormat.png
+          : CompressFormat.jpeg;
+      final result = await FlutterImageCompress.compressWithFile(
+        file.absolute.path,
+        minWidth: 1080,
+        minHeight: 1080,
+        quality: 85,
+        format: format,
+        keepExif: false,
+      );
+      if (result != null && result.isNotEmpty) return result;
+    } catch (e) {
+      debugPrint('VmService._compressImage: compression failed, using raw bytes. $e');
+    }
+    return file.readAsBytes();
   }
 
   /// Download guideline asset

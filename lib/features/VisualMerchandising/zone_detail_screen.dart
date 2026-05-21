@@ -878,20 +878,43 @@ class _ExistingPhotoTile extends StatelessWidget {
             ),
           Positioned(
             top: 8, left: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E5FAA).withOpacity(0.85),
-                borderRadius: BorderRadius.circular(7),
-              ),
-              child: Text(
-                '#$number',
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E5FAA).withOpacity(0.85),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Text(
+                    '#$number',
+                    style: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
-              ),
+                if (photoId > 0) ...[
+                  const SizedBox(height: 3),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'ID $photoId',
+                      style: const TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           Positioned(
