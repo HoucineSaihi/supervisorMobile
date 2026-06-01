@@ -205,7 +205,10 @@ class ExecutionScreen extends StatelessWidget {
             final completed = zones
                 .where((z) => controller.isZoneComplete(z))
                 .length;
-            final pct = (controller.globalProgress * 100).toInt();
+            final approved = zones.where((z) => z.isApproved).length;
+            final approvalPct = zones.isNotEmpty
+                ? (approved / zones.length * 100).round()
+                : 0;
             final limitDate = DateFormat('dd/MM/yyyy').format(vm.endDate);
             final status = controller.liveCampaign.value?.status ?? vm.status;
             final showCompletionPercentage = status == CampaignStatus.submitted ||
@@ -217,7 +220,7 @@ class ExecutionScreen extends StatelessWidget {
                 if (showCompletionPercentage)
                   Expanded(
                     child: _HeaderChip(
-                      value: '$pct%',
+                      value: '$approvalPct%',
                       label: l10n.vmCompletionLabel,
                     ),
                   ),
@@ -260,16 +263,19 @@ class ExecutionScreen extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // Barre de progression globale (hidden if not submitted)
+          // Barre d'approbation (hidden if not submitted)
           Obx(() {
             final status = controller.liveCampaign.value?.status ?? vm.status;
             final showProgress = status == CampaignStatus.submitted ||
                 status == CampaignStatus.approved ||
                 status == CampaignStatus.disapproved;
 
-            if (!showProgress) {
-              return const SizedBox.shrink();
-            }
+            if (!showProgress) return const SizedBox.shrink();
+
+            final total = controller.zones.length;
+            final approved = controller.zones.where((z) => z.isApproved).length;
+            final approvalRatio = total > 0 ? approved / total : 0.0;
+            final approvalPct = (approvalRatio * 100).round();
 
             return Column(
               children: [
@@ -277,7 +283,7 @@ class ExecutionScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      l10n.vmGlobalProgress,
+                      l10n.vmSupervisorReview,
                       style: const TextStyle(
                         fontSize: 11,
                         color: Colors.white70,
@@ -285,12 +291,7 @@ class ExecutionScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      vmPhotosLabel(
-                        l10n,
-                        controller.totalBackendPhotos +
-                            controller.zonePhotos.values
-                                .fold(0, (s, l) => s + l.length),
-                      ),
+                      '$approved/$total · $approvalPct%',
                       style: const TextStyle(
                         fontSize: 11,
                         color: Colors.white,
@@ -303,11 +304,11 @@ class ExecutionScreen extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
-                    value: controller.globalProgress,
+                    value: approvalRatio,
                     minHeight: 7,
                     backgroundColor: Colors.white.withOpacity(0.2),
                     valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.white,
+                      Color(0xFF4FD38E),
                     ),
                   ),
                 ),

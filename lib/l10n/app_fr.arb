@@ -376,6 +376,8 @@
   "vmLimitDialogTitle": "Limite",
   "vmOk": "OK",
   "vmGlobalProgress": "Avancement global",
+  "vmSupervisorReview": "REVIEW",
+  "vmPendingReview": "En attente",
   "vmPhotoCountOne": "1 photo",
   "vmPhotoCountMany": "{count} photos",
   "vmGuidelineVmBannerTitle": "Guideline VM",

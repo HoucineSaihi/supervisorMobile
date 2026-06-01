@@ -68,6 +68,14 @@ class CampaignCard extends StatelessWidget {
     return campaign.totalImages + pendingLocalPhotosCount;
   }
 
+  // Zone breakdown counts for the approval row
+  int get _approvedZones =>
+      campaign.allZones.where((z) => z.isApproved).length;
+  int get _disapprovedZones =>
+      campaign.allZones.where((z) => z.isDisapproved).length;
+  int get _pendingZones =>
+      campaign.allZones.where((z) => z.isSubmitted).length;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -88,7 +96,6 @@ class CampaignCard extends StatelessWidget {
           _buildBanner(l10n),
           _buildInfoRow(l10n),
           _buildZoneGrid(l10n),
-          _buildProgressBar(l10n),
           _buildFooter(l10n),
         ],
       ),
@@ -209,93 +216,113 @@ class CampaignCard extends StatelessWidget {
     );
   }
 
-  // ── 2. Ligne : anneau de progression + méta ──────────
+  // ── 2. Ligne : anneau d'approbation + méta ───────────
   Widget _buildInfoRow(AppLocalizations l10n) {
-    final pct = (_displayProgress * 100).toInt();
+    final total = campaign.totalZones;
+    final approvalRatio = total > 0 ? (_approvedZones / total).clamp(0.0, 1.0) : 0.0;
+    final pct = (approvalRatio * 100).round();
+    final showBreakdown = !_hasLocalPending && total > 0 &&
+        (_isSubmittedPending || _isApproved || _isDisapproved);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Anneau SVG custom via CustomPaint — hidden if locally pending
-          if (!_hasLocalPending)
-            SizedBox(
-              width: 64,
-              height: 64,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CustomPaint(
-                    size: const Size(64, 64),
-                    painter: _RingPainter(
-                      progress: _displayProgress,
-                      color: _displayProgressColor,
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
+          Row(
+            children: [
+              // Anneau SVG custom via CustomPaint — hidden if locally pending
+              if (!_hasLocalPending)
+                SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Text(
-                        '$pct',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1B3F72),
-                          height: 1,
+                      CustomPaint(
+                        size: const Size(64, 64),
+                        painter: _RingPainter(
+                          progress: approvalRatio,
+                          color: _displayProgressColor,
                         ),
                       ),
-                      const Text(
-                        '%',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF8AB2D4),
-                        ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$pct',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1B3F72),
+                              height: 1,
+                            ),
+                          ),
+                          const Text(
+                            '%',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF8AB2D4),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
+
+              if (!_hasLocalPending) const SizedBox(width: 14),
+
+              // Méta : zones + images + guidelines
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _MetaRow(
+                      icon: Icons.grid_view_rounded,
+                      label: l10n.vmMetaZonesApproved(
+                        _displayApprovedZones,
+                        campaign.totalZones,
+                      ),
+                      color: _hasLocalPending
+                          ? const Color(0xFFB86B00)
+                          : const Color(0xFF4A6D96),
+                    ),
+                    const SizedBox(height: 5),
+                    _MetaRow(
+                      icon: Icons.photo_camera_outlined,
+                      label: l10n.vmMetaPhotosSent(_displayPhotoCount),
+                      color: _hasLocalPending
+                          ? const Color(0xFFB86B00)
+                          : const Color(0xFF4A6D96),
+                    ),
+                    const SizedBox(height: 5),
+                    if (campaign.containsGuideline && campaign.executionsStats.isNotEmpty)
+                      _MetaRow(
+                        icon: Icons.picture_as_pdf_outlined,
+                        label: campaign.executionsStats.length == 1
+                            ? (campaign.executionsStats.first.guidelineName ??
+                                l10n.vmGuidelineDisplayFallback(1))
+                            : l10n.vmGuidelinesCount(campaign.executionsStats.length),
+                        color: const Color(0xFF1E5FAA),
+                      ),
+                  ],
+                ),
               ),
-            ),
-
-          if (!_hasLocalPending) const SizedBox(width: 14),
-
-          // Méta : zones + images + guidelines
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _MetaRow(
-                  icon: Icons.grid_view_rounded,
-                  label: l10n.vmMetaZonesApproved(
-                    _displayApprovedZones,
-                    campaign.totalZones,
-                  ),
-                  color: _hasLocalPending
-                      ? const Color(0xFFB86B00)
-                      : const Color(0xFF4A6D96),
-                ),
-                const SizedBox(height: 5),
-                _MetaRow(
-                  icon: Icons.photo_camera_outlined,
-                  label: l10n.vmMetaPhotosSent(_displayPhotoCount),
-                  color: _hasLocalPending
-                      ? const Color(0xFFB86B00)
-                      : const Color(0xFF4A6D96),
-                ),
-                const SizedBox(height: 5),
-                if (campaign.containsGuideline && campaign.executionsStats.isNotEmpty)
-                  _MetaRow(
-                    icon: Icons.picture_as_pdf_outlined,
-                    label: campaign.executionsStats.length == 1
-                        ? (campaign.executionsStats.first.guidelineName ??
-                            l10n.vmGuidelineDisplayFallback(1))
-                        : l10n.vmGuidelinesCount(campaign.executionsStats.length),
-                    color: const Color(0xFF1E5FAA),
-                  ),
-              ],
-            ),
+            ],
           ),
+
+          // Approval breakdown pills — only when supervisor has started reviewing
+          if (showBreakdown) ...[
+            const SizedBox(height: 10),
+            _ZoneBreakdownPills(
+              approved: _approvedZones,
+              disapproved: _disapprovedZones,
+              pending: _pendingZones,
+              l10n: l10n,
+            ),
+          ],
         ],
       ),
     );
@@ -383,55 +410,6 @@ class CampaignCard extends StatelessWidget {
     );
   }
 
-  // ── 4. Barre de progression globale ─────────────────
-  Widget _buildProgressBar(AppLocalizations l10n) {
-    if (_hasLocalPending) {
-      return const SizedBox.shrink();
-    }
-
-    final pct = (_displayProgress * 100).toInt();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                l10n.vmGlobalProgress,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF4A6D96),
-                ),
-              ),
-              Text(
-                '$pct%',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1E5FAA),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: _displayProgress,
-              minHeight: 7,
-              backgroundColor: const Color(0xFFE2EEF8),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _displayProgressColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ── 5. Footer : boutons ──────────────────────────────
   Widget _buildFooter(AppLocalizations l10n) {
@@ -714,6 +692,123 @@ class _LocalDraftBadge extends StatelessWidget {
   }
 }
 
+// ── Widget : pills d'approbation par zone ────────────────
+class _ZoneBreakdownPills extends StatelessWidget {
+  final int approved;
+  final int disapproved;
+  final int pending;
+  final AppLocalizations l10n;
+
+  const _ZoneBreakdownPills({
+    required this.approved,
+    required this.disapproved,
+    required this.pending,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2EEF8)),
+      ),
+      child: Row(
+        children: [
+          Text(
+            l10n.vmSupervisorReview,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF8AB2D4),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                if (approved > 0)
+                  _Pill(
+                    icon: Icons.check_circle_rounded,
+                    label: '$approved',
+                    color: const Color(0xFF27AE73),
+                    bg: const Color(0xFFE6FAF0),
+                  ),
+                if (disapproved > 0)
+                  _Pill(
+                    icon: Icons.cancel_rounded,
+                    label: '$disapproved',
+                    color: const Color(0xFFE74C3C),
+                    bg: const Color(0xFFFFECE9),
+                  ),
+                if (pending > 0)
+                  _Pill(
+                    icon: Icons.hourglass_top_rounded,
+                    label: '$pending',
+                    color: const Color(0xFFB86B00),
+                    bg: const Color(0xFFFFF4E5),
+                  ),
+                if (approved == 0 && disapproved == 0 && pending == 0)
+                  _Pill(
+                    icon: Icons.hourglass_empty_rounded,
+                    label: l10n.vmPendingReview,
+                    color: const Color(0xFF8AB2D4),
+                    bg: const Color(0xFFEAF3FD),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color bg;
+
+  const _Pill({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.bg,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── CustomPainter : dessine l'anneau de progression ─────
 // C'est la version Flutter d'un SVG circle progress
 class _RingPainter extends CustomPainter {
@@ -779,7 +874,7 @@ class _GuidelineSection extends StatelessWidget {
     final pct = (guideline.approvedAndSubmittedZones /
             (guideline.totalZones == 0 ? 1 : guideline.totalZones) *
             100)
-        .toInt();
+        .round();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

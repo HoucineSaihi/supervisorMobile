@@ -1064,6 +1064,8 @@
   "vmLimitDialogTitle": "Deadline",
   "vmOk": "OK",
   "vmGlobalProgress": "Overall progress",
+  "vmSupervisorReview": "REVIEW",
+  "vmPendingReview": "Pending",
   "vmPhotoCountOne": "1 photo",
   "vmPhotoCountMany": "{count} photos",
   "@vmPhotoCountMany": {
