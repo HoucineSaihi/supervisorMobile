@@ -19,10 +19,10 @@ class CampaignScreen extends StatelessWidget {
     // On initialise le controller ici — Get le garde en mémoire
     final controller = Get.put(CampaignController(), permanent: false);
 
-    // S'assurer que les boutiques sont (re)chargées quand l'écran devient visible
+    // Reload boutiques every time the screen is built (covers fresh login after logout)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (controller.boutiques.isEmpty &&
-          controller.isLoadingBoutiques.value == false) {
+      if (!controller.isLoadingBoutiques.value) {
+        controller.boutiques.clear();
         controller.loadBoutiques();
       }
     });

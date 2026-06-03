@@ -660,7 +660,11 @@ class ZoneDetailScreen extends StatelessWidget {
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.red.shade600,
       colorText: Colors.white,
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+      borderRadius: 12,
+      maxWidth: 480,
+      duration: const Duration(seconds: 4),
+      isDismissible: true,
     );
   }
 
@@ -695,7 +699,11 @@ class ZoneDetailScreen extends StatelessWidget {
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red.shade600,
           colorText: Colors.white,
-          margin: const EdgeInsets.all(12),
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          borderRadius: 12,
+          maxWidth: 480,
+          duration: const Duration(seconds: 4),
+          isDismissible: true,
         );
         return;
       }
@@ -716,7 +724,11 @@ class ZoneDetailScreen extends StatelessWidget {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade600,
         colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        borderRadius: 12,
+        maxWidth: 480,
+        duration: const Duration(seconds: 4),
+        isDismissible: true,
       );
 
       await Future.delayed(const Duration(milliseconds: 500));
@@ -728,7 +740,11 @@ class ZoneDetailScreen extends StatelessWidget {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade600,
         colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        borderRadius: 12,
+        maxWidth: 480,
+        duration: const Duration(seconds: 4),
+        isDismissible: true,
       );
     } finally {
       controller.isUploading.value = false;

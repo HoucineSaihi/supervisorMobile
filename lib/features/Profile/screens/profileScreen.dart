@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
@@ -56,6 +57,9 @@ class _ProfileInfoState extends State<ProfileInfo> {
 
   Future<void> _handleLogout() async {
     await _storage.deleteAll();
+
+    // Delete all registered GetX controllers so the next user starts fresh
+    Get.deleteAll(force: true);
 
     // Navigate to the login screen and remove all previous routes
     Navigator.of(context).pushAndRemoveUntil(

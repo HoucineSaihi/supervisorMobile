@@ -278,9 +278,27 @@ class ExecutionController extends GetxController {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: const Text(
-                'Another photo?',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              title: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Another photo?',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(ctx).pop(false),
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.close, size: 16, color: Color(0xFF555555)),
+                    ),
+                  ),
+                ],
               ),
               content: const Text('Do you want to take another photo for this zone?'),
               actions: [
@@ -439,7 +457,11 @@ class ExecutionController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade600,
         colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        borderRadius: 12,
+        maxWidth: 480,
+        duration: const Duration(seconds: 4),
+        isDismissible: true,
       );
       return;
     }
@@ -463,7 +485,11 @@ class ExecutionController extends GetxController {
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green.shade600,
           colorText: Colors.white,
-          margin: const EdgeInsets.all(12),
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          borderRadius: 12,
+          maxWidth: 480,
+          duration: const Duration(seconds: 4),
+          isDismissible: true,
         );
       }
     } on VmSubmitApiException catch (e) {
@@ -477,7 +503,11 @@ class ExecutionController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade600,
         colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        borderRadius: 12,
+        maxWidth: 480,
+        duration: const Duration(seconds: 4),
+        isDismissible: true,
       );
     } catch (e) {
       Get.snackbar(
@@ -486,7 +516,11 @@ class ExecutionController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade600,
         colorText: Colors.white,
-        margin: const EdgeInsets.all(12),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+        borderRadius: 12,
+        maxWidth: 480,
+        duration: const Duration(seconds: 4),
+        isDismissible: true,
       );
     } finally {
       isUploading.value = false;
