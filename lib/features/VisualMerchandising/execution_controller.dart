@@ -19,6 +19,13 @@ class ExecutionController extends GetxController {
   final RxMap<int, List<String>> zonePhotos = <int, List<String>>{}.obs;
   final RxBool isUploading = false.obs;
   final RxBool isLoadingExecution = false.obs;
+
+  /// True while the camera capture flow ([pickFromCamera]) is in progress.
+  /// Used to swap the camera button for a cancel (X) button.
+  final RxBool isCameraActive = false.obs;
+
+  /// Set by [cancelCamera] to stop the capture loop after the current shot.
+  bool _cancelCameraRequested = false;
   final RxString executionError = ''.obs;
   final RxList<ZoneStatDto> zones = <ZoneStatDto>[].obs;
   final RxMap<int, List<VmExecutionPhotoDto>> remotePhotosByZone =
@@ -143,9 +150,14 @@ class ExecutionController extends GetxController {
         status == CampaignStatus.cancelled) {
       return false;
     }
-    if (status == CampaignStatus.submitted ||
-        status == CampaignStatus.disapproved) {
+    if (status == CampaignStatus.submitted) {
       return false;
+    }
+    // When the campaign is disapproved, only zones that are individually
+    // disapproved need correction (handled above). Zones that were never
+    // submitted or are pending must stay editable so the user can complete them.
+    if (status == CampaignStatus.disapproved) {
+      return zone.isNotStarted || zone.isSubmitted;
     }
     if (isSubmissionLocked) return false;
     return true;
@@ -213,6 +225,7 @@ class ExecutionController extends GetxController {
         siteId: siteId,
       );
       submissionStatus.value = result.submissionStatus;
+      unreadCommentCount.value = result.unreadCommentCount;
       zones.assignAll(result.zoneStats);
       remotePhotosByZone.clear();
       zoneIssues.clear();
@@ -259,16 +272,29 @@ class ExecutionController extends GetxController {
     }
   }
 
+  /// Requests the in-progress [pickFromCamera] loop to stop after the current
+  /// shot. Wired to the camera button's cancel (X) state.
+  void cancelCamera() {
+    _cancelCameraRequested = true;
+  }
+
   Future<void> pickFromCamera(int zoneId) async {
+    // Guard against re-entrancy while a capture flow is already running.
+    if (isCameraActive.value) return;
+    isCameraActive.value = true;
+    _cancelCameraRequested = false;
     bool keepShooting = true;
     int addedCount = 0;
+    try {
     while (keepShooting) {
       final picked = await _picker.pickImage(source: ImageSource.camera);
       if (picked == null) break;
+      if (_cancelCameraRequested) break;
       zonePhotos[zoneId] = [...photosForZone(zoneId), picked.path];
       zonePhotos.refresh();
       addedCount++;
 
+      if (_cancelCameraRequested) break;
       final ctx = Get.context;
       if (ctx == null) break;
       keepShooting = await showDialog<bool>(
@@ -336,6 +362,10 @@ class ExecutionController extends GetxController {
       },
     );
     // #endregion
+    } finally {
+      isCameraActive.value = false;
+      _cancelCameraRequested = false;
+    }
   }
 
   Future<void> pickFromGallery(int zoneId) async {

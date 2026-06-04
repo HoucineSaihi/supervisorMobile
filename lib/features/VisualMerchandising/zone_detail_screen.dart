@@ -506,14 +506,19 @@ class ZoneDetailScreen extends StatelessWidget {
                   }
 
                   // Bouton "Ajouter"
-                  return _AddPhotoTile(
-                    l10n: l10n,
-                    enabled: editable,
-                    onCameraPressed: () =>
-                        controller.pickFromCamera(zone.zoneId),
-                    onGalleryPressed: () =>
-                        controller.pickFromGallery(zone.zoneId),
-                  );
+                  return Obx(() {
+                    final cameraActive = controller.isCameraActive.value;
+                    return _AddPhotoTile(
+                      l10n: l10n,
+                      enabled: editable,
+                      cameraActive: cameraActive,
+                      onCameraPressed: cameraActive
+                          ? () => controller.cancelCamera()
+                          : () => controller.pickFromCamera(zone.zoneId),
+                      onGalleryPressed: () =>
+                          controller.pickFromGallery(zone.zoneId),
+                    );
+                  });
                 },
               );
             }),
@@ -543,12 +548,21 @@ class ZoneDetailScreen extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Bouton caméra
-            _SourceButton(
-              icon: Icons.camera_alt_outlined,
-              label: l10n.vmCamera,
-              onTap: editable ? () => controller.pickFromCamera(zone.zoneId) : null,
-            ),
+            // Bouton caméra (devient un bouton d'annulation X pendant la prise)
+            Obx(() {
+              final cameraActive = controller.isCameraActive.value;
+              return _SourceButton(
+                icon: cameraActive
+                    ? Icons.close
+                    : Icons.camera_alt_outlined,
+                label: cameraActive ? l10n.cancel : l10n.vmCamera,
+                onTap: cameraActive
+                    ? () => controller.cancelCamera()
+                    : (editable
+                        ? () => controller.pickFromCamera(zone.zoneId)
+                        : null),
+              );
+            }),
             const SizedBox(width: 10),
 
             // Bouton galerie
@@ -710,13 +724,9 @@ class ZoneDetailScreen extends StatelessWidget {
 
       controller.removeAllPhotosForZone(zone.zoneId);
       controller.clearRemovedRemotePhotos(zone.zoneId);
-      final siteId = controller.getCurrentSiteId();
-      if (siteId != null) {
-        await controller.loadExecution(
-          campaignId: campaign.campaignId,
-          siteId: siteId,
-        );
-      }
+
+      // Navigate back immediately — the snackbar persists across screens in GetX.
+      Get.back();
 
       Get.snackbar(
         'Success',
@@ -727,12 +737,18 @@ class ZoneDetailScreen extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
         borderRadius: 12,
         maxWidth: 480,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 6),
         isDismissible: true,
       );
 
-      await Future.delayed(const Duration(milliseconds: 500));
-      Get.back();
+      // Refresh execution data on the ExecutionScreen after navigating back.
+      final siteId = controller.getCurrentSiteId();
+      if (siteId != null) {
+        await controller.loadExecution(
+          campaignId: campaign.campaignId,
+          siteId: siteId,
+        );
+      }
     } catch (e) {
       Get.snackbar(
         l10n.error,
@@ -1128,12 +1144,14 @@ class _AddPhotoTile extends StatelessWidget {
   final VoidCallback onCameraPressed;
   final VoidCallback onGalleryPressed;
   final bool enabled;
+  final bool cameraActive;
 
   const _AddPhotoTile({
     required this.l10n,
     required this.onCameraPressed,
     required this.onGalleryPressed,
     this.enabled = true,
+    this.cameraActive = false,
   });
 
   @override
@@ -1184,8 +1202,11 @@ class _AddPhotoTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _MiniSourceBtn(
-                    icon: Icons.camera_alt_outlined,
-                    onTap: enabled ? onCameraPressed : null,
+                    icon: cameraActive
+                        ? Icons.close
+                        : Icons.camera_alt_outlined,
+                    // Le bouton d'annulation reste actif pendant la prise.
+                    onTap: (cameraActive || enabled) ? onCameraPressed : null,
                   ),
                   const SizedBox(width: 8),
                   _MiniSourceBtn(

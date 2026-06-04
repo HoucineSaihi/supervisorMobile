@@ -276,12 +276,14 @@ class VmCampaignExecutionDto {
   final int siteId;
   final List<VmExecutionZoneDto> zones;
   final SubmissionStatus submissionStatus;
+  final int unreadCommentCount;
 
   const VmCampaignExecutionDto({
     required this.campaignId,
     required this.siteId,
     required this.zones,
     this.submissionStatus = SubmissionStatus.unknown,
+    this.unreadCommentCount = 0,
   });
 
   factory VmCampaignExecutionDto.fromJson(Map<String, dynamic> json) {
@@ -293,6 +295,7 @@ class VmCampaignExecutionDto {
           .map((z) => VmExecutionZoneDto.fromJson(z as Map<String, dynamic>))
           .toList(),
       submissionStatus: SubmissionStatus.fromString(json['submissionStatus'] as String?),
+      unreadCommentCount: (json['unreadCommentCount'] as num?)?.toInt() ?? 0,
     );
   }
 

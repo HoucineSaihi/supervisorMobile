@@ -132,22 +132,57 @@ class ExecutionScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Obx(() {
-                final unread = controller.unreadCommentCount.value;
-                return ExecutionCommentsButton(
-                  unreadCount: unread,
-                  label: l10n.vmComments,
-                  onTap: () async {
-                    await SubmissionCommentsSheet.show(
-                      context,
-                      campaignId: vm.campaignId,
-                      siteId: siteId,
-                      campaignName: vm.libelle,
-                      onThreadOpened: controller.markSubmissionCommentsRead,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Obx(() {
+                    final isLoading = controller.isLoadingExecution.value;
+                    return GestureDetector(
+                      onTap: isLoading
+                          ? null
+                          : () => controller.loadExecution(
+                                campaignId: vm.campaignId,
+                                siteId: siteId,
+                              ),
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white.withOpacity(0.25)),
+                        ),
+                        child: isLoading
+                            ? const Padding(
+                                padding: EdgeInsets.all(8),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                      ),
                     );
-                  },
-                );
-              }),
+                  }),
+                  Obx(() {
+                    final unread = controller.unreadCommentCount.value;
+                    return ExecutionCommentsButton(
+                      unreadCount: unread,
+                      label: l10n.vmComments,
+                      onTap: () async {
+                        await SubmissionCommentsSheet.show(
+                          context,
+                          campaignId: vm.campaignId,
+                          siteId: siteId,
+                          campaignName: vm.libelle,
+                          onThreadOpened: controller.markSubmissionCommentsRead,
+                        );
+                      },
+                    );
+                  }),
+                ],
+              ),
             ],
           ),
 

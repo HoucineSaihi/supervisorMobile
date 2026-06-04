@@ -33,7 +33,7 @@ class VmSubmissionCommentDto {
       authorInitials: json['authorInitials'] as String? ?? '',
       authorRole: json['authorRole'] as String? ?? '',
       message: json['message'] as String? ?? '',
-      createdAt: DateTime.parse('${json['createdAt']}Z').toLocal(),
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       isUnread: json['isUnread'] as bool? ?? false,
     );
   }
