@@ -356,6 +356,8 @@
   "vmLoadCampaignsErrorTitle": "Erreur de chargement",
   "vmNoActiveCampaignTitle": "Aucune campagne active",
   "vmNoActiveCampaignSubtitle": "Cette boutique n'a pas\nde campagne en cours.",
+  "vmOnlyPassedCampaignsSubtitle": "Cette boutique n'a que\ndes campagnes passées. Cochez \"Afficher les campagnes passées\"\npour les voir.",
+  "vmShowPassedCampaigns": "Afficher les campagnes passées",
   "vmLoadMore": "Charger plus",
   "vmSelectBoutiqueSectionLabel": "SÉLECTIONNER UNE BOUTIQUE",
   "vmLoadingBoutiques": "Chargement des boutiques...",

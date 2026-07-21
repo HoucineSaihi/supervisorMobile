@@ -1033,6 +1033,8 @@
   "vmLoadCampaignsErrorTitle": "Loading error",
   "vmNoActiveCampaignTitle": "No active campaign",
   "vmNoActiveCampaignSubtitle": "This store has no\ncampaign in progress.",
+  "vmOnlyPassedCampaignsSubtitle": "This store only has\npast campaigns. Check \"Show past campaigns\"\nto view them.",
+  "vmShowPassedCampaigns": "Show past campaigns",
   "vmLoadMore": "Load more",
   "vmSelectBoutiqueSectionLabel": "SELECT A STORE",
   "vmLoadingBoutiques": "Loading stores...",
