@@ -7,6 +7,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
 import 'package:supervisormobile/features/authentification/screens/onBoarding/onboarding.dart';
+import 'package:supervisormobile/features/communication/widgets/notification_toast_overlay.dart';
 import 'package:supervisormobile/navigation_menu.dart';
 import 'package:supervisormobile/utils/Keys/navigation_key.dart';
 import 'package:supervisormobile/utils/theme/theme.dart';
@@ -89,6 +90,10 @@ class _AppState extends State<App> {
         themeMode: ThemeMode.system,
         theme: TAppTheme.lightTheme,
         darkTheme: TAppTheme.darkTheme,
+        // Mounts the messenger toast above every route, so a new message surfaces
+        // globally — not only inside the communication module.
+        builder: (context, child) =>
+            GlobalMessengerToastHost(child: child ?? const SizedBox.shrink()),
       home: Builder(
         builder: (context) {
           // Set up overlay state as soon as the context is available

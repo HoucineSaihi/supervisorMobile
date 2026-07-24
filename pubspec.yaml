@@ -75,6 +75,10 @@ dependencies:
   open_file: ^3.5.1
   package_info_plus: ^8.0.0
   flutter_image_compress: ^2.3.0
+  # Smart Messenger (Phase G) — realtime + offline outbound queue
+  signalr_netcore: ^1.3.7
+  sqflite: ^2.3.3
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:
