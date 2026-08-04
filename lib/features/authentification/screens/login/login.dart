@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:supervisormobile/features/authentification/services/login_service.dart';
 import 'package:supervisormobile/features/calendar/screens/calendar.dart';
+import 'package:supervisormobile/features/communication/controllers/messenger_controller.dart';
 import 'package:supervisormobile/navigation_menu.dart';
 import 'package:supervisormobile/utils/Helpers/helper_functions.dart';
 import 'package:supervisormobile/utils/constants/TImages.dart';
@@ -71,6 +72,14 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _loginService.login(username, password);
 
       if (result['success']) {
+        // If a MessengerController survived the previous session (it is permanent),
+        // it is still holding the old account's identity and an empty, reset state.
+        // Re-bootstrap it against the credentials just written to secure storage so
+        // the new user gets their own conversations and hub connection.
+        if (Get.isRegistered<MessengerController>()) {
+          await Get.find<MessengerController>().reinitializeForNewUser();
+        }
+
         // Replace the login screen with the home screen
         Get.offAll(() => NavigationMenu());
       } else {

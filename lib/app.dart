@@ -29,8 +29,10 @@ class _AppState extends State<App> {
   @override
   void initState() {
     super.initState();
-    // Initialize language controller
-    Get.put(LanguageController());
+    // Registered as permanent: the controller lives above GetMaterialApp, so
+    // GetX's route-scoped smart management would otherwise dispose it on
+    // navigation and Get.find() would throw in widgets like LanguageSelector.
+    Get.put(LanguageController(), permanent: true);
     _checkLaunchStatus();
   }
 

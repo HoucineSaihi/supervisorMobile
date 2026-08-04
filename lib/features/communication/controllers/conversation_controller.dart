@@ -38,6 +38,31 @@ class ConversationController extends GetxController {
   final editing = Rxn<Message>();
   final mentionSuggestions = <MentionSuggestion>[].obs;
   final allowedReactions = <String>[].obs;
+
+  // ── Context, pins and search ──────────────────────────
+
+  /// Conversation-wide pinned messages. The newest is surfaced as a banner; the rest
+  /// are reachable from the info screen.
+  final pinnedMessages = <PinnedMessage>[].obs;
+
+  /// Lets the user dismiss the banner for this visit without unpinning for everyone.
+  final pinnedBannerDismissed = false.obs;
+
+  /// Live status of incidents referenced by this thread, keyed by incident id, so a
+  /// card can show where the incident actually stands rather than just its number.
+  final incidentSummaries = <int, IncidentStatusSummary>{}.obs;
+
+  /// Status of the operational object this whole conversation hangs off, when it is an
+  /// incident thread. Backs the context banner under the header.
+  final scopeIncident = Rxn<IncidentStatusSummary>();
+
+  final searchQuery = ''.obs;
+  final searchResults = <Message>[].obs;
+  final isSearching = false.obs;
+  final searchActive = false.obs;
+
+  /// Unsent composer text, kept so leaving and returning does not lose it.
+  String draft = '';
   Timer? _mentionDebounce;
 
   int _lastSequence = 0;
@@ -54,6 +79,9 @@ class ConversationController extends GetxController {
     _subscribe();
     _open();
   }
+
+  /// Retries the initial load after a failure.
+  Future<void> reload() => _open();
 
   Future<void> _open() async {
     isLoading.value = true;
@@ -73,7 +101,10 @@ class ConversationController extends GetxController {
     // Fetch detail (members) in parallel; failure is non-fatal.
     try {
       detail.value = await _service.getConversation(conversationId);
+      _loadScopeContext();
     } catch (_) {}
+    loadPinnedMessages();
+    _loadIncidentSummaries();
     // Subscribe BEFORE joining so a join failure mid-reconnect can't skip wiring.
     await _signalR.joinConversation(conversationId);
     _root.markConversationRead(conversationId);
@@ -361,6 +392,92 @@ class ConversationController extends GetxController {
 
   // ── Reactions / delete / pin ──────────────────────────
 
+  // ── Context, pins, search, incident linkage ───────────
+
+  /// Resolves the conversation's own scope object. Only incidents have a status
+  /// endpoint today; other scope types render from the badge alone.
+  Future<void> _loadScopeContext() async {
+    final d = detail.value;
+    if (d == null || !d.hasScope) return;
+    if (d.scopeType != ConversationScopeType.incident) return;
+    try {
+      scopeIncident.value = await _service.getIncidentStatusSummary(d.scopeId!);
+    } catch (_) {}
+  }
+
+  /// Pulls status for every incident referenced by a message in view, so incident
+  /// cards render live rather than as a bare id.
+  Future<void> _loadIncidentSummaries() async {
+    final ids = messages
+        .map((m) => m.linkedIncidentId)
+        .whereType<int>()
+        .toSet()
+        .where((id) => !incidentSummaries.containsKey(id))
+        .toList();
+    if (ids.isEmpty) return;
+    for (final id in ids) {
+      try {
+        incidentSummaries[id] = await _service.getIncidentStatusSummary(id);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> loadPinnedMessages() async {
+    try {
+      pinnedMessages.value = await _service.getPinnedMessages(conversationId);
+    } catch (_) {}
+  }
+
+  void openSearch() => searchActive.value = true;
+
+  void closeSearch() {
+    searchActive.value = false;
+    searchQuery.value = '';
+    searchResults.clear();
+  }
+
+  /// In-thread search over the full history — not just what is currently loaded.
+  Future<void> runSearch(String query) async {
+    searchQuery.value = query;
+    final q = query.trim();
+    // The server rejects anything shorter, so don't spend a request on it.
+    if (q.length < 2) {
+      searchResults.clear();
+      isSearching.value = false;
+      return;
+    }
+    isSearching.value = true;
+    try {
+      final page = await _service.searchMessages(conversationId, q);
+      // Guard against an earlier request landing after a later one.
+      if (searchQuery.value.trim() == q) {
+        searchResults.value = page.messages;
+      }
+    } catch (_) {
+      searchResults.clear();
+    } finally {
+      isSearching.value = false;
+    }
+  }
+
+  /// Turns a message into a tracked incident. Returns the incident on success so the
+  /// caller can confirm it; the server posts a system message into the thread itself.
+  Future<IncidentStatusSummary?> convertToIncident(Message m, {String? description}) async {
+    try {
+      final summary = await _service.convertMessageToIncident(
+        conversationId,
+        m.id,
+        description: description ?? m.body,
+      );
+      incidentSummaries[summary.id] = summary;
+      // The conversion stamps LinkedIncidentId on the message and posts a system note.
+      await _refreshMessage(m.id);
+      return summary;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> loadAllowedReactions() async {
     if (allowedReactions.isNotEmpty) return;
     try {
@@ -398,6 +515,8 @@ class ConversationController extends GetxController {
         await _service.pinMessage(conversationId, m.id);
       }
       _refreshMessage(m.id);
+      // Keep the pinned banner in step with the change we just made.
+      loadPinnedMessages();
     } catch (_) {}
   }
 
@@ -422,10 +541,62 @@ class ConversationController extends GetxController {
     mentionSuggestions.clear();
   }
 
-  // ── Voice message ─────────────────────────────────────
+  // ── Attachments (voice / image / file) ────────────────
 
   /// Uploads a recorded clip and sends it as a voice message.
-  Future<void> sendVoice(String filePath, int durationSeconds) async {
+  Future<void> sendVoice(String filePath, int durationSeconds) {
+    return _sendAttachment(
+      filePath: filePath,
+      fileName: 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a',
+      kind: AttachmentKind.voice,
+      optimisticType: MessageType.voice,
+      durationSeconds: durationSeconds,
+      failureMessage: 'Could not send the voice message',
+    );
+  }
+
+  /// Uploads a picked photo (camera or gallery) and sends it as an image message.
+  Future<void> sendImage(String filePath, String fileName, {String? caption}) {
+    return _sendAttachment(
+      filePath: filePath,
+      fileName: fileName,
+      kind: AttachmentKind.image,
+      optimisticType: MessageType.image,
+      body: caption,
+      failureMessage: 'Could not send the image',
+    );
+  }
+
+  /// Uploads an arbitrary document and sends it as a file message.
+  Future<void> sendFile(String filePath, String fileName, {String? caption}) {
+    return _sendAttachment(
+      filePath: filePath,
+      fileName: fileName,
+      kind: AttachmentKind.file,
+      optimisticType: MessageType.file,
+      body: caption,
+      failureMessage: 'Could not send the file',
+    );
+  }
+
+  /// Shared upload-then-send path for every attachment kind.
+  ///
+  /// Attachments are deliberately NOT put through the offline outbox: the queue
+  /// persists only body text, and the staged upload it would reference is swept
+  /// server-side, so a queued media send could never be replayed faithfully. A
+  /// failed media send is surfaced as failed instead of silently pending.
+  Future<void> _sendAttachment({
+    required String filePath,
+    required String fileName,
+    required AttachmentKind kind,
+    required MessageType optimisticType,
+    required String failureMessage,
+    String? body,
+    int? durationSeconds,
+  }) async {
+    final replyToMessageId = replyingTo.value?.id;
+    replyingTo.value = null;
+
     final clientId = _newClientId();
     final optimistic = Message(
       id: -DateTime.now().millisecondsSinceEpoch,
@@ -433,23 +604,29 @@ class ConversationController extends GetxController {
       sequenceNumber: 1 << 30,
       clientMessageId: clientId,
       senderId: currentUserId,
-      type: MessageType.voice,
+      type: optimisticType,
+      body: body,
       createdAt: DateTime.now(),
+      replyToMessageId: replyToMessageId,
       pendingStatus: PendingStatus.sending,
     );
     messages.add(optimistic);
     messages.refresh();
+    isSending.value = true;
+
     try {
       final att = await _service.uploadAttachment(
         conversationId,
         filePath,
-        'voice_${DateTime.now().millisecondsSinceEpoch}.m4a',
-        AttachmentKind.voice,
+        fileName,
+        kind,
         durationSeconds: durationSeconds,
       );
       final confirmed = await _service.sendMessage(
         conversationId,
         clientMessageId: clientId,
+        body: body,
+        replyToMessageId: replyToMessageId,
         attachmentIds: [att.id],
       );
       final i = messages.indexWhere((m) => m.clientMessageId == clientId);
@@ -458,10 +635,15 @@ class ConversationController extends GetxController {
       messages.refresh();
     } catch (_) {
       _replacePending(clientId, PendingStatus.failed);
-      Get.snackbar('Voice failed', 'Could not send the voice message',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar('Send failed', failureMessage, snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isSending.value = false;
     }
   }
+
+  /// Per-person read breakdown for one of my messages, for the "seen by" popup.
+  Future<MessageReceipts> loadReceipts(int messageId) =>
+      _service.getReceipts(conversationId, messageId);
 
   @override
   void onClose() {

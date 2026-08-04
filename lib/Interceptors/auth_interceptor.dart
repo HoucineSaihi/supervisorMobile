@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
+import 'package:supervisormobile/features/communication/controllers/messenger_controller.dart';
 import 'package:supervisormobile/utils/Keys/navigation_key.dart';
 
 class AuthInterceptor extends Interceptor {
@@ -28,7 +30,15 @@ class AuthInterceptor extends Interceptor {
       final token = await _storage.read(key: 'token');
       if (token == null || token.isEmpty) return;
 
+      // Same teardown as an explicit logout — an expired session drops the user on
+      // the login screen, and whoever signs in next must not inherit the previous
+      // account's live hub, cached threads, or unread badge.
+      if (Get.isRegistered<MessengerController>()) {
+        await Get.find<MessengerController>().resetForLogout();
+      }
+
       await _storage.deleteAll();
+      Get.deleteAll(force: true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final nav = navigatorKey.currentState;
         if (nav != null && nav.mounted) {

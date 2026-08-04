@@ -106,4 +106,12 @@ class OfflineQueue {
     final r = await db.rawQuery('SELECT COUNT(*) AS n FROM outbox');
     return (r.first['n'] as int?) ?? 0;
   }
+
+  /// Drops every queued send. Called on logout: the outbox is keyed only by
+  /// conversation, so anything left here would flush under the next user's token
+  /// and post as the wrong person.
+  Future<void> clear() async {
+    final db = await _open();
+    await db.delete('outbox');
+  }
 }

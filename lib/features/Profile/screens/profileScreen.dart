@@ -9,6 +9,7 @@ import 'package:supervisormobile/features/Profile/screens/image_picker.dart';
 import 'package:supervisormobile/features/Profile/screens/userinfo_edit.dart';
 import 'package:supervisormobile/features/Profile/services/user_service.dart';
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
+import 'package:supervisormobile/features/communication/controllers/messenger_controller.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supervisormobile/common/widgets/language_selector.dart';
@@ -56,6 +57,15 @@ class _ProfileInfoState extends State<ProfileInfo> {
   }
 
   Future<void> _handleLogout() async {
+    // Tear the messenger down *before* clearing storage: it has to stop the live
+    // SignalR hub and drop the cached threads while it can still identify the
+    // session. Get.deleteAll below does not do this on its own — a permanent
+    // controller's onClose is skipped unless it is actually disposed, so the old
+    // user's conversations would otherwise leak into the next login.
+    if (Get.isRegistered<MessengerController>()) {
+      await Get.find<MessengerController>().resetForLogout();
+    }
+
     await _storage.deleteAll();
 
     // Delete all registered GetX controllers so the next user starts fresh

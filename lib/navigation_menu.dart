@@ -21,7 +21,15 @@ class NavigationMenu extends StatelessWidget {
     // Bring the realtime channel up once for the whole app, so notifications arrive
     // on any tab — not only while the Messages tab is open. Permanent so it survives
     // tab switches and owns the single shared SignalR connection.
-    final messenger = Get.put(MessengerController(), permanent: true);
+    //
+    // Guarded by isRegistered: build() re-runs on every tab tap (the bar below is
+    // wrapped in Obx), and `Get.put(MessengerController())` would construct a fresh
+    // controller each time. GetX discards the duplicate without ever calling its
+    // onInit, so the throwaway instance's streams leak and no load ever fires.
+    if (!Get.isRegistered<MessengerController>()) {
+      Get.put(MessengerController(), permanent: true);
+    }
+    final messenger = Get.find<MessengerController>();
     final darkMode = THelperFunctions.isDarkMode(context);
 
     return Scaffold(
@@ -114,6 +122,9 @@ class _MessagesIcon extends StatelessWidget {
 class NavigationController extends GetxController {
   var selectedIndex = 0.obs;
 
+  /// Index of the Smart Messenger destination in [screens].
+  static const int messagesTabIndex = 3;
+
   final List<Widget> screens = [
     const CalendarPlanning(),
     AllIncidentsWidget(),
@@ -124,5 +135,12 @@ class NavigationController extends GetxController {
 
   void changeIndex(int index) {
     selectedIndex.value = index;
+    // The messenger controller is permanent, so ConversationsListScreen is not
+    // rebuilt from scratch on tab entry and would otherwise show whatever the
+    // single startup load left behind — including nothing, if that load failed.
+    // Refresh silently so the existing list stays visible while it revalidates.
+    if (index == messagesTabIndex && Get.isRegistered<MessengerController>()) {
+      Get.find<MessengerController>().loadConversations(silent: true);
+    }
   }
 }

@@ -47,7 +47,9 @@ String messageTypeToJson(MessageType t) {
   }
 }
 
-MessagePriority _priorityFrom(String? v) {
+/// Public so `conversation.dart` can parse the list endpoint's priority rollup with the
+/// same mapping, rather than keeping a second copy that could drift.
+MessagePriority priorityFrom(String? v) {
   switch (v) {
     case 'Urgent':
       return MessagePriority.urgent;
@@ -228,6 +230,62 @@ class ReactionSummary {
       );
 }
 
+/// One recipient's read state for a message, for the "seen by" popup.
+class MessageReceiptEntry {
+  final int caisseId;
+  final String? name;
+  final bool hasRead;
+
+  /// Only known when the recipient explicitly acknowledged — reads themselves are
+  /// stored as a position watermark, not a timestamp, so this is usually null.
+  final DateTime? readAt;
+  final bool hasAcknowledged;
+
+  MessageReceiptEntry({
+    required this.caisseId,
+    this.name,
+    this.hasRead = false,
+    this.readAt,
+    this.hasAcknowledged = false,
+  });
+
+  factory MessageReceiptEntry.fromJson(Map<String, dynamic> j) => MessageReceiptEntry(
+        caisseId: j['caisseId'] ?? 0,
+        name: j['name'],
+        hasRead: j['hasRead'] ?? false,
+        readAt: j['readAt'] != null ? DateTime.tryParse(j['readAt'])?.toLocal() : null,
+        hasAcknowledged: j['hasAcknowledged'] ?? false,
+      );
+}
+
+/// Per-recipient read breakdown for one message. Server returns this only to the
+/// message's own sender.
+class MessageReceipts {
+  final int messageId;
+  final int readCount;
+  final int recipientCount;
+  final List<MessageReceiptEntry> recipients;
+
+  MessageReceipts({
+    required this.messageId,
+    required this.readCount,
+    required this.recipientCount,
+    this.recipients = const [],
+  });
+
+  List<MessageReceiptEntry> get readers => recipients.where((r) => r.hasRead).toList();
+  List<MessageReceiptEntry> get pending => recipients.where((r) => !r.hasRead).toList();
+
+  factory MessageReceipts.fromJson(Map<String, dynamic> j) => MessageReceipts(
+        messageId: j['messageId'] ?? 0,
+        readCount: j['readCount'] ?? 0,
+        recipientCount: j['recipientCount'] ?? 0,
+        recipients: (j['recipients'] as List<dynamic>? ?? [])
+            .map((r) => MessageReceiptEntry.fromJson(r))
+            .toList(),
+      );
+}
+
 class Message {
   final int id;
   final int conversationId;
@@ -298,7 +356,7 @@ class Message {
         senderName: j['senderName'],
         type: _messageTypeFrom(j['type']),
         body: j['body'],
-        priority: _priorityFrom(j['priority']),
+        priority: priorityFrom(j['priority']),
         linkedIncidentId: j['linkedIncidentId'],
         createdAt: DateTime.tryParse(j['createdAt'] ?? '')?.toLocal() ?? DateTime.now(),
         editedAt: j['editedAt'] != null ? DateTime.tryParse(j['editedAt'])?.toLocal() : null,
@@ -401,5 +459,28 @@ class MessagePage {
             .toList(),
         hasMoreOlder: j['hasMoreOlder'] ?? false,
         hasMoreNewer: j['hasMoreNewer'] ?? false,
+      );
+}
+
+/// A message pinned to the top of a conversation, with who pinned it. Mirrors
+/// PinnedMessageDto — the pin is conversation-wide, unlike the personal inbox pin.
+class PinnedMessage {
+  final Message message;
+  final int pinnedByCaisseId;
+  final String? pinnedByName;
+  final DateTime pinnedAt;
+
+  PinnedMessage({
+    required this.message,
+    required this.pinnedByCaisseId,
+    this.pinnedByName,
+    required this.pinnedAt,
+  });
+
+  factory PinnedMessage.fromJson(Map<String, dynamic> j) => PinnedMessage(
+        message: Message.fromJson(j['message'] ?? const <String, dynamic>{}),
+        pinnedByCaisseId: (j['pinnedByCaisseId'] as num?)?.toInt() ?? 0,
+        pinnedByName: j['pinnedByName'],
+        pinnedAt: DateTime.tryParse(j['pinnedAt'] ?? '')?.toLocal() ?? DateTime.now(),
       );
 }

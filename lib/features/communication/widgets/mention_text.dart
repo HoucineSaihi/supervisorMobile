@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/message.dart';
 import '../theme/comm_colors.dart';
+import 'scope_visuals.dart';
 
 /// Builds the inline spans for a message body, turning stored `@[Type:Id]` tokens
 /// into styled pills. Same contract as the web `toSegments`: the server sends
@@ -61,57 +62,16 @@ class _MentionPill extends StatelessWidget {
     required this.gone,
   });
 
-  Color get _fg {
-    if (gone) return CommColors.muted;
-    switch (entityType) {
-      case 'Incident':
-        return const Color(0xFFB91C1C);
-      case 'Mission':
-        return const Color(0xFFB45309);
-      case 'Campaign':
-        return const Color(0xFF6D28D9);
-      case 'Boutique':
-        return const Color(0xFF15803D);
-      default:
-        return CommColors.blueDark;
-    }
-  }
-
-  Color get _bg {
-    if (gone) return CommColors.line2;
-    switch (entityType) {
-      case 'Incident':
-        return const Color(0xFFFEF2F2);
-      case 'Mission':
-        return const Color(0xFFFFFBEB);
-      case 'Campaign':
-        return const Color(0xFFF5F3FF);
-      case 'Boutique':
-        return const Color(0xFFF0FDF4);
-      default:
-        return CommColors.blueSoft;
-    }
-  }
-
-  IconData get _icon {
-    switch (entityType) {
-      case 'Incident':
-        return Icons.report_problem_outlined;
-      case 'Mission':
-        return Icons.assignment_outlined;
-      case 'Campaign':
-        return Icons.campaign_outlined;
-      case 'Boutique':
-        return Icons.store_outlined;
-      default:
-        return Icons.person_outline;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final fg = isMe ? Colors.white : _fg;
-    final bg = isMe ? CommColors.blue : _bg;
+    // Shared with the inbox's origin badge so the two never drift apart.
+    final visuals = scopeVisualsFor(entityType);
+    final fg = isMe
+        ? Colors.white
+        : (gone ? CommColors.muted : visuals.fg);
+    final bg = isMe
+        ? CommColors.blue
+        : (gone ? CommColors.line2 : visuals.bg);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 1),
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -119,7 +79,7 @@ class _MentionPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_icon, size: 12, color: fg),
+          Icon(visuals.icon, size: 12, color: fg),
           const SizedBox(width: 3),
           Text(
             label,

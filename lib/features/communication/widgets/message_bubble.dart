@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../models/conversation.dart' show IncidentStatusSummary;
 import '../models/message.dart';
 import '../theme/comm_colors.dart';
 import 'auth_image.dart';
+import 'incident_card.dart';
 import 'mention_text.dart';
+import 'voice_player.dart';
 
 /// A single message row. Own messages align right on a blue bubble with receipt
 /// ticks; others align left with the sender's name. Matches the web bubble layout.
@@ -16,6 +19,17 @@ class MessageBubble extends StatelessWidget {
   final VoidCallback? onLongPress;
   final void Function(String emoji)? onReactionTap;
 
+  /// Opens an image full-screen or downloads a file attachment.
+  final void Function(MessageAttachment attachment)? onAttachmentTap;
+
+  /// Opens the "seen by" popup. Only wired for the sender's own messages.
+  final VoidCallback? onReceiptTap;
+
+  /// Live status for [Message.linkedIncidentId], when it has been resolved. Null while
+  /// loading or if the lookup failed — the card is simply omitted rather than faked.
+  final IncidentStatusSummary? incident;
+  final VoidCallback? onOpenIncident;
+
   const MessageBubble({
     super.key,
     required this.message,
@@ -24,6 +38,10 @@ class MessageBubble extends StatelessWidget {
     this.showAuthor = true,
     this.onLongPress,
     this.onReactionTap,
+    this.onAttachmentTap,
+    this.onReceiptTap,
+    this.incident,
+    this.onOpenIncident,
   });
 
   bool get _mentionsMe =>
@@ -31,13 +49,39 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // System events are the app talking, not a person — a centred pill keeps them
+    // clearly outside the human conversation.
     if (message.type == MessageType.system) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         child: Center(
-          child: Text(
-            message.body ?? '',
-            style: const TextStyle(color: CommColors.muted2, fontSize: 11.5),
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: CommColors.line2,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.info_outline, size: 13, color: CommColors.muted),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    message.body ?? '',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: CommColors.muted,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -49,7 +93,10 @@ class MessageBubble extends StatelessWidget {
     return Align(
       alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+        // Operational cards get more room than plain chat — they carry more to read.
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * (incident != null ? 0.9 : 0.78),
+        ),
         margin: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           crossAxisAlignment: isOwn ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -108,6 +155,10 @@ class MessageBubble extends StatelessWidget {
               ),
             ),
             ),
+            // The incident this message produced or refers to, rendered as an object
+            // card rather than folded into the bubble.
+            if (incident != null)
+              IncidentCard(incident: incident!, onOpen: onOpenIncident),
             if (message.reactions.isNotEmpty) _reactionChips(),
           ],
         ),
@@ -190,12 +241,18 @@ class MessageBubble extends StatelessWidget {
             case AttachmentKind.image:
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4),
-                child: AuthImage(relativeUrl: a.url, width: 220, height: 170),
+                child: GestureDetector(
+                  onTap: onAttachmentTap == null ? null : () => onAttachmentTap!(a),
+                  child: AuthImage(relativeUrl: a.url, width: 220, height: 170),
+                ),
               );
             case AttachmentKind.voice:
-              return _chip(Icons.mic_none, a.durationSeconds != null ? '${a.durationSeconds}s voice' : 'Voice message');
+              return VoicePlayer(attachment: a, isOwn: isOwn);
             case AttachmentKind.file:
-              return _chip(Icons.insert_drive_file_outlined, a.fileName);
+              return GestureDetector(
+                onTap: onAttachmentTap == null ? null : () => onAttachmentTap!(a),
+                child: _chip(Icons.insert_drive_file_outlined, a.fileName),
+              );
           }
         }).toList(),
       ),
@@ -257,19 +314,26 @@ class MessageBubble extends StatelessWidget {
     // Group "3/5" where a tick alone can't convey who is still missing.
     final countLabel = message.recipientCount > 1 ? '${message.readCount}/${message.recipientCount}' : null;
     final read = message.isRead;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (countLabel != null) ...[
-          Text(countLabel, style: const TextStyle(fontSize: 10, color: CommColors.muted2, fontWeight: FontWeight.w600)),
-          const SizedBox(width: 2),
+    // Tapping the ticks opens the per-person breakdown. Only meaningful once the
+    // message exists server-side (id > 0) and there is someone else to have read it.
+    final canOpenReceipts = onReceiptTap != null && message.id > 0 && message.recipientCount > 0;
+    return GestureDetector(
+      onTap: canOpenReceipts ? onReceiptTap : null,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (countLabel != null) ...[
+            Text(countLabel, style: const TextStyle(fontSize: 10, color: CommColors.muted2, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 2),
+          ],
+          Icon(
+            read ? Icons.done_all : Icons.check,
+            size: 14,
+            color: read ? CommColors.blue : CommColors.muted2,
+          ),
         ],
-        Icon(
-          read ? Icons.done_all : Icons.check,
-          size: 14,
-          color: read ? CommColors.blue : CommColors.muted2,
-        ),
-      ],
+      ),
     );
   }
 }

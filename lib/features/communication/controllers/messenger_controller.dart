@@ -10,6 +10,25 @@ import '../services/chat_signalr_service.dart';
 import '../services/messenger_service.dart';
 import '../services/offline_queue.dart';
 
+/// Inbox filter chips. Mirrors the web module's chip set, minus Direct — the mobile
+/// spec asks for Mentions instead, which the server now flags per conversation.
+enum ConversationFilter { all, unread, mentions, groups }
+
+extension ConversationFilterLabel on ConversationFilter {
+  String get label {
+    switch (this) {
+      case ConversationFilter.all:
+        return 'All';
+      case ConversationFilter.unread:
+        return 'Unread';
+      case ConversationFilter.mentions:
+        return 'Mentions';
+      case ConversationFilter.groups:
+        return 'Groups';
+    }
+  }
+}
+
 /// App-level messenger state: the conversation list, the shared SignalR connection,
 /// and the offline outbox flush. Lives as long as the messenger tab is mounted.
 class MessengerController extends GetxController with WidgetsBindingObserver {
@@ -22,6 +41,17 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
   final hasError = false.obs;
   final connection = ConnectionStatus.connecting.obs;
   final pendingOutbox = 0.obs;
+
+  // ── Inbox view state ──────────────────────────────────
+  // Lives on the controller rather than the screen because this controller is
+  // `permanent: true` while the screen widget is rebuilt from scratch on every tab
+  // switch — keeping it here is what makes the filter/search survive leaving the tab.
+
+  final filter = ConversationFilter.all.obs;
+  final searchQuery = ''.obs;
+
+  /// Collapses the pinned block to a short preview. Cosmetic, so it is not persisted.
+  final pinnedExpanded = true.obs;
 
   /// Unread notification total, kept live by hub pushes and primed/backstopped over
   /// REST. Drives the badge on the Messages nav destination.
@@ -53,9 +83,61 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
     _bootstrap();
   }
 
+  /// Tears down every trace of the signed-in user: the live hub (which is
+  /// authenticated as the *old* account and would keep pushing their messages),
+  /// the cached conversation list, the badge, and the offline outbox.
+  ///
+  /// Must run on logout and on 401 session expiry. Without it, this controller is
+  /// `permanent: true` and survives into the next session, so the next user opens
+  /// the messenger onto the previous user's threads.
+  Future<void> resetForLogout() async {
+    _statusSub?.cancel();
+    _convUpdatedSub?.cancel();
+    _resyncSub?.cancel();
+    _notificationSub?.cancel();
+    _notificationCountSub?.cancel();
+    _statusSub = null;
+    _convUpdatedSub = null;
+    _resyncSub = null;
+    _notificationSub = null;
+    _notificationCountSub = null;
+
+    await signalR.disconnect();
+
+    // Queued sends belong to the old account — delivering them under the next
+    // user's token would post as the wrong person.
+    try {
+      await queue.clear();
+    } catch (_) {}
+
+    currentUserId = 0;
+    activeConversationId = null;
+    conversations.clear();
+    unreadNotifications.value = 0;
+    pendingOutbox.value = 0;
+    isLoading.value = false;
+    hasError.value = false;
+    connection.value = ConnectionStatus.connecting;
+
+    // Inbox view state is per-user too — a filter or search left over from the previous
+    // account would silently hide the new user's conversations.
+    filter.value = ConversationFilter.all;
+    searchQuery.value = '';
+    pinnedExpanded.value = true;
+  }
+
+  /// Re-runs bootstrap for a newly signed-in account. Pairs with [resetForLogout]
+  /// so the permanent controller can be reused across sessions.
+  Future<void> reinitializeForNewUser() => _bootstrap();
+
   Future<void> _bootstrap() async {
     final id = await _storage.read(key: 'currentUserId');
     currentUserId = int.tryParse(id ?? '') ?? 0;
+
+    // No credentials yet (cold start before login, or just after a logout) — stay
+    // idle rather than firing an unauthenticated load that would 401 and trip the
+    // session-expiry handler.
+    if (currentUserId == 0) return;
 
     _statusSub = signalR.onStatus.listen((s) {
       connection.value = s;
@@ -171,11 +253,141 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
   }
 
   /// Clears a conversation's unread badge locally once it's opened.
+  ///
+  /// Local-only on purpose: the thread screen's own controller already reports the read
+  /// watermark to the server when it opens, so syncing here too would double the call.
+  /// Use [markReadFromInbox] for the list's own mark-read action, which has no thread
+  /// controller to do it.
   void markConversationRead(int conversationId) {
     final i = conversations.indexWhere((c) => c.id == conversationId);
     if (i >= 0 && conversations[i].unreadCount > 0) {
-      conversations[i] = conversations[i].copyWith(unreadCount: 0);
+      conversations[i] = conversations[i].copyWith(
+        unreadCount: 0,
+        clearUnreadPriority: true,
+        hasUnreadMention: false,
+      );
       conversations.refresh();
+    }
+  }
+
+  // ── Inbox actions ─────────────────────────────────────
+
+  void setFilter(ConversationFilter f) => filter.value = f;
+  void setSearchQuery(String q) => searchQuery.value = q;
+
+  void clearFilters() {
+    filter.value = ConversationFilter.all;
+    searchQuery.value = '';
+  }
+
+  /// The list after the active chip and search box are applied.
+  ///
+  /// Server order is preserved (pinned first, then most recent) — no extra client sort,
+  /// so the inbox never disagrees with the web client about ordering.
+  List<ConversationSummary> get filteredConversations {
+    final q = searchQuery.value.trim().toLowerCase();
+    return conversations.where((c) {
+      switch (filter.value) {
+        case ConversationFilter.unread:
+          if (c.unreadCount == 0) return false;
+          break;
+        case ConversationFilter.mentions:
+          if (!c.hasUnreadMention) return false;
+          break;
+        case ConversationFilter.groups:
+          if (c.isDirect) return false;
+          break;
+        case ConversationFilter.all:
+          break;
+      }
+      if (q.isEmpty) return true;
+      final title = (c.title ?? '').toLowerCase();
+      final preview = (c.lastMessagePreview ?? '').toLowerCase();
+      return title.contains(q) || preview.contains(q);
+    }).toList();
+  }
+
+  List<ConversationSummary> get pinnedConversations =>
+      filteredConversations.where((c) => c.isPinned).toList();
+
+  List<ConversationSummary> get unpinnedConversations =>
+      filteredConversations.where((c) => !c.isPinned).toList();
+
+  /// Marks read from the list itself — clears the badge immediately, then reports the
+  /// watermark. Silent on failure; the next load reconciles from the server.
+  Future<void> markReadFromInbox(int conversationId) async {
+    final i = conversations.indexWhere((c) => c.id == conversationId);
+    if (i < 0 || conversations[i].unreadCount == 0) return;
+    final conv = conversations[i];
+
+    markConversationRead(conversationId);
+
+    final msgId = conv.lastMessageId;
+    final seq = conv.lastMessageSequence;
+    if (msgId == null || seq == null) return; // nothing to report yet
+    try {
+      await service.markRead(conversationId, msgId, seq);
+      refreshUnreadNotifications();
+    } catch (_) {}
+  }
+
+  /// Pin/unpin, applied locally first and rolled back if the server rejects it.
+  Future<void> togglePin(int conversationId) async {
+    final i = conversations.indexWhere((c) => c.id == conversationId);
+    if (i < 0) return;
+    final next = !conversations[i].isPinned;
+
+    conversations[i] = conversations[i].copyWith(isPinned: next);
+    conversations.refresh();
+    try {
+      await service.setConversationPinned(conversationId, next);
+      // Pinning changes the server's ordering, so re-pull to land in the right slot.
+      await loadConversations(silent: true);
+    } catch (_) {
+      final j = conversations.indexWhere((c) => c.id == conversationId);
+      if (j >= 0) {
+        conversations[j] = conversations[j].copyWith(isPinned: !next);
+        conversations.refresh();
+      }
+    }
+  }
+
+  /// Mutes until [until], or unmutes when it is null. Optimistic with rollback.
+  Future<void> toggleMute(int conversationId, {DateTime? until}) async {
+    final i = conversations.indexWhere((c) => c.id == conversationId);
+    if (i < 0) return;
+    final prev = conversations[i];
+
+    conversations[i] = prev.copyWith(
+      isMuted: until != null,
+      mutedUntil: until,
+      clearMutedUntil: until == null,
+    );
+    conversations.refresh();
+    try {
+      await service.setConversationMuted(conversationId, until);
+    } catch (_) {
+      final j = conversations.indexWhere((c) => c.id == conversationId);
+      if (j >= 0) {
+        conversations[j] = conversations[j].copyWith(
+          isMuted: prev.isMuted,
+          mutedUntil: prev.mutedUntil,
+          clearMutedUntil: prev.mutedUntil == null,
+        );
+        conversations.refresh();
+      }
+    }
+  }
+
+  /// Leaves a group/channel and drops it from the list on success.
+  Future<bool> leaveConversation(int conversationId) async {
+    try {
+      await service.leaveConversation(conversationId);
+      conversations.removeWhere((c) => c.id == conversationId);
+      conversations.refresh();
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
