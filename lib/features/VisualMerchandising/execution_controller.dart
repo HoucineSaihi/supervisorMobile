@@ -49,6 +49,15 @@ class ExecutionController extends GetxController {
   /// True when the submission is locked and no further edits are allowed.
   bool get isSubmissionLocked => submissionStatus.value.isLocked;
 
+  /// Name of the person executing this campaign on this site. Empty until the
+  /// merchandiser names themselves in the start dialog.
+  final RxString executorName = ''.obs;
+
+  /// True while [saveExecutorName] is writing to the API.
+  final RxBool isSavingExecutorName = false.obs;
+
+  bool get hasExecutorName => executorName.value.trim().isNotEmpty;
+
   // #region agent log
   Future<void> _logDebug({
     required String runId,
@@ -90,6 +99,7 @@ class ExecutionController extends GetxController {
     _loadedSiteId = siteId;
     zonePhotos.clear();
     remotePhotosByZone.clear();
+    executorName.value = '';
     zones.assignAll(campaign.allZones);
     for (final zone in campaign.allZones) {
       zonePhotos[zone.zoneId] = <String>[];
@@ -226,6 +236,7 @@ class ExecutionController extends GetxController {
       );
       submissionStatus.value = result.submissionStatus;
       unreadCommentCount.value = result.unreadCommentCount;
+      executorName.value = result.executorName ?? '';
       zones.assignAll(result.zoneStats);
       remotePhotosByZone.clear();
       zoneIssues.clear();
@@ -269,6 +280,38 @@ class ExecutionController extends GetxController {
       // #endregion
     } finally {
       isLoadingExecution.value = false;
+    }
+  }
+
+  /// Persists the executor's name for the current campaign/site.
+  ///
+  /// The local value is updated first so the header reflects the edit
+  /// immediately, and rolled back if the API rejects the write.
+  Future<bool> saveExecutorName(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return false;
+
+    final campaignId = _loadedCampaignId;
+    final siteId = _loadedSiteId;
+    if (campaignId == null || siteId == null) return false;
+
+    final previous = executorName.value;
+    executorName.value = trimmed;
+    isSavingExecutorName.value = true;
+    try {
+      final saved = await _vmService.setExecutorName(
+        campaignId: campaignId,
+        siteId: siteId,
+        executorName: trimmed,
+      );
+      executorName.value = saved ?? trimmed;
+      return true;
+    } catch (e) {
+      executorName.value = previous;
+      debugPrint('saveExecutorName failed: $e');
+      return false;
+    } finally {
+      isSavingExecutorName.value = false;
     }
   }
 

@@ -58,8 +58,10 @@ class _ProfileInfoState extends State<ProfileInfo> {
   Future<void> _handleLogout() async {
     await _storage.deleteAll();
 
-    // Delete all registered GetX controllers so the next user starts fresh
-    Get.deleteAll(force: true);
+    // Delete registered GetX controllers so the next user starts fresh.
+    // Not forced: app-wide permanent controllers (e.g. LanguageController)
+    // must stay alive, otherwise the whole app loses its locale.
+    Get.deleteAll();
 
     // Navigate to the login screen and remove all previous routes
     Navigator.of(context).pushAndRemoveUntil(

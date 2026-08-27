@@ -226,6 +226,46 @@ class VmService {
     }
   }
 
+  /// PUT /api/VmCompaign/{campaignId}/sites/{siteId}/executor
+  /// Records the person executing this campaign on this site. Called when the
+  /// campaign is started and the name is typed, and again on every later edit.
+  ///
+  /// Returns the name as stored by the server (trimmed), or null when cleared.
+  Future<String?> setExecutorName({
+    required int campaignId,
+    required int siteId,
+    required String executorName,
+  }) async {
+    if (campaignId <= 0 || siteId <= 0) {
+      throw Exception('Campaign ID and site ID must be greater than zero.');
+    }
+
+    try {
+      final response = await _dio.put(
+        '/VmCompaign/$campaignId/sites/$siteId/executor',
+        data: {'executorName': executorName.trim()},
+      );
+
+      final data = response.data;
+      if (response.statusCode == 200 && data is Map<String, dynamic>) {
+        final saved = data['executorName'];
+        if (saved is String && saved.trim().isNotEmpty) return saved.trim();
+        return null;
+      }
+      throw Exception(
+        'Failed to save the executor name. Status code: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final message = data is Map<String, dynamic>
+          ? data['message'] as String?
+          : null;
+      throw Exception(
+        message ?? 'An error occurred while saving the executor name: ${e.message}',
+      );
+    }
+  }
+
   /// POST /api/VmCompaign/{campaignId}/sites/{siteId}/submit
   /// Declares execution complete for a site. Zones and photos must already be
   /// saved via individual zone PUT calls before calling this.

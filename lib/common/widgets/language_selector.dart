@@ -8,7 +8,9 @@ class LanguageSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final languageController = Get.find<LanguageController>();
+    final languageController = Get.isRegistered<LanguageController>()
+        ? Get.find<LanguageController>()
+        : Get.put(LanguageController(), permanent: true);
     
     return ListTile(
       leading: const Icon(Icons.language),

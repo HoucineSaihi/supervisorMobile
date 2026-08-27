@@ -20,21 +20,39 @@ String _normalizeVmPhotoUrl(String rawUrl) {
 
 class VmExecutionPhotoDto {
   final int photoId;
+
+  /// Display URL: the reviewer's annotated render when there is one.
   final String url;
   final String? fileName;
+
+  /// True when a reviewer has drawn feedback on this photo.
+  final bool isAnnotated;
+
+  /// The original capture, still reachable once the photo is annotated.
+  final String originalUrl;
+
+  final DateTime? annotatedAt;
 
   const VmExecutionPhotoDto({
     required this.photoId,
     required this.url,
     this.fileName,
+    this.isAnnotated = false,
+    this.originalUrl = '',
+    this.annotatedAt,
   });
 
   factory VmExecutionPhotoDto.fromJson(Map<String, dynamic> json) {
     final rawUrl = json['url'] as String? ?? '';
+    final rawOriginalUrl = json['originalUrl'] as String? ?? rawUrl;
+    final rawAnnotatedAt = json['annotatedAt'] as String?;
     return VmExecutionPhotoDto(
       photoId: (json['photoId'] as num?)?.toInt() ?? 0,
       url: _normalizeVmPhotoUrl(rawUrl),
       fileName: json['fileName'] as String?,
+      isAnnotated: json['isAnnotated'] as bool? ?? false,
+      originalUrl: _normalizeVmPhotoUrl(rawOriginalUrl),
+      annotatedAt: rawAnnotatedAt == null ? null : DateTime.tryParse(rawAnnotatedAt),
     );
   }
 }
@@ -271,6 +289,12 @@ enum SubmissionStatus {
       this == SubmissionStatus.submitted || this == SubmissionStatus.validated;
 }
 
+String? _readExecutorName(dynamic value) {
+  if (value is! String) return null;
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
 class VmCampaignExecutionDto {
   final int campaignId;
   final int siteId;
@@ -278,12 +302,17 @@ class VmCampaignExecutionDto {
   final SubmissionStatus submissionStatus;
   final int unreadCommentCount;
 
+  /// Person executing this campaign on this site, named in the app when the
+  /// campaign is started. Null until someone has been named.
+  final String? executorName;
+
   const VmCampaignExecutionDto({
     required this.campaignId,
     required this.siteId,
     required this.zones,
     this.submissionStatus = SubmissionStatus.unknown,
     this.unreadCommentCount = 0,
+    this.executorName,
   });
 
   factory VmCampaignExecutionDto.fromJson(Map<String, dynamic> json) {
@@ -296,6 +325,7 @@ class VmCampaignExecutionDto {
           .toList(),
       submissionStatus: SubmissionStatus.fromString(json['submissionStatus'] as String?),
       unreadCommentCount: (json['unreadCommentCount'] as num?)?.toInt() ?? 0,
+      executorName: _readExecutorName(json['executorName']),
     );
   }
 

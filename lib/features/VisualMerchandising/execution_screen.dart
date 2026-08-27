@@ -7,23 +7,65 @@ import 'package:supervisormobile/features/VisualMerchandising/execution_controll
 import 'package:supervisormobile/features/VisualMerchandising/widgets/guideline_handler.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/submission_comments_sheet.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/execution_comments_button.dart';
+import 'package:supervisormobile/features/VisualMerchandising/widgets/executor_name_dialog.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/zone_row.dart';
 import 'package:supervisormobile/features/VisualMerchandising/vm_l10n_helpers.dart';
 import 'package:supervisormobile/features/VisualMerchandising/zone_detail_screen.dart';
 
 
-class ExecutionScreen extends StatelessWidget {
+class ExecutionScreen extends StatefulWidget {
   final VmCampaignDto campaign;
   final int siteId;
 
   const ExecutionScreen({super.key, required this.campaign, required this.siteId});
 
   @override
+  State<ExecutionScreen> createState() => _ExecutionScreenState();
+}
+
+class _ExecutionScreenState extends State<ExecutionScreen> {
+  late final ExecutionController controller;
+
+  /// Guards the start-of-campaign prompt so it is asked at most once per visit,
+  /// even though [build] runs again on every observable change.
+  bool _executorPromptHandled = false;
+
+  VmCampaignDto get campaign => widget.campaign;
+  int get siteId => widget.siteId;
+
+  @override
+  void initState() {
+    super.initState();
+    // On crée le controller ET on lui passe la campagne
+    controller = Get.put(ExecutionController());
+    _initAndPrompt();
+  }
+
+  /// Loads the execution, then asks who is executing when the campaign is being
+  /// started and nobody has been named yet.
+  Future<void> _initAndPrompt() async {
+    await controller.init(campaign, siteId);
+    if (!mounted || _executorPromptHandled) return;
+
+    final status = controller.liveCampaign.value?.status ?? campaign.status;
+    final isFinished = status == CampaignStatus.approved ||
+        status == CampaignStatus.cancelled;
+
+    // Only prompt while the work is still open: a campaign already approved or
+    // cancelled is read-only, and re-asking there would be noise.
+    if (isFinished || controller.hasExecutorName) {
+      _executorPromptHandled = true;
+      return;
+    }
+
+    _executorPromptHandled = true;
+    final l10n = AppLocalizations.of(context)!;
+    await _editExecutorName(context, controller, l10n);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    // On crée le controller ET on lui passe la campagne
-    final controller = Get.put(ExecutionController());
-    controller.init(campaign, siteId);
 
     return Obx(() {
       final vm = controller.liveCampaign.value ?? campaign;
@@ -232,6 +274,11 @@ class ExecutionScreen extends StatelessWidget {
             ),
           ),
 
+          const SizedBox(height: 8),
+
+          // Exécutant : nom saisi au démarrage, modifiable via le crayon.
+          _buildExecutorRow(context, controller, l10n),
+
           const SizedBox(height: 10),
 
           // Stats : 3 chips (hide completion % if not submitted)
@@ -356,6 +403,88 @@ class ExecutionScreen extends StatelessWidget {
   }
 
   // ── 2. Bannière guideline ───────────────────────────
+  /// Shows the executor's name with a pen button to correct it.
+  ///
+  /// While no name is on record yet (campaigns started before this was
+  /// introduced, or a failed first save) the row invites the user to add one.
+  Widget _buildExecutorRow(
+    BuildContext context,
+    ExecutionController controller,
+    AppLocalizations l10n,
+  ) {
+    return Obx(() {
+      final name = controller.executorName.value.trim();
+      final isSaving = controller.isSavingExecutorName.value;
+      final hasName = name.isNotEmpty;
+
+      return Row(
+        children: [
+          const Icon(Icons.person_outline, color: Colors.white70, size: 15),
+          const SizedBox(width: 6),
+          Text(
+            '${l10n.vmExecutorLabel} : ',
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
+              color: Colors.white70,
+            ),
+          ),
+          Flexible(
+            child: Text(
+              hasName ? name : '—',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: hasName ? Colors.white : Colors.white54,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          if (isSaving)
+            const SizedBox(
+              width: 13,
+              height: 13,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.8,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+              ),
+            )
+          else
+            GestureDetector(
+              onTap: () => _editExecutorName(context, controller, l10n),
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.edit_outlined, color: Colors.white, size: 15),
+              ),
+            ),
+        ],
+      );
+    });
+  }
+
+  Future<void> _editExecutorName(
+    BuildContext context,
+    ExecutionController controller,
+    AppLocalizations l10n,
+  ) async {
+    final current = controller.executorName.value.trim();
+    final name = await ExecutorNameDialog.show(
+      context,
+      initialName: current,
+      isEditing: current.isNotEmpty,
+    );
+    if (name == null) return;
+
+    final saved = await controller.saveExecutorName(name);
+    if (!saved && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.vmExecutorSaveError)),
+      );
+    }
+  }
+
   Widget _buildGuidelineBanner(
     BuildContext context,
     AppLocalizations l10n,

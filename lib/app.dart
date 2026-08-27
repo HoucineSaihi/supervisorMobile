@@ -28,8 +28,8 @@ class _AppState extends State<App> {
   @override
   void initState() {
     super.initState();
-    // Initialize language controller
-    Get.put(LanguageController());
+    // Initialize language controller (app-wide, must survive logout/route cleanup)
+    Get.put(LanguageController(), permanent: true);
     _checkLaunchStatus();
   }
 

@@ -414,6 +414,8 @@
   "vmZoneStatusPending": "En attente",
   "vmZoneStatusPartial": "Partielle",
   "vmZoneStatusTodo": "À faire",
+  "vmPhotoAnnotated": "Annotée",
+  "vmPhotoAnnotatedHint": "Retour du réviseur",
   "vmNoGuidelineForCampaign": "Aucune guideline disponible pour cette campagne.",
   "vmSelectGuidelineTitle": "Sélectionner un guideline",
   "vmGuidelineNumberedFallback": "Guideline {index}",
@@ -477,5 +479,15 @@
   "vmInstructionZc3": "Zone propre et conforme à la charte",
   "vmInstructionDef1": "Photo nette et bien cadrée",
   "vmInstructionDef2": "Respecter les consignes du guideline",
-  "vmInstructionDef3": "S'assurer de la conformité visuelle"
+  "vmInstructionDef3": "S'assurer de la conformité visuelle",
+  "vmExecutorDialogTitle": "Qui exécute cette campagne ?",
+  "vmExecutorDialogSubtitle": "Saisissez le nom de la personne qui réalise l'exécution. Vous pourrez le modifier plus tard.",
+  "vmExecutorEditDialogTitle": "Modifier l'exécutant",
+  "vmExecutorFieldLabel": "Nom de l'exécutant",
+  "vmExecutorFieldHint": "ex. Jean Dupont",
+  "vmExecutorRequiredError": "Veuillez saisir un nom.",
+  "vmExecutorLabel": "Exécutant",
+  "vmExecutorSaveError": "Impossible d'enregistrer le nom. Veuillez réessayer.",
+  "vmExecutorConfirm": "Commencer",
+  "vmExecutorSave": "Enregistrer"
 }
