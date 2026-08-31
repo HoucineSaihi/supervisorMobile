@@ -243,7 +243,8 @@ class VmService {
     try {
       final response = await _dio.put(
         '/VmCompaign/$campaignId/sites/$siteId/executor',
-        data: {'executorName': executorName.trim()},
+        // 'source' tags the change as coming from mobile in the executor history.
+        data: {'executorName': executorName.trim(), 'source': 'mobile'},
       );
 
       final data = response.data;
