@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
+import 'package:supervisormobile/services/SignalrNotificationService.dart';
 import 'package:supervisormobile/utils/Keys/navigation_key.dart';
 
 class AuthInterceptor extends Interceptor {
@@ -28,6 +29,7 @@ class AuthInterceptor extends Interceptor {
       final token = await _storage.read(key: 'token');
       if (token == null || token.isEmpty) return;
 
+      await SignalrNotificationService.instance.disconnect();
       await _storage.deleteAll();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final nav = navigatorKey.currentState;

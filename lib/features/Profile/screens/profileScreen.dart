@@ -13,6 +13,8 @@ import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supervisormobile/common/widgets/language_selector.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:supervisormobile/services/PushNotificationService.dart';
+import 'package:supervisormobile/services/SignalrNotificationService.dart';
 
 
 class ProfileInfo extends StatefulWidget {
@@ -56,6 +58,8 @@ class _ProfileInfoState extends State<ProfileInfo> {
   }
 
   Future<void> _handleLogout() async {
+    await PushNotificationService.instance.unregisterDeviceToken();
+    await SignalrNotificationService.instance.disconnect();
     await _storage.deleteAll();
 
     // Delete registered GetX controllers so the next user starts fresh.

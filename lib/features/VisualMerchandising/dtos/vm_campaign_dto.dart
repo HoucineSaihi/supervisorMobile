@@ -171,6 +171,7 @@ class VmCampaignDto {
   final bool containsGuideline;
   final List<ExecutionStatsDto> executionsStats; // Maintenant une liste
   final int unreadCommentCount;
+  final String? createdByName;
 
   const VmCampaignDto({
     required this.campaignId,
@@ -182,6 +183,7 @@ class VmCampaignDto {
     required this.containsGuideline,
     required this.executionsStats,
     this.unreadCommentCount = 0,
+    this.createdByName,
   });
 
   factory VmCampaignDto.fromJson(Map<String, dynamic> json) {
@@ -214,6 +216,7 @@ class VmCampaignDto {
       containsGuideline: json['containsGuideline'] as bool,
       executionsStats:   executionsStatsList,
       unreadCommentCount: (json['unreadCommentCount'] as num?)?.toInt() ?? 0,
+      createdByName:     json['createdByName'] as String?,
     );
   }
 
@@ -275,6 +278,7 @@ class VmCampaignDto {
     CampaignStatus? status,
     List<ExecutionStatsDto>? executionsStats,
     int? unreadCommentCount,
+    String? createdByName,
   }) {
     return VmCampaignDto(
       campaignId: campaignId,
@@ -286,6 +290,7 @@ class VmCampaignDto {
       containsGuideline: containsGuideline,
       executionsStats: executionsStats ?? this.executionsStats,
       unreadCommentCount: unreadCommentCount ?? this.unreadCommentCount,
+      createdByName: createdByName ?? this.createdByName,
     );
   }
 }

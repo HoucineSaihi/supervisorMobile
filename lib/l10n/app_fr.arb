@@ -403,6 +403,12 @@
     }
   },
   "vmMetaPhotosSent": "{count} photos envoyées",
+  "vmMetaCreatedBy": "Créée par {name}",
+  "@vmMetaCreatedBy": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
   "vmGuidelinesCount": "{count} guidelines",
   "vmGuidelineDisplayFallback": "Guideline {index}",
   "vmProgressionByZoneTitle": "PROGRESSION PAR ZONE",
@@ -489,5 +495,15 @@
   "vmExecutorLabel": "Exécutant",
   "vmExecutorSaveError": "Impossible d'enregistrer le nom. Veuillez réessayer.",
   "vmExecutorConfirm": "Commencer",
-  "vmExecutorSave": "Enregistrer"
+  "vmExecutorSave": "Enregistrer",
+  "notifTitle": "Notifications",
+  "notifMarkAllRead": "Tout marquer comme lu",
+  "notifEmpty": "Aucune notification pour le moment",
+  "notifExecutionSubmittedTitle": "Campagne terminée",
+  "notifExecutionRejectedTitle": "Exécution refusée",
+  "notifUnreadTab": "Non lues",
+  "notifArchivedTab": "Archivées",
+  "notifEmptyUnread": "Vous êtes à jour",
+  "notifEmptyArchived": "Aucune notification archivée",
+  "notifMarkReadTooltip": "Marquer comme lu"
 }

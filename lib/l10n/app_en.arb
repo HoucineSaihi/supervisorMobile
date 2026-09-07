@@ -1112,6 +1112,12 @@
       "count": { "type": "int" }
     }
   },
+  "vmMetaCreatedBy": "Created by {name}",
+  "@vmMetaCreatedBy": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
   "vmGuidelinesCount": "{count} guidelines",
   "@vmGuidelinesCount": {
     "placeholders": {
@@ -1288,5 +1294,15 @@
   "vmExecutorLabel": "Executor",
   "vmExecutorSaveError": "Could not save the name. Please try again.",
   "vmExecutorConfirm": "Start",
-  "vmExecutorSave": "Save"
+  "vmExecutorSave": "Save",
+  "notifTitle": "Notifications",
+  "notifMarkAllRead": "Mark all as read",
+  "notifEmpty": "No notifications yet",
+  "notifExecutionSubmittedTitle": "Campaign completed",
+  "notifExecutionRejectedTitle": "Execution rejected",
+  "notifUnreadTab": "Unread",
+  "notifArchivedTab": "Archived",
+  "notifEmptyUnread": "You're all caught up",
+  "notifEmptyArchived": "No archived notifications",
+  "notifMarkReadTooltip": "Mark as read"
 }

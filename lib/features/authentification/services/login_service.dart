@@ -2,6 +2,8 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:supervisormobile/services/DioService.dart';
+import 'package:supervisormobile/services/PushNotificationService.dart';
+import 'package:supervisormobile/services/SignalrNotificationService.dart';
 
 class SecureStorageService {
   final _storage = FlutterSecureStorage();
@@ -75,6 +77,9 @@ class LoginService {
 
         if (data['success']) {
           await _storageService.saveLoginData(data);
+          await PushNotificationService.instance.initialize();
+          await SignalrNotificationService.instance.connect();
+          await PushNotificationService.instance.registerDeviceToken();
           return data;
         } else {
           throw Exception('Login failed');

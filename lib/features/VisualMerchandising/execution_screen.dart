@@ -130,7 +130,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
           statusLabel = l10n.cancelled;
           break;
         case CampaignStatus.notStarted:
-          dotColor = const Color(0xFFE2EEF8);
+          dotColor = const Color(0xFFE0E4E9);
           statusLabel = l10n.planned;
           break;
         default:
@@ -139,10 +139,14 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
       }
     }
 
+    final headerGradientColors = status == CampaignStatus.notStarted && !isLocalPendingOnly
+        ? const [Color(0xFF5A6472), Color(0xFF7C8896), Color(0xFFA3AFBC)]
+        : const [Color(0xFF1B3F72), Color(0xFF1E5FAA), Color(0xFF4A9EDD)];
+
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1B3F72), Color(0xFF1E5FAA), Color(0xFF4A9EDD)],
+          colors: headerGradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -273,6 +277,18 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
               color: Colors.white,
             ),
           ),
+
+          if (vm.createdByName != null && vm.createdByName!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.vmMetaCreatedBy(vm.createdByName!),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.white60,
+              ),
+            ),
+          ],
 
           const SizedBox(height: 8),
 
