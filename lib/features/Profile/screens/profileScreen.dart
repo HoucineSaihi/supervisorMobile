@@ -14,6 +14,8 @@ import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supervisormobile/common/widgets/language_selector.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:supervisormobile/services/PushNotificationService.dart';
+import 'package:supervisormobile/services/SignalrNotificationService.dart';
 
 
 class ProfileInfo extends StatefulWidget {
@@ -65,11 +67,14 @@ class _ProfileInfoState extends State<ProfileInfo> {
     if (Get.isRegistered<MessengerController>()) {
       await Get.find<MessengerController>().resetForLogout();
     }
-
+    await PushNotificationService.instance.unregisterDeviceToken();
+    await SignalrNotificationService.instance.disconnect();
     await _storage.deleteAll();
 
-    // Delete all registered GetX controllers so the next user starts fresh
-    Get.deleteAll(force: true);
+    // Delete registered GetX controllers so the next user starts fresh.
+    // Not forced: app-wide permanent controllers (e.g. LanguageController)
+    // must stay alive, otherwise the whole app loses its locale.
+    Get.deleteAll();
 
     // Navigate to the login screen and remove all previous routes
     Navigator.of(context).pushAndRemoveUntil(

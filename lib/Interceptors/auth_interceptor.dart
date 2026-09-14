@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
 import 'package:supervisormobile/features/communication/controllers/messenger_controller.dart';
+import 'package:supervisormobile/services/SignalrNotificationService.dart';
 import 'package:supervisormobile/utils/Keys/navigation_key.dart';
 
 class AuthInterceptor extends Interceptor {
@@ -36,7 +37,7 @@ class AuthInterceptor extends Interceptor {
       if (Get.isRegistered<MessengerController>()) {
         await Get.find<MessengerController>().resetForLogout();
       }
-
+      await SignalrNotificationService.instance.disconnect();
       await _storage.deleteAll();
       Get.deleteAll(force: true);
       WidgetsBinding.instance.addPostFrameCallback((_) {

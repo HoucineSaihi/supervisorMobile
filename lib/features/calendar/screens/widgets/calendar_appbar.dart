@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
 import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_icons/cart_notif_icon.dart';
+import 'package:supervisormobile/features/notifications/notification_controller.dart';
+import 'package:supervisormobile/features/notifications/screens/notifications.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -15,11 +18,16 @@ class THomeAppBar extends StatefulWidget {
 class _THomeAppBarState extends State<THomeAppBar> {
   final _storage = FlutterSecureStorage();
   String _currentUserName = '';
+  late final NotificationController _notificationController;
 
   @override
   void initState() {
     super.initState();
     _loadAuthToken(); // Load the token when the widget is initialized
+    _notificationController = Get.isRegistered<NotificationController>()
+        ? Get.find<NotificationController>()
+        : Get.put(NotificationController(), permanent: true);
+    _notificationController.loadNotifications();
   }
 
   Future<void> _loadAuthToken() async {
@@ -47,10 +55,13 @@ class _THomeAppBarState extends State<THomeAppBar> {
         ],
       ),
       actions: [
-        TCartCounterIcon(
-          onPressed: () {},
-          iconColor: TColors.white,
-        ),
+        Obx(() => TCartCounterIcon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              ),
+              iconColor: TColors.white,
+              unreadCount: _notificationController.unreadCount.value,
+            )),
       ],
     );
   }

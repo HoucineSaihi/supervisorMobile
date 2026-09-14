@@ -10,14 +10,48 @@ import 'widgets/campaign_card.dart';
 import 'widgets/guideline_handler.dart';
 
 
-class CampaignScreen extends StatelessWidget {
+class CampaignScreen extends StatefulWidget {
   const CampaignScreen({super.key});
+
+  @override
+  State<CampaignScreen> createState() => _CampaignScreenState();
+}
+
+class _CampaignScreenState extends State<CampaignScreen> {
+  final ScrollController _scrollController = ScrollController();
+  late final CampaignController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // On initialise le controller ici — Get le garde en mémoire
+    controller = Get.put(CampaignController(), permanent: false);
+    _scrollController.addListener(_scrollListener);
+  }
+
+  void _scrollListener() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    // Déclenche le chargement de la page suivante quand on atteint le bas
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      if (controller.hasNextPage.value &&
+          !controller.isLoading.value &&
+          !controller.isLoadingMore.value) {
+        controller.loadMoreCampaigns();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    // On initialise le controller ici — Get le garde en mémoire
-    final controller = Get.put(CampaignController(), permanent: false);
 
     // Reload boutiques every time the screen is built (covers fresh login after logout)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -31,6 +65,7 @@ class CampaignScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF0F6FF),
       body: SafeArea(
         child: CustomScrollView(
+          controller: _scrollController,
           slivers: [
             // ── Header ──────────────────────────────────
             SliverToBoxAdapter(
@@ -204,7 +239,7 @@ class CampaignScreen extends StatelessWidget {
                     // Sélecteur de boutique
                     const SiteSelector(),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -248,8 +283,10 @@ class CampaignScreen extends StatelessWidget {
                 );
               }
 
-              // Aucune campagne
-              if (controller.campaigns.isEmpty) {
+              final visibleCampaigns = controller.visibleCampaigns;
+
+              // Aucune campagne pour ce site
+              if (visibleCampaigns.isEmpty) {
                 return SliverFillRemaining(
                   child: _EmptyState(
                     icon: Icons.campaign_outlined,
@@ -260,29 +297,29 @@ class CampaignScreen extends StatelessWidget {
               }
 
               // ── Liste des campagnes ────────────────────
-              final showLoadMore =
-                  controller.hasNextPage.value || controller.isLoadingMore.value;
+              final showTrailingLoader = controller.isLoadingMore.value;
               return SliverPadding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      if (index < controller.campaigns.length) {
+                      if (index < visibleCampaigns.length) {
+                        final campaign = visibleCampaigns[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
                           child: CampaignCard(
-                            campaign: controller.campaigns[index],
+                            campaign: campaign,
                             pendingLocalPhotosCount: controller
                                 .pendingLocalPhotosCountForCampaign(
-                              controller.campaigns[index].campaignId,
+                              campaign.campaignId,
                             ),
                             pendingLocalZonesCount: controller
                                 .pendingLocalZonesCountForCampaign(
-                              controller.campaigns[index].campaignId,
+                              campaign.campaignId,
                             ),
                             pendingLocalPhotosByZone: controller
                                 .pendingLocalPhotosByZoneForCampaign(
-                              controller.campaigns[index].campaignId,
+                              campaign.campaignId,
                             ),
                             onEnter: () async {
                               final selectedSite = controller.selectedSite.value;
@@ -291,9 +328,9 @@ class CampaignScreen extends StatelessWidget {
                               }
                               await Get.to(
                                 () => ExecutionScreen(
-                                  campaign: controller.campaigns[index],
-                                  siteId: controller.campaigns[index].siteId > 0
-                                      ? controller.campaigns[index].siteId
+                                  campaign: campaign,
+                                  siteId: campaign.siteId > 0
+                                      ? campaign.siteId
                                       : selectedSite.id,
                                 ),
                                 transition: Transition.rightToLeft,
@@ -304,7 +341,7 @@ class CampaignScreen extends StatelessWidget {
                             onGuideline: () {
                               GuidelineHandler.openGuideline(
                                 context,
-                                controller.campaigns[index],
+                                campaign,
                               );
                             },
                           ),
@@ -313,42 +350,20 @@ class CampaignScreen extends StatelessWidget {
 
                       return Padding(
                         padding: const EdgeInsets.only(top: 2, bottom: 6),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: controller.hasNextPage.value &&
-                                    !controller.isLoadingMore.value
-                                ? controller.loadMoreCampaigns
-                                : null,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF1E5FAA),
-                              side: const BorderSide(color: Color(0xFFB8D9F5)),
-                              backgroundColor: const Color(0xFFEAF3FD),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              textStyle: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
+                        child: Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: const Color(0xFF1E5FAA),
                             ),
-                            child: controller.isLoadingMore.value
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Color(0xFF1E5FAA),
-                                    ),
-                                  )
-                                : Text(l10n.vmLoadMore),
                           ),
                         ),
                       );
                     },
                     childCount:
-                        controller.campaigns.length + (showLoadMore ? 1 : 0),
+                        visibleCampaigns.length + (showTrailingLoader ? 1 : 0),
                   ),
                 ),
               );

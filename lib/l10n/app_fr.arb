@@ -356,6 +356,8 @@
   "vmLoadCampaignsErrorTitle": "Erreur de chargement",
   "vmNoActiveCampaignTitle": "Aucune campagne active",
   "vmNoActiveCampaignSubtitle": "Cette boutique n'a pas\nde campagne en cours.",
+  "vmOnlyPassedCampaignsSubtitle": "Cette boutique n'a que\ndes campagnes passées. Cochez \"Afficher les campagnes passées\"\npour les voir.",
+  "vmShowPassedCampaigns": "Afficher les campagnes passées",
   "vmLoadMore": "Charger plus",
   "vmSelectBoutiqueSectionLabel": "SÉLECTIONNER UNE BOUTIQUE",
   "vmLoadingBoutiques": "Chargement des boutiques...",
@@ -401,6 +403,12 @@
     }
   },
   "vmMetaPhotosSent": "{count} photos envoyées",
+  "vmMetaCreatedBy": "Créée par {name}",
+  "@vmMetaCreatedBy": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
   "vmGuidelinesCount": "{count} guidelines",
   "vmGuidelineDisplayFallback": "Guideline {index}",
   "vmProgressionByZoneTitle": "PROGRESSION PAR ZONE",
@@ -412,6 +420,8 @@
   "vmZoneStatusPending": "En attente",
   "vmZoneStatusPartial": "Partielle",
   "vmZoneStatusTodo": "À faire",
+  "vmPhotoAnnotated": "Annotée",
+  "vmPhotoAnnotatedHint": "Retour du réviseur",
   "vmNoGuidelineForCampaign": "Aucune guideline disponible pour cette campagne.",
   "vmSelectGuidelineTitle": "Sélectionner un guideline",
   "vmGuidelineNumberedFallback": "Guideline {index}",
@@ -475,5 +485,25 @@
   "vmInstructionZc3": "Zone propre et conforme à la charte",
   "vmInstructionDef1": "Photo nette et bien cadrée",
   "vmInstructionDef2": "Respecter les consignes du guideline",
-  "vmInstructionDef3": "S'assurer de la conformité visuelle"
+  "vmInstructionDef3": "S'assurer de la conformité visuelle",
+  "vmExecutorDialogTitle": "Qui exécute cette campagne ?",
+  "vmExecutorDialogSubtitle": "Saisissez le nom de la personne qui réalise l'exécution. Vous pourrez le modifier plus tard.",
+  "vmExecutorEditDialogTitle": "Modifier l'exécutant",
+  "vmExecutorFieldLabel": "Nom de l'exécutant",
+  "vmExecutorFieldHint": "ex. Jean Dupont",
+  "vmExecutorRequiredError": "Veuillez saisir un nom.",
+  "vmExecutorLabel": "Exécutant",
+  "vmExecutorSaveError": "Impossible d'enregistrer le nom. Veuillez réessayer.",
+  "vmExecutorConfirm": "Commencer",
+  "vmExecutorSave": "Enregistrer",
+  "notifTitle": "Notifications",
+  "notifMarkAllRead": "Tout marquer comme lu",
+  "notifEmpty": "Aucune notification pour le moment",
+  "notifExecutionSubmittedTitle": "Campagne terminée",
+  "notifExecutionRejectedTitle": "Exécution refusée",
+  "notifUnreadTab": "Non lues",
+  "notifArchivedTab": "Archivées",
+  "notifEmptyUnread": "Vous êtes à jour",
+  "notifEmptyArchived": "Aucune notification archivée",
+  "notifMarkReadTooltip": "Marquer comme lu"
 }

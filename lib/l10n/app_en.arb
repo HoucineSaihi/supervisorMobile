@@ -1033,6 +1033,8 @@
   "vmLoadCampaignsErrorTitle": "Loading error",
   "vmNoActiveCampaignTitle": "No active campaign",
   "vmNoActiveCampaignSubtitle": "This store has no\ncampaign in progress.",
+  "vmOnlyPassedCampaignsSubtitle": "This store only has\npast campaigns. Check \"Show past campaigns\"\nto view them.",
+  "vmShowPassedCampaigns": "Show past campaigns",
   "vmLoadMore": "Load more",
   "vmSelectBoutiqueSectionLabel": "SELECT A STORE",
   "vmLoadingBoutiques": "Loading stores...",
@@ -1110,6 +1112,12 @@
       "count": { "type": "int" }
     }
   },
+  "vmMetaCreatedBy": "Created by {name}",
+  "@vmMetaCreatedBy": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
   "vmGuidelinesCount": "{count} guidelines",
   "@vmGuidelinesCount": {
     "placeholders": {
@@ -1136,6 +1144,8 @@
   "vmZoneStatusPending": "Pending",
   "vmZoneStatusPartial": "Partial",
   "vmZoneStatusTodo": "To do",
+  "vmPhotoAnnotated": "Annotated",
+  "vmPhotoAnnotatedHint": "Reviewer feedback",
   "vmNoGuidelineForCampaign": "No guideline available for this campaign.",
   "vmSelectGuidelineTitle": "Select a guideline",
   "vmGuidelineNumberedFallback": "Guideline {index}",
@@ -1274,5 +1284,25 @@
   "vmInstructionZc3": "Clean area compliant with brand standards",
   "vmInstructionDef1": "Sharp, well-framed photo",
   "vmInstructionDef2": "Follow the guideline instructions",
-  "vmInstructionDef3": "Ensure visual compliance"
+  "vmInstructionDef3": "Ensure visual compliance",
+  "vmExecutorDialogTitle": "Who is executing this campaign?",
+  "vmExecutorDialogSubtitle": "Enter the name of the person carrying out the execution. You can change it later.",
+  "vmExecutorEditDialogTitle": "Edit executor",
+  "vmExecutorFieldLabel": "Executor name",
+  "vmExecutorFieldHint": "e.g. John Smith",
+  "vmExecutorRequiredError": "Please enter a name.",
+  "vmExecutorLabel": "Executor",
+  "vmExecutorSaveError": "Could not save the name. Please try again.",
+  "vmExecutorConfirm": "Start",
+  "vmExecutorSave": "Save",
+  "notifTitle": "Notifications",
+  "notifMarkAllRead": "Mark all as read",
+  "notifEmpty": "No notifications yet",
+  "notifExecutionSubmittedTitle": "Campaign completed",
+  "notifExecutionRejectedTitle": "Execution rejected",
+  "notifUnreadTab": "Unread",
+  "notifArchivedTab": "Archived",
+  "notifEmptyUnread": "You're all caught up",
+  "notifEmptyArchived": "No archived notifications",
+  "notifMarkReadTooltip": "Mark as read"
 }

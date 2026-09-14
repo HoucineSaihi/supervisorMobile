@@ -23,6 +23,10 @@ class CampaignController extends GetxController {
   // La liste des campagnes chargées pour ce site
   final RxList<VmCampaignDto> campaigns = <VmCampaignDto>[].obs;
 
+  // Toutes les campagnes sont affichées, sans distinction active/passée :
+  // l'utilisateur peut consulter et gérer librement les campagnes passées.
+  List<VmCampaignDto> get visibleCampaigns => campaigns;
+
   // Est-ce qu'on est en train de charger ?
   final RxBool isLoading = false.obs;
   final RxBool isLoadingMore = false.obs;
@@ -170,6 +174,9 @@ class CampaignController extends GetxController {
           '(page ${response.pagination.pageNumber}/${response.pagination.totalPages})',
         );
       }
+      isLoading.value = false;
+      await maybeLoadMoreForVisibleData();
+      return;
     } catch (e) {
       errorMessage.value = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       campaigns.clear();
@@ -199,11 +206,28 @@ class CampaignController extends GetxController {
       totalCount.value = response.pagination.totalCount;
       hasNextPage.value = response.pagination.hasNextPage;
       await refreshPendingLocalPhotosForLoadedCampaigns();
+      // Le filtre "actives uniquement" peut masquer toute la page reçue :
+      // on continue de charger tant qu'il reste des pages et pas assez à afficher.
+      await maybeLoadMoreForVisibleData();
     } catch (e) {
       errorMessage.value = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
     } finally {
       isLoadingMore.value = false;
     }
+  }
+
+  /// Nombre minimal d'éléments visibles souhaité avant d'arrêter l'auto-fetch
+  /// déclenché par le filtre (évite une liste vide alors que hasNextPage=true).
+  static const int _minVisibleBuffer = 10;
+
+  /// Charge automatiquement des pages supplémentaires si le filtre actif
+  /// (actives seulement / avec passées) laisse un résultat visible trop
+  /// court alors que le serveur a encore des données.
+  Future<void> maybeLoadMoreForVisibleData() async {
+    if (isLoading.value || isLoadingMore.value) return;
+    if (!hasNextPage.value) return;
+    if (visibleCampaigns.length >= _minVisibleBuffer) return;
+    await loadMoreCampaigns();
   }
 
   int pendingLocalPhotosCountForCampaign(int campaignId) {

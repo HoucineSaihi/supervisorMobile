@@ -461,6 +461,8 @@ class ZoneDetailScreen extends StatelessWidget {
                         index < remotePhotos.length ? remotePhotos[index].url : null;
                     final photoId =
                         index < remotePhotos.length ? remotePhotos[index].photoId : 0;
+                    final isAnnotated = index < remotePhotos.length &&
+                        remotePhotos[index].isAnnotated;
                     return Obx(() {
                       final marked =
                           !controller.isRemotePhotoKept(zone.zoneId, photoId);
@@ -471,6 +473,7 @@ class ZoneDetailScreen extends StatelessWidget {
                         imageUrl: maybeUrl,
                         photoId: photoId,
                         zoneId: zone.zoneId,
+                        isAnnotated: isAnnotated,
                         isMarkedForDeletion: marked,
                         onDelete: editable
                             ? () {
@@ -855,6 +858,9 @@ class _ExistingPhotoTile extends StatelessWidget {
   final VoidCallback? onDelete;
   final bool isMarkedForDeletion;
 
+  /// True when a reviewer annotated this photo in the backoffice.
+  final bool isAnnotated;
+
   const _ExistingPhotoTile({
     required this.l10n,
     required this.number,
@@ -864,6 +870,7 @@ class _ExistingPhotoTile extends StatelessWidget {
     this.imageUrl,
     this.onDelete,
     this.isMarkedForDeletion = false,
+    this.isAnnotated = false,
   });
 
   @override
@@ -873,13 +880,28 @@ class _ExistingPhotoTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMarkedForDeletion
             ? const Color(0xFFFFECE9)
-            : const Color(0xFFDBEEFF),
+            : isAnnotated
+                ? const Color(0xFFF3ECFF)
+                : const Color(0xFFDBEEFF),
         borderRadius: BorderRadius.circular(16),
+        // An annotated photo gets a violet frame so it stands out from the rest.
         border: Border.all(
           color: isMarkedForDeletion
               ? const Color(0xFFF3A9A0)
-              : const Color(0xFF4A9EDD).withOpacity(0.3),
+              : isAnnotated
+                  ? const Color(0xFF7C3AED)
+                  : const Color(0xFF4A9EDD).withOpacity(0.3),
+          width: isAnnotated && !isMarkedForDeletion ? 2 : 1,
         ),
+        boxShadow: isAnnotated && !isMarkedForDeletion
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF7C3AED).withOpacity(0.22),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ]
+            : null,
       ),
       child: Stack(
         children: [
@@ -949,6 +971,38 @@ class _ExistingPhotoTile extends StatelessWidget {
               ],
             ),
           ),
+          // Tells the store user this photo carries reviewer feedback.
+          if (isAnnotated && !isMarkedForDeletion)
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7C3AED).withOpacity(0.94),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.edit, size: 11, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        l10n.vmPhotoAnnotated,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           Positioned(
             top: 8, right: 8,
             child: GestureDetector(

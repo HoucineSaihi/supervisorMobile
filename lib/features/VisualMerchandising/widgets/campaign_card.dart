@@ -32,6 +32,8 @@ class CampaignCard extends StatelessWidget {
   bool get _isSubmittedPending => campaign.status == CampaignStatus.submitted;
   bool get _isApproved => campaign.status == CampaignStatus.approved;
   bool get _isDisapproved => campaign.status == CampaignStatus.disapproved;
+  bool get _isNotStarted =>
+      campaign.status == CampaignStatus.notStarted && !_hasLocalPending;
 
   double get _displayProgress {
     if (!_hasLocalPending) return campaign.completionRatio;
@@ -56,6 +58,9 @@ class CampaignCard extends StatelessWidget {
     }
     if (_isSubmittedPending) {
       return const [Color(0xFFB86B00), Color(0xFFF5A623), Color(0xFFFFC55C)];
+    }
+    if (_isNotStarted) {
+      return const [Color(0xFF5A6472), Color(0xFF7C8896), Color(0xFFA3AFBC)];
     }
     return const [Color(0xFF1B3F72), Color(0xFF1E5FAA), Color(0xFF4A9EDD)];
   }
@@ -307,6 +312,15 @@ class CampaignCard extends StatelessWidget {
                             : l10n.vmGuidelinesCount(campaign.executionsStats.length),
                         color: const Color(0xFF1E5FAA),
                       ),
+                    if (campaign.createdByName != null &&
+                        campaign.createdByName!.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      _MetaRow(
+                        icon: Icons.person_outline,
+                        label: l10n.vmMetaCreatedBy(campaign.createdByName!),
+                        color: const Color(0xFF4A6D96),
+                      ),
+                    ],
                   ],
                 ),
               ),
