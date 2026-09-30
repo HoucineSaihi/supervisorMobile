@@ -104,6 +104,7 @@ class ChatSignalRService {
   final _notification = StreamController<NotificationEvent>.broadcast();
   final _notificationCount = StreamController<int>.broadcast();
   final _conversationUpdated = StreamController<int>.broadcast();
+  final _conversationAdded = StreamController<int>.broadcast();
   final _typing = StreamController<int>.broadcast(); // caisseId typing
   final _statusChanged = StreamController<int>.broadcast(); // messageId
   final _status = StreamController<ConnectionStatus>.broadcast();
@@ -122,6 +123,9 @@ class ChatSignalRService {
   /// Unread badge resync (e.g. after marking read on another device).
   Stream<int> get onNotificationCount => _notificationCount.stream;
   Stream<int> get onConversationUpdated => _conversationUpdated.stream;
+
+  /// The signed-in user was added to a conversation (new DM/group, or AddMembers).
+  Stream<int> get onConversationAdded => _conversationAdded.stream;
   Stream<int> get onTyping => _typing.stream;
   Stream<int> get onStatusChanged => _statusChanged.stream;
   Stream<ConnectionStatus> get onStatus => _status.stream;
@@ -214,6 +218,16 @@ class ChatSignalRService {
     _on(hub, 'ConversationUpdated', (args) {
       if (args != null && args.isNotEmpty) {
         _conversationUpdated.add((args[0] as num).toInt());
+      }
+    });
+
+    // Arrives on the per-user group: this connection isn't in the new conversation's
+    // hub group yet, so join it now or its messages wouldn't arrive until reconnect.
+    _on(hub, 'ConversationAdded', (args) {
+      if (args != null && args.isNotEmpty) {
+        final id = (args[0] as num).toInt();
+        _hub?.invoke('JoinConversation', args: [id]).catchError((_) => null);
+        _conversationAdded.add(id);
       }
     });
 

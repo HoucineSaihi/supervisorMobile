@@ -1,38 +1,40 @@
+import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import '../services/messenger_service.dart';
+import '../models/message.dart';
+import '../services/media_cache.dart';
 import '../theme/comm_colors.dart';
 
-/// Renders an attachment image fetched through the authorized content route.
+/// Renders a messenger image through [MediaCache] (authorized download, disk + memory
+/// cache). Bubbles and galleries ask for [MediaVariant.thumb]; only the full-screen
+/// viewer asks for the original.
 ///
-/// Since E-R2, attachment bytes are membership-checked server-side, so a plain
-/// `Image.network` (which sends no auth header) would 401. This fetches via Dio —
-/// where the auth interceptor applies — and shows a placeholder until the bytes
-/// arrive. A tiny in-memory cache avoids re-downloading on every rebuild.
+/// While the bytes load it paints the server's tiny inline placeholder, blurred, at
+/// the final size — the bubble never jumps, and there's something to see instantly.
 class AuthImage extends StatefulWidget {
-  final String relativeUrl;
+  final MessageAttachment attachment;
+  final MediaVariant variant;
   final double? width;
   final double? height;
   final BoxFit fit;
 
   const AuthImage({
     super.key,
-    required this.relativeUrl,
+    required this.attachment,
+    this.variant = MediaVariant.thumb,
     this.width,
     this.height,
     this.fit = BoxFit.cover,
   });
-
-  static final Map<String, Uint8List> _cache = {};
 
   @override
   State<AuthImage> createState() => _AuthImageState();
 }
 
 class _AuthImageState extends State<AuthImage> {
-  static final _service = MessengerService();
   Uint8List? _bytes;
   bool _failed = false;
 
@@ -42,39 +44,101 @@ class _AuthImageState extends State<AuthImage> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(covariant AuthImage old) {
+    super.didUpdateWidget(old);
+    // A recycled State (list reuse, optimistic → confirmed swap) must not keep
+    // showing the previous attachment.
+    if (old.attachment.id != widget.attachment.id || old.variant != widget.variant) {
+      _bytes = null;
+      _failed = false;
+      _load();
+    }
+  }
+
   Future<void> _load() async {
-    final cached = AuthImage._cache[widget.relativeUrl];
-    if (cached != null) {
-      setState(() => _bytes = cached);
+    final cache = MediaCache.instance;
+    final instant = cache.peek(widget.attachment, variant: widget.variant);
+    if (instant != null) {
+      setState(() => _bytes = instant);
       return;
     }
     try {
-      final data = await _service.downloadAttachment(widget.relativeUrl);
-      final bytes = Uint8List.fromList(data);
-      AuthImage._cache[widget.relativeUrl] = bytes;
-      if (mounted) setState(() => _bytes = bytes);
+      final data = await cache.bytes(widget.attachment, variant: widget.variant);
+      if (mounted) setState(() => _bytes = data);
     } catch (_) {
       if (mounted) setState(() => _failed = true);
     }
   }
 
+  void _retry() {
+    setState(() => _failed = false);
+    _load();
+  }
+
+  /// Decode at display size, not source size: a 480px thumbnail in a 220px bubble (or
+  /// an original in the viewer) shouldn't hold a full-resolution bitmap in memory.
+  int? _cacheWidth(BuildContext context) {
+    final w = widget.width;
+    if (w == null || !w.isFinite) return null;
+    return (w * MediaQuery.of(context).devicePixelRatio).round();
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_bytes != null) {
+    final bytes = _bytes;
+    if (bytes != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: Image.memory(_bytes!, width: widget.width, height: widget.height, fit: widget.fit),
+        child: Image.memory(
+          bytes,
+          width: widget.width,
+          height: widget.height,
+          fit: widget.fit,
+          cacheWidth: _cacheWidth(context),
+          gaplessPlayback: true,
+        ),
       );
     }
-    return Container(
-      width: widget.width ?? 200,
-      height: widget.height ?? 150,
-      decoration: BoxDecoration(color: CommColors.line2, borderRadius: BorderRadius.circular(10)),
-      alignment: Alignment.center,
-      child: Icon(
-        _failed ? Icons.image_not_supported_outlined : Icons.image_outlined,
-        color: CommColors.muted2,
+
+    final placeholder = _placeholderBytes();
+    return GestureDetector(
+      onTap: _failed ? _retry : null,
+      child: Container(
+        width: widget.width ?? 200,
+        height: widget.height ?? 150,
+        decoration: BoxDecoration(color: CommColors.line2, borderRadius: BorderRadius.circular(10)),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (placeholder != null)
+              ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Image.memory(placeholder, fit: BoxFit.cover, gaplessPlayback: true),
+              ),
+            if (placeholder == null || _failed)
+              Center(
+                child: Icon(
+                  _failed ? Icons.refresh : Icons.image_outlined,
+                  color: CommColors.muted2,
+                ),
+              ),
+          ],
+        ),
       ),
     );
+  }
+
+  Uint8List? _placeholderBytes() {
+    final uri = widget.attachment.placeholderDataUri;
+    if (uri == null) return null;
+    final comma = uri.indexOf(',');
+    if (comma < 0) return null;
+    try {
+      return base64Decode(uri.substring(comma + 1));
+    } catch (_) {
+      return null;
+    }
   }
 }

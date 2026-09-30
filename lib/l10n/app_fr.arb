@@ -286,6 +286,8 @@
   "production": "Production",
   "office": "Bureau",
   "free": "Libre",
+  "messengerOrigin": "Messagerie",
+  "openConversation": "Ouvrir la conversation",
   "cost": "Coût: ${value}"
   ,
   "addIncident": "Ajouter un incident",

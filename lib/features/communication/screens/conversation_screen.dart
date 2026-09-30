@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -7,12 +6,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../controllers/conversation_controller.dart';
 import '../controllers/messenger_controller.dart';
+import '../models/conversation.dart';
 import '../models/message.dart';
-import '../services/messenger_service.dart';
+import '../services/media_cache.dart';
 import '../theme/comm_colors.dart';
 import '../widgets/auth_image.dart';
 import '../widgets/chat_skeleton.dart';
@@ -23,7 +22,15 @@ import '../widgets/message_actions_sheet.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/message_receipts_sheet.dart';
 import '../widgets/pinned_banner.dart';
+import '../widgets/voice_player.dart';
+import '../widgets/voice_recorder_button.dart';
+import '../../incidents/screens/ConsultProblem.dart';
 import 'conversation_info_screen.dart';
+
+/// Same-calendar-day check backing the day dividers — mirrors the web
+/// isNewDay's `toDateString()` comparison (local time, not UTC).
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
 
 /// A single conversation thread: message timeline + composer. Realtime, with read
 /// receipts, presence, mentions, reactions, replies, voice notes and offline-queued
@@ -48,6 +55,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
   // Mention autocomplete: offset of the "@" that opened the menu.
   int _mentionAnchor = -1;
 
+  // The thread list is reversed (offset 0 = the newest message at the bottom), the
+  // standard chat layout: it opens at the bottom with no jump, and prepending older
+  // pages never moves what the reader is looking at. Only the newest message's key is
+  // tracked, to tell "a new message arrived" apart from "older history was added".
+  String? _newestKey;
+
   @override
   void initState() {
     super.initState();
@@ -55,7 +68,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
     // Restore anything typed but not sent before the user last left.
     _composer.text = c.draft;
     _composer.addListener(() => c.draft = _composer.text);
-    ever(c.messages, (_) => WidgetsBinding.instance.addPostFrameCallback((_) => _toBottom()));
+    ever(c.messages, (_) => _onMessagesChanged());
+    _scroll.addListener(_maybeLoadOlder);
     // Prefill the composer when an edit starts (done here, not in build, to avoid
     // mutating the text controller during a build pass).
     ever(c.editing, (Message? m) {
@@ -66,19 +80,44 @@ class _ConversationScreenState extends State<ConversationScreen> {
     });
   }
 
+  /// Follows a newly arrived message only when the reader is already at the bottom
+  /// (or sent it). Someone reading history is never yanked down, and a prepended
+  /// older page changes nothing here.
+  void _onMessagesChanged() {
+    final newest = c.messages.isEmpty ? null : c.messages.last;
+    final key = newest?.clientMessageId;
+    if (key == _newestKey) return; // older history prepended, or an in-place update
+    _newestKey = key;
+    if (newest == null || !_scroll.hasClients) return;
+    final nearBottom = _scroll.position.pixels < 150;
+    if (nearBottom || newest.senderId == c.currentUserId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _toBottom());
+    }
+  }
+
   void _toBottom() {
-    if (_scroll.hasClients) {
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
+    if (!_scroll.hasClients) return;
+    _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+  }
+
+  /// Reversed list: the top of the history is the max scroll extent.
+  void _maybeLoadOlder() {
+    if (!_scroll.hasClients) return;
+    if (_scroll.position.pixels > _scroll.position.maxScrollExtent - 400) {
+      c.loadOlder();
     }
   }
 
   // ── Send / edit ──────────────────────────────────────────
 
   void _submit() {
+    final staged = c.stagedVoice.value;
+    if (staged != null) {
+      c.stagedVoice.value = null;
+      c.sendVoice(staged.path, staged.durationSeconds, caption: _takeCaption());
+      return;
+    }
+
     final text = _composer.text;
     if (text.trim().isEmpty) return;
     if (c.editing.value != null) {
@@ -203,12 +242,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
       SnackBar(content: Text('Downloading ${a.fileName}…'), duration: const Duration(seconds: 1)),
     );
     try {
-      // Bytes are membership-checked server-side, so they must come through Dio
-      // (auth interceptor) rather than a bare URL handed to the OS.
-      final bytes = await MessengerService().downloadAttachment(a.url);
-      final dir = await getTemporaryDirectory();
-      final file = File(p.join(dir.path, '${a.id}_${a.fileName}'));
-      await file.writeAsBytes(bytes, flush: true);
+      // Through the size-capped media cache (authorized download, reused on reopen).
+      // The file keeps its real extension so the OS picks the right viewer.
+      final file = await MediaCache.instance.file(a, extension: p.extension(a.fileName));
       await OpenFile.open(file.path);
     } catch (_) {
       messenger.showSnackBar(
@@ -234,7 +270,8 @@ class _ConversationScreenState extends State<ConversationScreen> {
           child: InteractiveViewer(
             minScale: 0.8,
             maxScale: 4,
-            child: AuthImage(relativeUrl: a.url, fit: BoxFit.contain),
+            // The only place the original loads; everything else shows the thumbnail.
+            child: AuthImage(attachment: a, variant: MediaVariant.full, fit: BoxFit.contain),
           ),
         ),
       ),
@@ -354,36 +391,68 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   text: 'Start the conversation.\nShare updates, photos or documents.',
                 );
               }
+              // Read inside the Obx body, not just in itemBuilder: the builder
+              // callback runs after this closure returns, so touching the map
+              // only there would never register it as a dependency and a
+              // summary arriving later wouldn't rebuild the list.
+              final summaries = Map<int, IncidentStatusSummary>.from(c.incidentSummaries);
+              final loadingOlder = c.isLoadingOlder.value;
               return ListView.builder(
                 controller: _scroll,
+                reverse: true,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                itemCount: c.messages.length,
-                itemBuilder: (_, i) {
+                // +1 for the "loading older" spinner, which sits at the top (the end of
+                // a reversed list).
+                itemCount: c.messages.length + (loadingOlder ? 1 : 0),
+                itemBuilder: (_, ri) {
+                  if (ri >= c.messages.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                      ),
+                    );
+                  }
+                  // Reversed: builder index 0 is the newest message.
+                  final i = c.messages.length - 1 - ri;
                   final m = c.messages[i];
                   final prev = i > 0 ? c.messages[i - 1] : null;
                   final showAuthor = prev == null || prev.senderId != m.senderId;
                   final isOwn = m.senderId == c.currentUserId;
                   final incident = m.linkedIncidentId != null
-                      ? c.incidentSummaries[m.linkedIncidentId]
+                      ? summaries[m.linkedIncidentId]
                       : null;
-                  return MessageBubble(
-                    message: m,
-                    isOwn: isOwn,
-                    currentUserId: c.currentUserId,
-                    showAuthor: showAuthor,
-                    incident: incident,
-                    onLongPress: m.id > 0 ? () => showMessageActions(context, c, m) : null,
-                    onReactionTap: m.id > 0 ? (emoji) => c.toggleReaction(m.id, emoji) : null,
-                    onAttachmentTap: _openAttachment,
-                    // Read state is the sender's to inspect — the server refuses the
-                    // request for anyone else, so only offer it on my own messages.
-                    onReceiptTap: isOwn
-                        ? () => showMessageReceipts(
-                              context,
-                              conversationId: widget.conversationId,
-                              messageId: m.id,
-                            )
-                        : null,
+                  final isNewDay = prev == null || !_isSameDay(prev.createdAt, m.createdAt);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (isNewDay) _DayDivider(date: m.createdAt),
+                      MessageBubble(
+                        message: m,
+                        isOwn: isOwn,
+                        currentUserId: c.currentUserId,
+                        showAuthor: showAuthor,
+                        incident: incident,
+                        // The incident card opens the incident itself.
+                        onOpenIncident: incident == null
+                            ? null
+                            : () => Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => ConsultProblem(problemId: incident.id),
+                                )),
+                        onLongPress: m.id > 0 ? () => showMessageActions(context, c, m) : null,
+                        onReactionTap: m.id > 0 ? (emoji) => c.toggleReaction(m.id, emoji) : null,
+                        onAttachmentTap: _openAttachment,
+                        // Read state is the sender's to inspect — the server refuses the
+                        // request for anyone else, so only offer it on my own messages.
+                        onReceiptTap: isOwn
+                            ? () => showMessageReceipts(
+                                  context,
+                                  conversationId: widget.conversationId,
+                                  messageId: m.id,
+                                )
+                            : null,
+                      ),
+                    ],
                   );
                 },
               );
@@ -398,6 +467,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
               children: [
                 _mentionOverlay(),
                 _replyEditBar(),
+                _stagedVoiceBar(),
                 _composerBar(),
               ],
             );
@@ -717,6 +787,56 @@ class _ConversationScreenState extends State<ConversationScreen> {
     });
   }
 
+  // ── Staged voice preview ──────────────────────────────────
+
+  /// The recorded-but-unsent clip, played back inline (via [VoicePlayer], the same
+  /// widget a sent voice bubble uses) so the user can confirm it's the right take
+  /// before sending — with a caption typed below it if they want one, and an X to
+  /// discard and re-record instead.
+  Widget _stagedVoiceBar() {
+    return Obx(() {
+      final staged = c.stagedVoice.value;
+      if (staged == null) return const SizedBox.shrink();
+
+      return Container(
+        padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+        decoration: const BoxDecoration(
+          color: CommColors.bgSoft,
+          border: Border(top: BorderSide(color: CommColors.line)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.mic, size: 16, color: CommColors.blue),
+            const SizedBox(width: 8),
+            Expanded(
+              // Keyed on the file path: each new recording is a genuinely different
+              // clip, and without a key Flutter would reuse the previous
+              // _VoicePlayerState (still pointed at the discarded file) instead of
+              // picking up the new one.
+              child: VoicePlayer(
+                key: ValueKey('staged-voice-${staged.path}'),
+                attachment: MessageAttachment(
+                  id: 0,
+                  kind: AttachmentKind.voice,
+                  url: '',
+                  fileName: p.basename(staged.path),
+                  contentType: 'application/octet-stream',
+                  sizeBytes: 0,
+                  durationSeconds: staged.durationSeconds,
+                  localFilePath: staged.path,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 18, color: CommColors.muted),
+              onPressed: c.discardStagedVoice,
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   // ── Composer ─────────────────────────────────────────────
 
   Widget _composerBar() {
@@ -783,20 +903,35 @@ class _ConversationScreenState extends State<ConversationScreen> {
               valueListenable: _composer,
               builder: (_, value, __) {
                 final hasText = value.text.trim().isNotEmpty;
-                // Read both observables unconditionally so the Obx always tracks at
+                // Read every observable unconditionally so the Obx always tracks at
                 // least one reactive — a short-circuited `||` used to leave it with
                 // none on an empty composer, tripping GetX's improper-use guard.
                 return Obx(() {
                   final isEdit = c.editing.value != null;
                   final sending = c.isSending.value;
+                  final hasStagedVoice = c.stagedVoice.value != null;
 
-                  // Send stays greyed out until there's something to send. (Voice
-                  // recording once lived here; the `record` plugin requires minSdk 23
-                  // and this app targets 21, so capture is dropped — playback of
-                  // received voice messages still works via VoicePlayer.)
+                  // A staged (recorded-but-unsent) voice clip always shows Send —
+                  // there's something to submit even with an empty caption.
+                  if (hasStagedVoice) {
+                    return _circleButton(Icons.send_rounded, sending ? null : _submit);
+                  }
+
+                  // Empty composer -> tap-to-record mic; anything typed (or an edit
+                  // in progress) -> send/confirm. Matches the standard chat pattern so
+                  // the button never needs its own explanatory label.
+                  if (!hasText && !isEdit) {
+                    return sending
+                        ? _circleButton(Icons.send_rounded, null)
+                        : VoiceRecorderButton(
+                            onStopped: (path, seconds) =>
+                                c.stagedVoice.value = StagedVoice(path: path, durationSeconds: seconds),
+                          );
+                  }
+
                   return _circleButton(
                     isEdit ? Icons.check : Icons.send_rounded,
-                    (sending || (!hasText && !isEdit)) ? null : _submit,
+                    sending ? null : _submit,
                   );
                 });
               },
@@ -818,6 +953,48 @@ class _ConversationScreenState extends State<ConversationScreen> {
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.white, size: 20),
+      ),
+    );
+  }
+}
+
+/// WhatsApp-style day separator between message groups — "Today" / "Yesterday"
+/// for the two most recent days, else a plain dd/MM/yyyy date. Mirrors the web
+/// day-pill 1:1: centred stadium chip, muted gray on light gray, sitting above
+/// the first message of each new calendar day.
+class _DayDivider extends StatelessWidget {
+  final DateTime date;
+
+  const _DayDivider({required this.date});
+
+  String get _label {
+    final now = DateTime.now();
+    if (_isSameDay(date, now)) return 'Today';
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (_isSameDay(date, yesterday)) return 'Yesterday';
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 18),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: CommColors.line2,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            _label,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: CommColors.muted,
+            ),
+          ),
+        ),
       ),
     );
   }

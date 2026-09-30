@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get/get.dart';
+import 'package:supervisormobile/features/communication/controllers/messenger_controller.dart';
 import 'package:supervisormobile/services/DioService.dart';
 import 'package:supervisormobile/services/SignalrNotificationService.dart';
 
@@ -79,12 +81,13 @@ class PushNotificationService {
     FirebaseMessaging.onMessage.listen((message) {
       final notification = message.notification;
       if (notification == null) return;
-      // While the app is foregrounded, the SignalR hub already delivers this
-      // same event (usually first) and shows it via showLocalNotificationFromSignalr.
-      // Skip the FCM foreground display entirely to avoid a duplicate - FCM's
-      // OS-level display is only actually needed when backgrounded/terminated,
-      // which this listener never runs for anyway.
-      if (SignalrNotificationService.instance.isConnected) return;
+      // While the app is foregrounded, one of the live SignalR hubs already
+      // delivers this same event (usually first) and shows it via
+      // showLocalNotificationFromSignalr. Skip the FCM foreground display
+      // entirely to avoid a duplicate - FCM's OS-level display is only
+      // actually needed when backgrounded/terminated, which this listener
+      // never runs for anyway.
+      if (_hasLiveRealtimeConnection()) return;
       _showLocalNotification(
         id: _notificationId(message.data),
         title: notification.title ?? '',
@@ -103,6 +106,20 @@ class PushNotificationService {
     }
 
     _messaging.onTokenRefresh.listen((_) => registerDeviceToken());
+  }
+
+  /// True when either the VM-notifications hub or the messenger's chat hub is
+  /// currently connected, i.e. some in-app realtime channel will already show
+  /// this event live. `MessengerController` is registered lazily (on first
+  /// entry to the app shell), so guard with `isRegistered` rather than
+  /// `Get.find`, which would throw before that point (e.g. cold start while
+  /// still on the login screen).
+  bool _hasLiveRealtimeConnection() {
+    if (SignalrNotificationService.instance.isConnected) return true;
+    if (Get.isRegistered<MessengerController>()) {
+      return Get.find<MessengerController>().signalR.isConnected;
+    }
+    return false;
   }
 
   /// Shows a local notification for an event received over the SignalR hub

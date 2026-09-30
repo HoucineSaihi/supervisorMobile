@@ -407,8 +407,9 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
               title: AppLocalizations.of(context)!.origin,
               allLabel: AppLocalizations.of(context)!.all,
               options: [
-                MapEntry(1, AppLocalizations.of(context)!.manual),
-                MapEntry(0, AppLocalizations.of(context)!.checklist),
+                MapEntry(ProblemOrigin.libre, AppLocalizations.of(context)!.manual),
+                MapEntry(ProblemOrigin.checklist, AppLocalizations.of(context)!.checklist),
+                MapEntry(ProblemOrigin.messenger, AppLocalizations.of(context)!.messengerOrigin),
               ],
               selectedValues: _selectedOrigins,
             );

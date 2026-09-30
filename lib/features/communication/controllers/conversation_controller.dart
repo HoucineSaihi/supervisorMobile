@@ -1,14 +1,26 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
+import 'package:dio/dio.dart' show DioException;
 import 'package:get/get.dart';
 
 import '../models/conversation.dart';
 import '../models/message.dart';
 import '../services/chat_signalr_service.dart';
+import '../services/messenger_local_cache.dart';
 import '../services/messenger_service.dart';
 import '../services/offline_queue.dart';
 import 'messenger_controller.dart';
+
+/// A just-recorded voice clip sitting in the composer, reviewed/played back and
+/// possibly captioned before the user confirms the actual send.
+class StagedVoice {
+  final String path;
+  final int durationSeconds;
+
+  StagedVoice({required this.path, required this.durationSeconds});
+}
 
 /// Per-thread state: the message list, composer send (with offline queueing),
 /// realtime updates, read receipts and presence. Created when a conversation opens
@@ -26,6 +38,10 @@ class ConversationController extends GetxController {
 
   final messages = <Message>[].obs;
   final detail = Rxn<ConversationDetail>();
+
+  /// History is paged: the latest page on open, older pages prepended on scroll-up.
+  final hasMoreOlder = false.obs;
+  final isLoadingOlder = false.obs;
   final isLoading = false.obs;
   final hasError = false.obs;
   final isSending = false.obs;
@@ -39,6 +55,12 @@ class ConversationController extends GetxController {
   final mentionSuggestions = <MentionSuggestion>[].obs;
   final allowedReactions = <String>[].obs;
 
+  /// A voice clip that's been recorded but not yet sent — staged in the composer so
+  /// the user can review/play it back, optionally add a caption, and confirm the send
+  /// explicitly (rather than the old hold-to-record-and-release-to-send flow, which
+  /// gave no chance to reconsider before it was already gone).
+  final stagedVoice = Rxn<StagedVoice>();
+
   // ── Context, pins and search ──────────────────────────
 
   /// Conversation-wide pinned messages. The newest is surfaced as a banner; the rest
@@ -51,6 +73,10 @@ class ConversationController extends GetxController {
   /// Live status of incidents referenced by this thread, keyed by incident id, so a
   /// card can show where the incident actually stands rather than just its number.
   final incidentSummaries = <int, IncidentStatusSummary>{}.obs;
+
+  /// Incident ids whose status fetch is in flight, so concurrent pushes for the
+  /// same incident don't each issue their own request.
+  final _incidentFetches = <int>{};
 
   /// Status of the operational object this whole conversation hangs off, when it is an
   /// incident thread. Backs the context banner under the header.
@@ -86,24 +112,53 @@ class ConversationController extends GetxController {
   Future<void> _open() async {
     isLoading.value = true;
     hasError.value = false;
-    _loadPresence();
-    try {
-      final page = await _service.getMessages(conversationId, pageSize: 50);
+    final cache = MessengerLocalCache.instance;
+
+    // 1. Paint the last-seen messages from the device right away (no spinner)…
+    final cached = await cache.getThread(currentUserId, conversationId);
+    if (cached != null && messages.isEmpty) {
+      final page = MessagePage.fromJson(cached);
       messages.value = page.messages;
+      hasMoreOlder.value = page.hasMoreOlder;
       _trackSequence(page.messages);
       _mergeQueued();
       isLoading.value = false;
-      markRead();
-    } catch (_) {
-      isLoading.value = false;
-      hasError.value = true;
     }
-    // Fetch detail (members) in parallel; failure is non-fatal.
+
+    // 2. …then fetch everything fresh in ONE request (detail, latest page, pins,
+    // presence) and let it replace the snapshot.
     try {
-      detail.value = await _service.getConversation(conversationId);
+      final bundle = await _service.openConversation(conversationId, pageSize: 50);
+      messages.value = bundle.page.messages;
+      hasMoreOlder.value = bundle.page.hasMoreOlder;
+      _lastSequence = 0;
+      _trackSequence(bundle.page.messages);
+      _mergeQueued();
+      detail.value = bundle.detail;
       _loadScopeContext();
-    } catch (_) {}
-    loadPinnedMessages();
+      pinnedMessages.value = bundle.pins;
+      onlineMembers
+        ..clear()
+        ..addAll(bundle.presence.where((p) => p.isOnline).map((p) => p.caisseId));
+      onlineMembers.refresh();
+      isLoading.value = false;
+      markRead();
+      final raw = bundle.page.raw;
+      if (raw != null) cache.putThread(currentUserId, conversationId, raw);
+    } on DioException catch (e) {
+      // Left or removed: the snapshot must not keep showing this thread.
+      final status = e.response?.statusCode;
+      if (status == 403 || status == 404) {
+        cache.removeThread(currentUserId, conversationId);
+        messages.clear();
+        isLoading.value = false;
+        hasError.value = true;
+      } else {
+        _openFailed(hadSnapshot: cached != null);
+      }
+    } catch (_) {
+      _openFailed(hadSnapshot: cached != null);
+    }
     _loadIncidentSummaries();
     // Subscribe BEFORE joining so a join failure mid-reconnect can't skip wiring.
     await _signalR.joinConversation(conversationId);
@@ -125,6 +180,9 @@ class ConversationController extends GetxController {
       }
       _trackSequence([m]);
       messages.refresh();
+      // A converted message (and the system note announcing it) arrives with a
+      // link but no status — resolve it now so the card fills in live.
+      if (m.linkedIncidentId != null) _loadIncidentSummaries();
       if (m.senderId != currentUserId) markRead();
     }));
 
@@ -188,6 +246,40 @@ class ConversationController extends GetxController {
     messages.refresh();
   }
 
+  /// A failed refresh over a snapshot keeps the snapshot (offline reading); without
+  /// one it's an error state with a retry.
+  void _openFailed({required bool hadSnapshot}) {
+    isLoading.value = false;
+    if (!hadSnapshot) hasError.value = true;
+  }
+
+  /// Prepends the previous page. Called when the thread is scrolled near its top.
+  Future<void> loadOlder() async {
+    if (!hasMoreOlder.value || isLoadingOlder.value || isLoading.value) return;
+    // Oldest *server* message: queued sends carry placeholder sequences and sit at the end.
+    final first = messages.firstWhereOrNull((m) => m.id > 0);
+    if (first == null) return;
+    isLoadingOlder.value = true;
+    try {
+      final page = await _service.getMessages(
+        conversationId,
+        beforeSequence: first.sequenceNumber,
+        pageSize: 50,
+      );
+      final known = messages.map((m) => m.clientMessageId).toSet();
+      final older = page.messages.where((m) => !known.contains(m.clientMessageId)).toList();
+      hasMoreOlder.value = page.hasMoreOlder;
+      if (older.isNotEmpty) {
+        messages.insertAll(0, older);
+        _loadIncidentSummaries();
+      }
+    } catch (_) {
+      // Leave hasMoreOlder set; the next scroll to the top retries.
+    } finally {
+      isLoadingOlder.value = false;
+    }
+  }
+
   /// Pulls anything sent while the socket was down. SignalR replays nothing across a
   /// reconnect, so without this a gap stays invisible.
   Future<void> _resync() async {
@@ -201,9 +293,16 @@ class ConversationController extends GetxController {
         messages.addAll(missed);
         messages.sort((a, b) => a.sequenceNumber.compareTo(b.sequenceNumber));
         messages.refresh();
+        // A conversion may have happened during the gap this resync just closed.
+        _loadIncidentSummaries();
         markRead();
       }
       _trackSequence(page.messages);
+      // A gap bigger than one page: keep pulling until caught up.
+      if (page.hasMoreNewer) {
+        _isResyncing = false;
+        await _resync();
+      }
     } catch (_) {
     } finally {
       _isResyncing = false;
@@ -218,6 +317,7 @@ class ConversationController extends GetxController {
       if (i >= 0) {
         messages[i] = fresh;
         messages.refresh();
+        if (fresh.linkedIncidentId != null) _loadIncidentSummaries();
       }
     } catch (_) {}
   }
@@ -244,18 +344,6 @@ class ConversationController extends GetxController {
       }
     }
     if (touched) messages.refresh();
-  }
-
-  Future<void> _loadPresence() async {
-    try {
-      final list = await _service.getPresence(conversationId);
-      onlineMembers
-        ..clear()
-        ..addAll(list.where((p) => p.isOnline).map((p) => p.caisseId));
-      onlineMembers.refresh();
-    } catch (_) {
-      onlineMembers.clear();
-    }
   }
 
   bool isOnline(int caisseId) => onlineMembers.contains(caisseId);
@@ -407,19 +495,31 @@ class ConversationController extends GetxController {
 
   /// Pulls status for every incident referenced by a message in view, so incident
   /// cards render live rather than as a bare id.
+  ///
+  /// Called on load AND whenever a message arrives carrying a link we haven't
+  /// resolved yet: the server pushes the system message in real time but not the
+  /// incident's status (spec C3), so without this the card stays blank until the
+  /// thread is reopened.
   Future<void> _loadIncidentSummaries() async {
     final ids = messages
         .map((m) => m.linkedIncidentId)
         .whereType<int>()
         .toSet()
-        .where((id) => !incidentSummaries.containsKey(id))
+        .where((id) => !incidentSummaries.containsKey(id) && !_incidentFetches.contains(id))
         .toList();
     if (ids.isEmpty) return;
+    // Guards against a second push for the same incident racing the first fetch.
+    _incidentFetches.addAll(ids);
     for (final id in ids) {
       try {
         incidentSummaries[id] = await _service.getIncidentStatusSummary(id);
-      } catch (_) {}
+      } catch (_) {
+        // Left unresolved so a later push or reopen can retry it.
+      } finally {
+        _incidentFetches.remove(id);
+      }
     }
+    incidentSummaries.refresh();
   }
 
   Future<void> loadPinnedMessages() async {
@@ -460,22 +560,40 @@ class ConversationController extends GetxController {
     }
   }
 
+  /// Whether this message may be converted, and which store the incident must be
+  /// declared under when the sender has no fixed one of their own.
+  Future<ConvertToIncidentOptions> getConvertOptions(int messageId) {
+    return _service.getConvertToIncidentOptions(conversationId, messageId);
+  }
+
   /// Turns a message into a tracked incident. Returns the incident on success so the
   /// caller can confirm it; the server posts a system message into the thread itself.
-  Future<IncidentStatusSummary?> convertToIncident(Message m, {String? description}) async {
-    try {
-      final summary = await _service.convertMessageToIncident(
-        conversationId,
-        m.id,
-        description: description ?? m.body,
-      );
-      incidentSummaries[summary.id] = summary;
-      // The conversion stamps LinkedIncidentId on the message and posts a system note.
-      await _refreshMessage(m.id);
-      return summary;
-    } catch (_) {
-      return null;
-    }
+  ///
+  /// Throws on failure so the convert form can show the server's own reason
+  /// (BoutiqueRequired, CanOnlyConvertOwnMessages, …) instead of a generic error.
+  Future<IncidentStatusSummary> convertToIncident(
+    Message m, {
+    String? description,
+    String? commentaire,
+    int? coefId,
+    int? departementId,
+    int? boutiqueId,
+    String? problemImageBefore,
+  }) async {
+    final summary = await _service.convertMessageToIncident(
+      conversationId,
+      m.id,
+      description: description ?? m.body,
+      commentaire: commentaire,
+      coefId: coefId,
+      departementId: departementId,
+      boutiqueId: boutiqueId,
+      problemImageBefore: problemImageBefore,
+    );
+    incidentSummaries[summary.id] = summary;
+    // The conversion stamps LinkedIncidentId on the message and posts a system note.
+    await _refreshMessage(m.id);
+    return summary;
   }
 
   Future<void> loadAllowedReactions() async {
@@ -543,16 +661,30 @@ class ConversationController extends GetxController {
 
   // ── Attachments (voice / image / file) ────────────────
 
-  /// Uploads a recorded clip and sends it as a voice message.
-  Future<void> sendVoice(String filePath, int durationSeconds) {
+  /// Uploads a recorded clip and sends it as a voice message, with an optional
+  /// caption typed alongside it while it sat staged in the composer.
+  Future<void> sendVoice(String filePath, int durationSeconds, {String? caption}) {
     return _sendAttachment(
       filePath: filePath,
       fileName: 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a',
       kind: AttachmentKind.voice,
       optimisticType: MessageType.voice,
       durationSeconds: durationSeconds,
+      body: caption,
       failureMessage: 'Could not send the voice message',
     );
+  }
+
+  /// Discards a staged-but-unsent recording (the delete/X on its preview chip).
+  void discardStagedVoice() {
+    final staged = stagedVoice.value;
+    stagedVoice.value = null;
+    if (staged != null) {
+      final f = File(staged.path);
+      f.exists().then((exists) {
+        if (exists) f.delete();
+      });
+    }
   }
 
   /// Uploads a picked photo (camera or gallery) and sends it as an image message.
@@ -609,6 +741,29 @@ class ConversationController extends GetxController {
       createdAt: DateTime.now(),
       replyToMessageId: replyToMessageId,
       pendingStatus: PendingStatus.sending,
+      // Voice needs to be playable the instant it's recorded — waiting for the
+      // upload+send round-trip to finish left the bubble with nothing to render in
+      // the meantime. Image/file previews don't have this gap in the same way (a
+      // thumbnail isn't needed to confirm "I sent the right thing" the way hearing
+      // the clip back is), so this stays voice-only for now.
+      attachments: kind == AttachmentKind.voice
+          ? [
+              MessageAttachment(
+                id: -DateTime.now().millisecondsSinceEpoch,
+                kind: kind,
+                url: '',
+                fileName: fileName,
+                // Unused for playback here: VoicePlayer only consults contentType to
+                // pick a decoder extension when downloading from the server, and skips
+                // that whole path when localFilePath is set (it hands the recorded
+                // file straight to the player as-is).
+                contentType: 'application/octet-stream',
+                sizeBytes: 0,
+                durationSeconds: durationSeconds,
+                localFilePath: filePath,
+              ),
+            ]
+          : const [],
     );
     messages.add(optimistic);
     messages.refresh();
@@ -654,6 +809,9 @@ class ConversationController extends GetxController {
       t.cancel();
     }
     _mentionDebounce?.cancel();
+    // A recording staged but never sent (user left the thread instead) has nothing
+    // else that will ever clean up its temp file.
+    discardStagedVoice();
     _signalR.leaveConversation(conversationId);
     // Only clear the active-conversation guard if it's still pointing at us — a fast
     // switch to another thread may have already set it to the new conversation.

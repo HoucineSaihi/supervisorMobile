@@ -56,6 +56,24 @@ class UserService {
     }
   }
 
+  /// Every user account in the org — unscoped, same as the web picker's
+  /// `GET /Caisses`. Filtering (excluding self, matching a search term) is the
+  /// caller's job, not the server's; this endpoint applies none.
+  Future<List<UserModel>> getAllUsers({dio.CancelToken? cancelToken}) async {
+    final response = await _dio.get(
+      '/Caisses',
+      cancelToken: cancelToken,
+    );
+    final payload = response.data;
+    final list = payload is List
+        ? payload
+        : (payload is Map && payload['data'] is List ? payload['data'] as List : const []);
+    return list
+        .whereType<Map>()
+        .map((j) => UserModel.fromJson(Map<String, dynamic>.from(j)))
+        .toList();
+  }
+
   Future<bool> updateUser(UserModel user, {dio.CancelToken? cancelToken}) async {
     try {
       String? userIdString = await _storage.read(key: 'currentUserId');

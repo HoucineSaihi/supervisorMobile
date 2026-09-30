@@ -5,6 +5,28 @@ import '../../../services/DioService.dart';
 import '../models/conversation.dart';
 import '../models/message.dart';
 
+/// GET /Conversations/{id}/open — everything to paint a thread in one round trip.
+class ConversationOpenBundle {
+  final ConversationDetail detail;
+  final MessagePage page;
+  final List<PinnedMessage> pins;
+  final List<MemberPresence> presence;
+
+  ConversationOpenBundle({
+    required this.detail,
+    required this.page,
+    required this.pins,
+    required this.presence,
+  });
+
+  factory ConversationOpenBundle.fromJson(Map<String, dynamic> j) => ConversationOpenBundle(
+        detail: ConversationDetail.fromJson(j['detail'] as Map<String, dynamic>),
+        page: MessagePage.fromJson(j['messages'] as Map<String, dynamic>),
+        pins: (j['pins'] as List<dynamic>? ?? []).map((p) => PinnedMessage.fromJson(p)).toList(),
+        presence: (j['presence'] as List<dynamic>? ?? []).map((p) => MemberPresence.fromJson(p)).toList(),
+      );
+}
+
 /// REST client for the messenger — the write path. Mirrors the Angular
 /// ConversationService and the backend ConversationsController one-to-one.
 /// SignalR only ever pushes what these calls produce.
@@ -16,9 +38,33 @@ class MessengerService {
   /// resolving attachment content routes.
   static String get apiRoot => '${DioService.assetsBaseUrl}/api/';
 
-  Future<ConversationListResponse> getConversations({int page = 1, int pageSize = 30}) async {
-    final res = await _dio.get('$_base?page=$page&pageSize=$pageSize');
+  /// Keyset-paged inbox: pass back [ConversationListResponse.nextCursor] for the next
+  /// page. [search] and [filter] (unread | mentions | groups | direct) run server-side,
+  /// so they cover every conversation, not only the loaded pages.
+  Future<ConversationListResponse> getConversations({
+    String? cursor,
+    String? search,
+    String? filter,
+    int pageSize = 30,
+  }) async {
+    final params = <String, dynamic>{'pageSize': pageSize};
+    if (cursor != null) params['cursor'] = cursor;
+    if (search != null && search.trim().isNotEmpty) params['search'] = search.trim();
+    if (filter != null && filter != 'all') params['filter'] = filter;
+    final res = await _dio.get(_base, queryParameters: params);
     return ConversationListResponse.fromJson(res.data);
+  }
+
+  /// One inbox row, to patch or insert a single conversation without a reload.
+  Future<ConversationSummary> getConversationSummary(int id) async {
+    final res = await _dio.get('$_base/$id/summary');
+    return ConversationSummary.fromJson(res.data);
+  }
+
+  /// Detail + latest message page + pins + presence in one request (replaces four).
+  Future<ConversationOpenBundle> openConversation(int id, {int pageSize = 50}) async {
+    final res = await _dio.get('$_base/$id/open', queryParameters: {'pageSize': pageSize});
+    return ConversationOpenBundle.fromJson(res.data as Map<String, dynamic>);
   }
 
   Future<ConversationDetail> getConversation(int id) async {
@@ -30,11 +76,13 @@ class MessengerService {
     int id, {
     int? beforeSequence,
     int? afterSequence,
+    int? aroundSequence,
     int pageSize = 50,
   }) async {
     final params = <String, dynamic>{'pageSize': pageSize};
     if (beforeSequence != null) params['beforeSequence'] = beforeSequence;
     if (afterSequence != null) params['afterSequence'] = afterSequence;
+    if (aroundSequence != null) params['aroundSequence'] = aroundSequence;
     final res = await _dio.get('$_base/$id/messages', queryParameters: params);
     return MessagePage.fromJson(res.data);
   }
@@ -189,15 +237,37 @@ class MessengerService {
     int messageId, {
     String? description,
     int? boutiqueId,
+    String? commentaire,
+    int? coefId,
+    int? departementId,
+    String? problemImageBefore,
   }) async {
     final res = await _dio.post(
       '$_base/$conversationId/messages/$messageId/convert-to-incident',
       data: {
         if (description != null) 'description': description,
         if (boutiqueId != null) 'boutiqueId': boutiqueId,
+        if (commentaire != null) 'commentaire': commentaire,
+        if (coefId != null) 'coefId': coefId,
+        if (departementId != null) 'departementId': departementId,
+        if (problemImageBefore != null) 'problemImageBefore': problemImageBefore,
       },
     );
     return IncidentStatusSummary.fromJson(res.data);
+  }
+
+  /// Whether the caller may convert this message and, when the sender has no
+  /// single fixed store, the stores to choose from. Must be consulted before
+  /// converting: a message from an admin or area manager implies no boutique,
+  /// and the convert call rejects that with "BoutiqueRequired".
+  Future<ConvertToIncidentOptions> getConvertToIncidentOptions(
+    int conversationId,
+    int messageId,
+  ) async {
+    final res = await _dio.get(
+      '$_base/$conversationId/messages/$messageId/convert-to-incident/options',
+    );
+    return ConvertToIncidentOptions.fromJson(res.data);
   }
 
   /// Current status of an incident, for the in-thread card. Read on load, not pushed.

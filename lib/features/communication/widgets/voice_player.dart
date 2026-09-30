@@ -1,12 +1,10 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../models/message.dart';
-import '../services/messenger_service.dart';
+import '../services/media_cache.dart';
 import '../theme/comm_colors.dart';
 
 /// Playback bubble for a voice attachment.
@@ -28,7 +26,6 @@ class VoicePlayer extends StatefulWidget {
 }
 
 class _VoicePlayerState extends State<VoicePlayer> {
-  static final _service = MessengerService();
 
   final _player = AudioPlayer();
   bool _preparing = false;
@@ -43,6 +40,10 @@ class _VoicePlayerState extends State<VoicePlayer> {
 
   /// Downloads on first play rather than on build — a thread can hold many voice
   /// notes, and fetching them all eagerly would burn a field user's data.
+  ///
+  /// Skipped entirely for a not-yet-uploaded optimistic attachment (`localFilePath`
+  /// set): the clip already sits on-device, recorded moments ago, so playing it back
+  /// is just pointing the player at that file — no server round-trip to wait on.
   Future<void> _prepare() async {
     if (_ready || _preparing) return;
     setState(() {
@@ -50,19 +51,17 @@ class _VoicePlayerState extends State<VoicePlayer> {
       _failed = false;
     });
     try {
-      final dir = await getTemporaryDirectory();
-      // Key the cache on the attachment id: urls are stable but ids are shorter and
-      // already unique per stored blob.
-      final ext = _extensionFor(widget.attachment);
-      final file = File(p.join(dir.path, 'voice_${widget.attachment.id}$ext'));
-
-      if (!await file.exists()) {
-        final bytes = await _service.downloadAttachment(widget.attachment.url);
-        if (bytes.isEmpty) throw Exception('empty');
-        await file.writeAsBytes(bytes, flush: true);
+      final local = widget.attachment.localFilePath;
+      if (local != null) {
+        await _player.setFilePath(local);
+      } else {
+        // Size-capped shared media cache (was: temp files that were never evicted).
+        final file = await MediaCache.instance.file(
+          widget.attachment,
+          extension: _extensionFor(widget.attachment),
+        );
+        await _player.setFilePath(file.path);
       }
-
-      await _player.setFilePath(file.path);
       if (mounted) {
         setState(() {
           _ready = true;

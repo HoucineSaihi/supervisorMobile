@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../models/conversation.dart' show IncidentStatusSummary;
 import '../models/message.dart';
+import '../services/media_cache.dart';
 import '../theme/comm_colors.dart';
 import 'auth_image.dart';
 import 'incident_card.dart';
@@ -109,7 +110,20 @@ class MessageBubble extends StatelessWidget {
                   style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: CommColors.ink),
                 ),
               ),
-            GestureDetector(
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              // Mirrors the web bubble row: the priority icon sits beside the
+              // bubble, opposite side for own vs. received messages (children
+              // reversed below rather than using Row.textDirection, which
+              // collides with intl's own TextDirection import).
+              children: [
+                if (isOwn && message.priority != MessagePriority.normal) ...[
+                  _priorityMarker(),
+                  const SizedBox(width: 6),
+                ],
+                Flexible(
+                  child: GestureDetector(
               onLongPress: message.isDeleted ? null : onLongPress,
               child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -154,6 +168,13 @@ class MessageBubble extends StatelessWidget {
                 ],
               ),
             ),
+                  ),
+                ),
+                if (!isOwn && message.priority != MessagePriority.normal) ...[
+                  const SizedBox(width: 6),
+                  _priorityMarker(),
+                ],
+              ],
             ),
             // The incident this message produced or refers to, rendered as an object
             // card rather than folded into the bubble.
@@ -199,6 +220,13 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
+  /// Priority icon beside the bubble — see [_PriorityIndicator]. Nudged down to
+  /// roughly the bubble's first text line, clear of the author name row above it.
+  Widget _priorityMarker() => Padding(
+        padding: EdgeInsets.only(top: !isOwn && showAuthor ? 19 : 2),
+        child: _PriorityIndicator(priority: message.priority),
+      );
+
   /// Small pin marker shown in the footer for pinned messages.
   Widget _pinMark() => const Padding(
         padding: EdgeInsets.only(right: 4),
@@ -243,11 +271,16 @@ class MessageBubble extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: GestureDetector(
                   onTap: onAttachmentTap == null ? null : () => onAttachmentTap!(a),
-                  child: AuthImage(relativeUrl: a.url, width: 220, height: 170),
+                  child: _sizedImage(a),
                 ),
               );
             case AttachmentKind.voice:
-              return VoicePlayer(attachment: a, isOwn: isOwn);
+              // Keyed on id: the optimistic send swaps this exact attachment for the
+              // server-confirmed one (negative local id -> real id), and without a key
+              // Flutter would reuse the old _VoicePlayerState — including its already-
+              // "ready" player pointed at the local file — instead of picking up the
+              // server attachment fresh.
+              return VoicePlayer(key: ValueKey('voice-${a.id}'), attachment: a, isOwn: isOwn);
             case AttachmentKind.file:
               return GestureDetector(
                 onTap: onAttachmentTap == null ? null : () => onAttachmentTap!(a),
@@ -257,6 +290,20 @@ class MessageBubble extends StatelessWidget {
         }).toList(),
       ),
     );
+  }
+
+  /// Box sized from the server-measured aspect ratio (clamped), so a portrait photo
+  /// isn't cropped into a landscape frame and nothing reflows as it loads.
+  Widget _sizedImage(MessageAttachment a) {
+    const maxW = 220.0, maxH = 260.0, minSide = 80.0;
+    var w = maxW, h = 170.0;
+    final sw = a.width, sh = a.height;
+    if (sw != null && sh != null && sw > 0 && sh > 0) {
+      final scale = [1.0, maxW / sw, maxH / sh].reduce((x, y) => x < y ? x : y);
+      w = (sw * scale).clamp(minSide, maxW);
+      h = (sh * scale).clamp(minSide, maxH);
+    }
+    return AuthImage(attachment: a, variant: MediaVariant.thumb, width: w, height: h);
   }
 
   Widget _chip(IconData icon, String label) {
@@ -334,6 +381,60 @@ class MessageBubble extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Mirrors the web bubble's priority marker: a small icon beside the bubble
+/// (never a border or in-bubble badge — that treatment was superseded on web).
+/// Normal priority renders nothing, so this is only built for the other three.
+class _PriorityIndicator extends StatelessWidget {
+  final MessagePriority priority;
+
+  const _PriorityIndicator({required this.priority});
+
+  IconData get _icon {
+    switch (priority) {
+      case MessagePriority.important:
+        return Icons.flag;
+      case MessagePriority.urgent:
+        return Icons.warning_amber_rounded;
+      case MessagePriority.critical:
+      case MessagePriority.normal:
+        return Icons.error;
+    }
+  }
+
+  Color get _color {
+    switch (priority) {
+      case MessagePriority.important:
+        return CommColors.amber;
+      case MessagePriority.urgent:
+        return CommColors.orange;
+      case MessagePriority.critical:
+      case MessagePriority.normal:
+        return CommColors.red;
+    }
+  }
+
+  String get _label {
+    switch (priority) {
+      case MessagePriority.important:
+        return 'Important';
+      case MessagePriority.urgent:
+        return 'Urgent';
+      case MessagePriority.critical:
+        return 'Critical';
+      case MessagePriority.normal:
+        return 'Normal';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: _label,
+      child: Icon(_icon, size: 13, color: _color),
     );
   }
 }

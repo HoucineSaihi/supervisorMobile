@@ -170,12 +170,31 @@ class MessageAttachment {
   /// Server-issued authorized route ("api/Conversations/attachments/{id}/content"),
   /// NOT a static path — access is membership-checked (risk E-R2). Resolve against
   /// the API root before use.
+  ///
+  /// Empty for a not-yet-uploaded optimistic attachment — see [localFilePath].
   final String url;
   final String fileName;
   final String contentType;
   final int sizeBytes;
   final int? durationSeconds;
   final bool isAnnotated;
+
+  /// Server-measured display size (after EXIF orientation) — lets a bubble reserve
+  /// its exact box before any byte loads. Null for older uploads.
+  final int? width;
+  final int? height;
+
+  /// Set when the server generated a small variant; bubbles then fetch `?v=thumb`.
+  final String? thumbnailUrl;
+
+  /// Tiny inline JPEG (data: URI), painted blurred until the thumbnail arrives.
+  final String? placeholderDataUri;
+
+  /// Local-only: set only on the optimistic attachment a sender's own device builds
+  /// while the file is still uploading, so the bubble can play/preview it before the
+  /// server round-trip finishes. Never set on an attachment parsed from the API —
+  /// [url] is what every other device (and this one, once confirmed) uses instead.
+  final String? localFilePath;
 
   MessageAttachment({
     required this.id,
@@ -186,6 +205,11 @@ class MessageAttachment {
     required this.sizeBytes,
     this.durationSeconds,
     this.isAnnotated = false,
+    this.width,
+    this.height,
+    this.thumbnailUrl,
+    this.placeholderDataUri,
+    this.localFilePath,
   });
 
   factory MessageAttachment.fromJson(Map<String, dynamic> j) => MessageAttachment(
@@ -197,6 +221,10 @@ class MessageAttachment {
         sizeBytes: j['sizeBytes'] ?? 0,
         durationSeconds: j['durationSeconds'],
         isAnnotated: j['isAnnotated'] ?? false,
+        width: (j['width'] as num?)?.toInt(),
+        height: (j['height'] as num?)?.toInt(),
+        thumbnailUrl: j['thumbnailUrl'] as String?,
+        placeholderDataUri: j['placeholderDataUri'] as String?,
       );
 }
 
@@ -451,7 +479,10 @@ class MessagePage {
   final bool hasMoreOlder;
   final bool hasMoreNewer;
 
-  MessagePage({required this.messages, required this.hasMoreOlder, required this.hasMoreNewer});
+  /// The server JSON this page was parsed from — stored as-is by the local cache.
+  final Map<String, dynamic>? raw;
+
+  MessagePage({required this.messages, required this.hasMoreOlder, required this.hasMoreNewer, this.raw});
 
   factory MessagePage.fromJson(Map<String, dynamic> j) => MessagePage(
         messages: (j['messages'] as List<dynamic>? ?? [])
@@ -459,6 +490,7 @@ class MessagePage {
             .toList(),
         hasMoreOlder: j['hasMoreOlder'] ?? false,
         hasMoreNewer: j['hasMoreNewer'] ?? false,
+        raw: j,
       );
 }
 

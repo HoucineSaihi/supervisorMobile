@@ -229,14 +229,19 @@ class ConversationSummary {
     MessagePriority? highestUnreadPriority,
     bool clearUnreadPriority = false,
     bool? hasUnreadMention,
+    String? lastMessagePreview,
+    String? lastMessageSenderName,
+    DateTime? lastMessageAt,
+    int? lastMessageId,
+    int? lastMessageSequence,
   }) =>
       ConversationSummary(
         id: id,
         type: type,
         title: title,
-        lastMessagePreview: lastMessagePreview,
-        lastMessageSenderName: lastMessageSenderName,
-        lastMessageAt: lastMessageAt,
+        lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+        lastMessageSenderName: lastMessageSenderName ?? this.lastMessageSenderName,
+        lastMessageAt: lastMessageAt ?? this.lastMessageAt,
         unreadCount: unreadCount ?? this.unreadCount,
         isMuted: isMuted ?? this.isMuted,
         memberCount: memberCount,
@@ -250,8 +255,8 @@ class ConversationSummary {
         hasUnreadMention: hasUnreadMention ?? this.hasUnreadMention,
         scopeType: scopeType,
         scopeId: scopeId,
-        lastMessageId: lastMessageId,
-        lastMessageSequence: lastMessageSequence,
+        lastMessageId: lastMessageId ?? this.lastMessageId,
+        lastMessageSequence: lastMessageSequence ?? this.lastMessageSequence,
       );
 }
 
@@ -260,10 +265,22 @@ class ConversationListResponse {
   final int page;
   final bool hasMore;
 
+  /// Opaque keyset cursor for the next page; null on the last page.
+  final String? nextCursor;
+
+  /// Filter-chip totals — only sent with a first page (no cursor).
+  final ConversationCounts? counts;
+
+  /// The server JSON this response was parsed from — stored as-is by the local cache.
+  final Map<String, dynamic>? raw;
+
   ConversationListResponse({
     required this.conversations,
     required this.page,
     required this.hasMore,
+    this.nextCursor,
+    this.counts,
+    this.raw,
   });
 
   factory ConversationListResponse.fromJson(Map<String, dynamic> j) => ConversationListResponse(
@@ -272,6 +289,37 @@ class ConversationListResponse {
             .toList(),
         page: j['page'] ?? 1,
         hasMore: j['hasMore'] ?? false,
+        nextCursor: j['nextCursor'] as String?,
+        counts: j['counts'] is Map<String, dynamic>
+            ? ConversationCounts.fromJson(j['counts'] as Map<String, dynamic>)
+            : null,
+        raw: j,
+      );
+}
+
+/// Server-side totals for the inbox chips — counted over every conversation, not
+/// just the loaded pages.
+class ConversationCounts {
+  final int all;
+  final int unread;
+  final int direct;
+  final int groups;
+  final int mentions;
+
+  const ConversationCounts({
+    this.all = 0,
+    this.unread = 0,
+    this.direct = 0,
+    this.groups = 0,
+    this.mentions = 0,
+  });
+
+  factory ConversationCounts.fromJson(Map<String, dynamic> j) => ConversationCounts(
+        all: (j['all'] as num?)?.toInt() ?? 0,
+        unread: (j['unread'] as num?)?.toInt() ?? 0,
+        direct: (j['direct'] as num?)?.toInt() ?? 0,
+        groups: (j['groups'] as num?)?.toInt() ?? 0,
+        mentions: (j['mentions'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -384,6 +432,48 @@ class IncidentStatusSummary {
         closedDate: j['closedDate'] != null
             ? DateTime.tryParse(j['closedDate'])?.toLocal()
             : null,
+      );
+}
+
+class BoutiqueOption {
+  final int id;
+
+  /// Store code — shown next to the name and searchable in the picker.
+  final String? code;
+  final String? libelle;
+
+  BoutiqueOption({required this.id, this.code, this.libelle});
+
+  factory BoutiqueOption.fromJson(Map<String, dynamic> j) =>
+      BoutiqueOption(id: j['id'] ?? 0, code: j['code'] as String?, libelle: j['libelle']);
+
+  String get label => libelle ?? 'Store #$id';
+}
+
+/// Whether the caller may convert this message and, when the sender has no
+/// single fixed store of their own (an area manager or admin), which stores the
+/// incident may be declared under. Mirrors ConvertToIncidentOptionsDto.
+///
+/// Without this the convert call 400s with "BoutiqueRequired" for any message
+/// sent by someone who isn't tied to one store.
+class ConvertToIncidentOptions {
+  final bool canConvert;
+  final bool requiresBoutiqueSelection;
+  final List<BoutiqueOption> boutiques;
+
+  ConvertToIncidentOptions({
+    required this.canConvert,
+    required this.requiresBoutiqueSelection,
+    this.boutiques = const [],
+  });
+
+  factory ConvertToIncidentOptions.fromJson(Map<String, dynamic> j) =>
+      ConvertToIncidentOptions(
+        canConvert: j['canConvert'] ?? false,
+        requiresBoutiqueSelection: j['requiresBoutiqueSelection'] ?? false,
+        boutiques: (j['boutiques'] as List<dynamic>? ?? [])
+            .map((b) => BoutiqueOption.fromJson(b))
+            .toList(),
       );
 }
 

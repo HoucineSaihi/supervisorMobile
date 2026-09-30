@@ -22,6 +22,10 @@ class CommColors {
   static const Color green = Color(0xFF22C55E);
   static const Color amber = Color(0xFFF5B301);
 
+  /// Urgent-priority tint — hardcoded literal on web too (`#f97316`), not a
+  /// `--comm-*` token there, so it's not derived from an existing var here either.
+  static const Color orange = Color(0xFFF97316);
+
   /// Deterministic avatar tint from an id — same intent as the web `tintFor`.
   static Color tintFor(int seed) {
     const palette = [

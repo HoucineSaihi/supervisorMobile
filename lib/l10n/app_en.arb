@@ -963,6 +963,8 @@
   "production": "Production",
   "office": "Office",
   "free": "Libre",
+  "messengerOrigin": "Messenger",
+  "openConversation": "Open conversation",
   "cost": "Cost: ${value}"
   ,
   "addIncident": "Add Incident",

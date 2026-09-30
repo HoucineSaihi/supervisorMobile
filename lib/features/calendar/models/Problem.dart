@@ -9,6 +9,22 @@ import 'package:supervisormobile/features/calendar/models/boutiqueModel.dart';
 import '../../incidents/models/Coefficient.dart';
 import '../../incidents/models/IncidentCategory.dart';
 
+/// Values of [Problem.origin] — where an incident was raised from.
+/// Mirrors the backend's DIGICARDBACK.Models.ProblemOrigin and the web app's
+/// problem-origin.ts: keep the three in sync.
+class ProblemOrigin {
+  ProblemOrigin._();
+
+  /// Generated from a checklist answer.
+  static const int checklist = 0;
+
+  /// Declared by hand in the incident module ("Libre").
+  static const int libre = 1;
+
+  /// Converted from a Messenger chat message.
+  static const int messenger = 2;
+}
+
 class Problem {
   int id;
   int? user_id;  // Renamed to match C# field 'user_id'
@@ -27,7 +43,10 @@ class Problem {
   Coefficient? coefficient;  // Renamed to match C# field 'coefficient'
   String? coefficientName;
   int? cluster;  // Unchanged, as it's already matching
-  int? origin;  // Unchanged, as it's already matching
+  int? origin;  // see ProblemOrigin
+  /// Messenger incidents (origin 2): the conversation / message they were raised from.
+  int? sourceConversationId;
+  int? sourceMessageId;
   DateTime? declaration_date;  // Renamed to match C# field 'declaration_date'
   DateTime? planified_to;  // Unchanged, as it's already matching
   DateTime? planified_at;  // Unchanged, as it's already matching
@@ -61,6 +80,8 @@ class Problem {
     this.coefficientName,
     this.cluster,
     this.origin,
+    this.sourceConversationId,
+    this.sourceMessageId,
     this.declaration_date,
     this.planified_to,
     this.planified_at,
@@ -96,6 +117,8 @@ class Problem {
       coefficientName: json['coefficientName'] as String?,
       cluster: json['cluster'] != null ? (json['cluster'] as num?)?.toInt() : null,
       origin: json['origin'] != null ? (json['origin'] as num?)?.toInt() : null,
+      sourceConversationId: (json['sourceConversationId'] as num?)?.toInt(),
+      sourceMessageId: (json['sourceMessageId'] as num?)?.toInt(),
       declaration_date: json['declaration_date'] != null ? DateTime.tryParse(json['declaration_date']) : null,
       planified_to: json['planified_to'] != null ? DateTime.tryParse(json['planified_to']) : null,
       planified_at: json['planified_at'] != null ? DateTime.tryParse(json['planified_at']) : null,
@@ -132,6 +155,8 @@ class Problem {
       'coefficientName': coefficientName,
       'cluster': cluster,
       'origin': origin,
+      'sourceConversationId': sourceConversationId,
+      'sourceMessageId': sourceMessageId,
       'declaration_date': declaration_date?.toIso8601String(),
       'planified_to': planified_to?.toIso8601String(),
       'planified_at': planified_at?.toIso8601String(),

@@ -11,6 +11,7 @@ import '../widgets/conversation_actions_sheet.dart';
 import '../widgets/conversation_card.dart';
 import '../widgets/conversation_list_skeleton.dart';
 import 'conversation_screen.dart';
+import 'new_conversation_screen.dart';
 
 /// Inbox: the list of the user's conversations. Entry screen of the messenger tab.
 ///
@@ -104,7 +105,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: CommColors.blue,
-        onPressed: _showNewConversationSheet,
+        onPressed: _openNewConversation,
         child: const Icon(Icons.edit_outlined, color: Colors.white),
       ),
       body: Column(
@@ -237,16 +238,18 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     );
   }
 
+  /// Server totals over every conversation — not a count of the loaded pages.
   int _countFor(ConversationFilter f) {
+    final counts = c.counts.value;
     switch (f) {
       case ConversationFilter.all:
-        return c.conversations.length;
+        return counts.all;
       case ConversationFilter.unread:
-        return c.conversations.where((x) => x.unreadCount > 0).length;
+        return counts.unread;
       case ConversationFilter.mentions:
-        return c.conversations.where((x) => x.hasUnreadMention).length;
+        return counts.mentions;
       case ConversationFilter.groups:
-        return c.conversations.where((x) => !x.isDirect).length;
+        return counts.groups;
     }
   }
 
@@ -268,13 +271,16 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
       );
     }
 
-    if (c.conversations.isEmpty) {
+    // Search and chips are applied server-side, so an empty page under an active
+    // query means "no match", not "no conversations at all".
+    final isFiltered = c.filter.value != ConversationFilter.all || c.searchQuery.value.trim().isNotEmpty;
+    if (c.conversations.isEmpty && !isFiltered) {
       return _stateMessage(
         Icons.forum_outlined,
         'No conversations yet',
         detail: 'Start a discussion and it will show up here.',
         action: TextButton(
-          onPressed: _showNewConversationSheet,
+          onPressed: _openNewConversation,
           child: const Text('New conversation'),
         ),
       );
@@ -304,7 +310,16 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     return RefreshIndicator(
       color: CommColors.blue,
       onRefresh: c.loadConversations,
-      child: ListView(
+      // Infinite scroll: request the next page while the user is still ~2 screens
+      // of rows away from the end, so it's usually there before they arrive.
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (n) {
+          if (n.metrics.axis == Axis.vertical && n.metrics.extentAfter < 600) {
+            c.loadMore();
+          }
+          return false;
+        },
+        child: ListView(
         // Survives the tab-switch rebuild, which a State-held ScrollController would not.
         key: const PageStorageKey<String>('messenger_conversation_list'),
         padding: const EdgeInsets.only(bottom: 88),
@@ -323,7 +338,15 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
             if (rest.isNotEmpty) _sectionHeader('All conversations'),
           ],
           ...rest.map(_row),
+          if (c.isLoadingMore.value)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+            ),
         ],
+        ),
       ),
     );
   }
@@ -457,50 +480,10 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
     );
   }
 
-  void _showNewConversationSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        margin: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 14, 16, 10),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'New conversation',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: CommColors.ink,
-                    ),
-                  ),
-                ),
-              ),
-              const Divider(height: 1, color: CommColors.line2),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 14, 16, 18),
-                child: Text(
-                  'Choosing who to message needs the people picker, which is not built '
-                  'on mobile yet. For now, start the conversation from the web app or '
-                  'from an incident, mission or campaign — it will appear here.',
-                  style: TextStyle(color: CommColors.muted, fontSize: 13, height: 1.4),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  void _openNewConversation() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => const NewConversationScreen(),
+    ));
   }
 }
 

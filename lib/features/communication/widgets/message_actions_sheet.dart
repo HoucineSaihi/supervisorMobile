@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../controllers/conversation_controller.dart';
+import '../models/conversation.dart';
 import '../models/message.dart';
+import '../screens/convert_to_incident_screen.dart';
 import '../theme/comm_colors.dart';
 
 /// Long-press action sheet for a message: a quick-reaction row plus reply / edit /
@@ -106,41 +108,22 @@ Widget _action(BuildContext ctx, IconData icon, String label, VoidCallback onTap
   );
 }
 
-/// Confirms before raising an incident — this creates a real tracked record, so it
-/// should never happen on a stray long-press.
-void _confirmConvert(BuildContext context, ConversationController c, Message message) {
-  showDialog<void>(
-    context: context,
-    builder: (dctx) => AlertDialog(
-      title: const Text('Convert to incident?'),
-      content: Text(
-        'A tracked incident will be created from this message'
-        '${(message.body ?? '').trim().isEmpty ? '' : ':\n\n"${message.body!.trim()}"'}',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dctx).pop(),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () async {
-            Navigator.of(dctx).pop();
-            final messenger = ScaffoldMessenger.of(context);
-            final summary = await c.convertToIncident(message);
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text(
-                  summary == null
-                      ? 'Could not create the incident'
-                      : 'Incident INC-${summary.id} created',
-                ),
-              ),
-            );
-          },
-          child: const Text('Create incident'),
-        ),
-      ],
+/// Opens the convert form — an incident is a real tracked record, and it needs the
+/// same details as a manually declared one, so it is never raised from a bare tap.
+Future<void> _confirmConvert(
+  BuildContext context,
+  ConversationController c,
+  Message message,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final summary = await Navigator.of(context).push<IncidentStatusSummary>(
+    MaterialPageRoute(
+      builder: (_) => ConvertToIncidentScreen(controller: c, message: message),
     ),
+  );
+  if (summary == null) return; // Dismissed without creating one.
+  messenger.showSnackBar(
+    SnackBar(content: Text('Incident INC-${summary.id} created')),
   );
 }
 

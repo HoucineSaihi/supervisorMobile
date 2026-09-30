@@ -13,6 +13,62 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// AGP 8 requires every Android library module to declare a `namespace` in its
+// build.gradle. Some older, unmaintained plugins (e.g. image_gallery_saver 2.0.3,
+// last published 2022) only ever set the pre-AGP-8 `package` attribute in their
+// AndroidManifest.xml and will never be updated upstream. Rather than vendor a
+// patched copy of each one (which wouldn't survive a plain `flutter pub get` on a
+// clean checkout/CI), derive the namespace from that manifest attribute for any
+// library subproject that's missing one — the standard community workaround for
+// this exact AGP-8-migration problem.
+//
+// Must hook via `plugins.withId`, not a bare `subprojects { afterEvaluate {...} }`:
+// evaluationDependsOn(":app") above already forces some subprojects to evaluate
+// eagerly, so a deferred afterEvaluate registered after the fact arrives too late
+// for those and Gradle rejects it outright ("already evaluated").
+subprojects { subproject ->
+    subproject.plugins.withId("com.android.library") {
+        def androidExt = subproject.extensions.getByName("android")
+        if (androidExt.namespace == null) {
+            def manifestFile = subproject.file("src/main/AndroidManifest.xml")
+            if (manifestFile.exists()) {
+                def manifestPackage = new XmlSlurper().parse(manifestFile).@package.text()
+                if (manifestPackage) {
+                    androidExt.namespace = manifestPackage
+                }
+            }
+        }
+    }
+
+}
+
+// Same AGP-8-migration class of issue: a plugin with no explicit Kotlin JVM target
+// (e.g. image_gallery_saver 2.0.3) inherits Kotlin's default, which follows whatever
+// JDK is running Gradle (17+ here) — while its OWN Java compilation stays wherever
+// that plugin set it (1.8, 11, whatever), which AGP 8 rejects as a mismatch. Rather
+// than force one hardcoded value onto every subproject (some plugins deliberately
+// target something other than 1.8, so that just breaks a different one — as
+// flutter_image_compress_common's Java-11 target did), align Kotlin's target to
+// match each module's OWN android.compileOptions once every project's build script
+// has actually run. `gradle.projectsEvaluated` (fires once, after the whole build,
+// unlike per-project `afterEvaluate`) sidesteps the evaluationDependsOn(":app")
+// ordering fight above entirely — every project is guaranteed configured by then.
+gradle.projectsEvaluated {
+    subprojects.each { subproject ->
+        ["com.android.library", "com.android.application"].each { pluginId ->
+            if (subproject.plugins.hasPlugin(pluginId)) {
+                def androidExt = subproject.extensions.getByName("android")
+                def javaTarget = androidExt.compileOptions.targetCompatibility.toString()
+                subproject.tasks.matching { it.name.startsWith("compile") && it.name.endsWith("Kotlin") }.configureEach {
+                    if (it.hasProperty("kotlinOptions")) {
+                        it.kotlinOptions.jvmTarget = javaTarget
+                    }
+                }
+            }
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

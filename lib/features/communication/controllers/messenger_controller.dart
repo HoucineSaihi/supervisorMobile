@@ -6,7 +6,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 
 import '../models/conversation.dart';
+import '../models/message.dart';
 import '../services/chat_signalr_service.dart';
+import '../services/media_cache.dart';
+import '../services/messenger_local_cache.dart';
 import '../services/messenger_service.dart';
 import '../services/offline_queue.dart';
 
@@ -36,9 +39,22 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
   final ChatSignalRService signalR = ChatSignalRService();
   final OfflineQueue queue = OfflineQueue();
 
+  /// Loaded inbox rows. Search and the filter chip run server-side, so this is always
+  /// the first N pages of the answer — never a client-side subset of one page.
   final conversations = <ConversationSummary>[].obs;
   final isLoading = false.obs;
   final hasError = false.obs;
+
+  // ── Paging ────────────────────────────────────────────
+  final hasMore = false.obs;
+  final isLoadingMore = false.obs;
+  /// Server totals for the chips (all conversations, not just loaded pages).
+  final counts = const ConversationCounts().obs;
+  String? _nextCursor;
+  /// Bumped per first-page request so a slow, superseded response is dropped.
+  int _listRequest = 0;
+  Timer? _searchDebounce;
+  static const int _pageSize = 30;
   final connection = ConnectionStatus.connecting.obs;
   final pendingOutbox = 0.obs;
 
@@ -71,7 +87,9 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
 
   final _storage = const FlutterSecureStorage();
   StreamSubscription? _statusSub;
+  StreamSubscription? _messageSub;
   StreamSubscription? _convUpdatedSub;
+  StreamSubscription? _convAddedSub;
   StreamSubscription? _resyncSub;
   StreamSubscription? _notificationSub;
   StreamSubscription? _notificationCountSub;
@@ -92,17 +110,26 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
   /// the messenger onto the previous user's threads.
   Future<void> resetForLogout() async {
     _statusSub?.cancel();
+    _messageSub?.cancel();
     _convUpdatedSub?.cancel();
+    _convAddedSub?.cancel();
     _resyncSub?.cancel();
     _notificationSub?.cancel();
     _notificationCountSub?.cancel();
+    _searchDebounce?.cancel();
     _statusSub = null;
+    _messageSub = null;
     _convUpdatedSub = null;
+    _convAddedSub = null;
     _resyncSub = null;
     _notificationSub = null;
     _notificationCountSub = null;
 
     await signalR.disconnect();
+
+    // Cached media and snapshots belong to the old account too.
+    await MediaCache.instance.clear();
+    await MessengerLocalCache.instance.clear();
 
     // Queued sends belong to the old account — delivering them under the next
     // user's token would post as the wrong person.
@@ -113,6 +140,10 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
     currentUserId = 0;
     activeConversationId = null;
     conversations.clear();
+    hasMore.value = false;
+    isLoadingMore.value = false;
+    counts.value = const ConversationCounts();
+    _nextCursor = null;
     unreadNotifications.value = 0;
     pendingOutbox.value = 0;
     isLoading.value = false;
@@ -145,9 +176,15 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
         flushOutbox();
       }
     });
-    // The list's unread counts and previews go stale across a gap, exactly like an
-    // open thread does.
-    _convUpdatedSub = signalR.onConversationUpdated.listen((_) => loadConversations(silent: true));
+    // Instant inbox update straight from the push payload — no REST round-trip.
+    // ConversationUpdated (below) still exists as a self-healing backstop for
+    // whatever this local patch can't derive (e.g. another member's mute/pin change),
+    // but it must NOT fire a full reload on every single message or the "real-time"
+    // chat would cost a list refetch per message, defeating the point of the push.
+    _messageSub = signalR.onMessage.listen(_onMessageReceived);
+    // Row-level refresh: fetch just the affected conversation, never the whole inbox.
+    _convUpdatedSub = signalR.onConversationUpdated.listen(refreshRow);
+    _convAddedSub = signalR.onConversationAdded.listen(refreshRow);
     _resyncSub = signalR.onResyncRequired.listen((_) {
       loadConversations(silent: true);
       // A gap in the live feed may have dropped a Notification push — re-prime the
@@ -162,15 +199,146 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
     _notificationCountSub =
         signalR.onNotificationCount.listen((count) => unreadNotifications.value = count);
 
-    await loadConversations();
+    // Cold start: paint the last-known inbox from the device, then refresh silently.
+    final cached = await MessengerLocalCache.instance.getInbox(currentUserId);
+    if (cached != null && conversations.isEmpty) {
+      final snapshot = ConversationListResponse.fromJson(cached);
+      conversations.value = snapshot.conversations;
+      if (snapshot.counts != null) counts.value = snapshot.counts!;
+    }
+    await loadConversations(silent: conversations.isNotEmpty);
     _refreshOutboxCount();
     refreshUnreadNotifications();
     signalR.connect().catchError((_) {});
   }
 
+  /// Patches the affected conversation row straight from the pushed message — no
+  /// REST call. Covers the common case (preview text, sender, timestamp, reordering
+  /// to the top, an approximate unread bump/urgency dot); anything this can't derive
+  /// self-heals the next time a full list load happens anyway (app foreground,
+  /// pull-to-refresh, or the onResyncRequired gap-fill).
+  void _onMessageReceived(Message m) {
+    final i = conversations.indexWhere((c) => c.id == m.conversationId);
+    if (i < 0) {
+      // Not on a loaded page (an older thread, or a brand-new one): fetch that one
+      // row rather than reloading every page.
+      refreshRow(m.conversationId);
+      return;
+    }
+
+    final isOwnMessage = m.senderId == currentUserId;
+    final isViewingThisConversation = m.conversationId == activeConversationId;
+    final current = conversations[i];
+
+    // Mirrors MessagePriorityRules.PiercesMute on the backend — keep in sync if that
+    // ever changes. Approximate on purpose: the exact mention/mute interplay is
+    // still resolved server-side and will correct itself on the next full refresh.
+    final piercesMute = m.priority == MessagePriority.urgent || m.priority == MessagePriority.critical;
+    final isMentioned = m.body != null && m.body!.contains('@[User:$currentUserId]');
+    final countsAsUnread = !isOwnMessage &&
+        !isViewingThisConversation &&
+        (!current.isMuted || piercesMute || isMentioned);
+
+    final updated = current.copyWith(
+      lastMessagePreview: _previewFor(m),
+      lastMessageSenderName: m.senderName,
+      lastMessageAt: m.createdAt,
+      lastMessageId: m.id,
+      lastMessageSequence: m.sequenceNumber,
+      unreadCount: countsAsUnread ? current.unreadCount + 1 : null,
+      highestUnreadPriority: countsAsUnread && m.priority != MessagePriority.normal
+          ? m.priority
+          : null,
+      hasUnreadMention: countsAsUnread && isMentioned ? true : null,
+    );
+
+    if (countsAsUnread && current.unreadCount == 0) {
+      counts.value = _withUnreadDelta(counts.value, 1);
+    }
+    conversations[i] = updated;
+    _resort();
+  }
+
+  /// Server order, kept locally after in-place patches: pinned first, then latest.
+  void _resort() {
+    final sorted = [...conversations]..sort((a, b) {
+        if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+        final at = a.lastMessageAt?.millisecondsSinceEpoch ?? 0;
+        final bt = b.lastMessageAt?.millisecondsSinceEpoch ?? 0;
+        return bt != at ? bt.compareTo(at) : b.id.compareTo(a.id);
+      });
+    conversations.value = sorted;
+  }
+
+  static ConversationCounts _withUnreadDelta(ConversationCounts c, int delta) => ConversationCounts(
+        all: c.all,
+        unread: (c.unread + delta).clamp(0, 1 << 30),
+        direct: c.direct,
+        groups: c.groups,
+        mentions: c.mentions,
+      );
+
+  /// Fetches one row and inserts or replaces it. A 404 (left / removed) drops it.
+  Future<void> refreshRow(int conversationId) async {
+    try {
+      final summary = await service.getConversationSummary(conversationId);
+      final i = conversations.indexWhere((c) => c.id == conversationId);
+      if (i >= 0) {
+        conversations[i] = summary;
+      } else if (_matchesActiveFilter(summary)) {
+        conversations.insert(0, summary);
+      }
+      _resort();
+    } catch (_) {
+      conversations.removeWhere((c) => c.id == conversationId);
+    }
+  }
+
+  /// Approximates the server filter for rows that arrive outside of paging.
+  bool _matchesActiveFilter(ConversationSummary c) {
+    switch (filter.value) {
+      case ConversationFilter.unread:
+        return c.unreadCount > 0;
+      case ConversationFilter.mentions:
+        return c.hasUnreadMention;
+      case ConversationFilter.groups:
+        return c.type == ConversationType.group || c.type == ConversationType.channel;
+      case ConversationFilter.all:
+        break;
+    }
+    final q = searchQuery.value.trim().toLowerCase();
+    return q.isEmpty || (c.title ?? '').toLowerCase().contains(q);
+  }
+
+  static String? _filterParam(ConversationFilter f) {
+    switch (f) {
+      case ConversationFilter.unread:
+        return 'unread';
+      case ConversationFilter.mentions:
+        return 'mentions';
+      case ConversationFilter.groups:
+        return 'groups';
+      case ConversationFilter.all:
+        return null;
+    }
+  }
+
+  static String _previewFor(Message m) {
+    switch (m.type) {
+      case MessageType.image:
+        return '📷 Photo';
+      case MessageType.voice:
+        return '🎤 Voice message';
+      case MessageType.file:
+        return '📎 File';
+      default:
+        return m.body ?? '';
+    }
+  }
+
   void _onNotification(NotificationEvent e) {
     unreadNotifications.value = e.unreadCount;
-    // The list preview/unread counts are refreshed by ConversationUpdated; here we
+    // The list preview/unread counts are bumped straight from onMessage; here we
     // only decide how to present. Suppress the toast when the user is already reading
     // that exact conversation — the message is right there — but still play a subtle
     // cue. Mirrors the web NotificationService's sound-only vs toast rule.
@@ -214,16 +382,57 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
     activeConversationId = conversationId;
   }
 
+  /// (Re)loads the first page for the current search + chip. [silent] keeps the rows
+  /// on screen (background resync) instead of showing the skeleton.
   Future<void> loadConversations({bool silent = false}) async {
-    if (!silent) isLoading.value = true;
+    final request = ++_listRequest;
+    if (!silent || conversations.isEmpty) isLoading.value = true;
     hasError.value = false;
     try {
-      final res = await service.getConversations(pageSize: 40);
+      final res = await service.getConversations(
+        search: searchQuery.value,
+        filter: _filterParam(filter.value),
+        pageSize: _pageSize,
+      );
+      if (request != _listRequest) return; // superseded by a newer search/filter
       conversations.value = res.conversations;
+      _nextCursor = res.nextCursor;
+      hasMore.value = res.hasMore && res.nextCursor != null;
+      if (res.counts != null) counts.value = res.counts!;
+      // Only the plain inbox is worth a cold-start snapshot, not a filtered view.
+      final raw = res.raw;
+      if (raw != null && filter.value == ConversationFilter.all && searchQuery.value.trim().isEmpty) {
+        MessengerLocalCache.instance.putInbox(currentUserId, raw);
+      }
     } catch (_) {
-      if (!silent) hasError.value = true;
+      if (request == _listRequest && !silent) hasError.value = true;
     } finally {
-      isLoading.value = false;
+      if (request == _listRequest) isLoading.value = false;
+    }
+  }
+
+  /// Next page — called when the inbox scrolls near its end.
+  Future<void> loadMore() async {
+    final cursor = _nextCursor;
+    if (!hasMore.value || cursor == null || isLoadingMore.value || isLoading.value) return;
+    final request = _listRequest;
+    isLoadingMore.value = true;
+    try {
+      final res = await service.getConversations(
+        cursor: cursor,
+        search: searchQuery.value,
+        filter: _filterParam(filter.value),
+        pageSize: _pageSize,
+      );
+      if (request != _listRequest) return; // a reset happened meanwhile
+      final known = conversations.map((c) => c.id).toSet();
+      conversations.addAll(res.conversations.where((c) => !known.contains(c.id)));
+      _nextCursor = res.nextCursor;
+      hasMore.value = res.hasMore && res.nextCursor != null;
+    } catch (_) {
+      // Leave hasMore set: the next scroll retries.
+    } finally {
+      isLoadingMore.value = false;
     }
   }
 
@@ -261,6 +470,7 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
   void markConversationRead(int conversationId) {
     final i = conversations.indexWhere((c) => c.id == conversationId);
     if (i >= 0 && conversations[i].unreadCount > 0) {
+      counts.value = _withUnreadDelta(counts.value, -1);
       conversations[i] = conversations[i].copyWith(
         unreadCount: 0,
         clearUnreadPriority: true,
@@ -272,40 +482,30 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
 
   // ── Inbox actions ─────────────────────────────────────
 
-  void setFilter(ConversationFilter f) => filter.value = f;
-  void setSearchQuery(String q) => searchQuery.value = q;
+  void setFilter(ConversationFilter f) {
+    if (filter.value == f) return;
+    filter.value = f;
+    loadConversations();
+  }
+
+  /// Debounced: the query runs server-side, so don't fire a request per keystroke.
+  void setSearchQuery(String q) {
+    searchQuery.value = q;
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), loadConversations);
+  }
 
   void clearFilters() {
+    _searchDebounce?.cancel();
     filter.value = ConversationFilter.all;
     searchQuery.value = '';
+    loadConversations();
   }
 
-  /// The list after the active chip and search box are applied.
-  ///
-  /// Server order is preserved (pinned first, then most recent) — no extra client sort,
-  /// so the inbox never disagrees with the web client about ordering.
-  List<ConversationSummary> get filteredConversations {
-    final q = searchQuery.value.trim().toLowerCase();
-    return conversations.where((c) {
-      switch (filter.value) {
-        case ConversationFilter.unread:
-          if (c.unreadCount == 0) return false;
-          break;
-        case ConversationFilter.mentions:
-          if (!c.hasUnreadMention) return false;
-          break;
-        case ConversationFilter.groups:
-          if (c.isDirect) return false;
-          break;
-        case ConversationFilter.all:
-          break;
-      }
-      if (q.isEmpty) return true;
-      final title = (c.title ?? '').toLowerCase();
-      final preview = (c.lastMessagePreview ?? '').toLowerCase();
-      return title.contains(q) || preview.contains(q);
-    }).toList();
-  }
+  /// The loaded rows. Search and the chip are applied by the server, so no second
+  /// client-side pass — which would also wrongly hide DMs matched by the other
+  /// person's name.
+  List<ConversationSummary> get filteredConversations => conversations;
 
   List<ConversationSummary> get pinnedConversations =>
       filteredConversations.where((c) => c.isPinned).toList();
@@ -338,16 +538,14 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
     final next = !conversations[i].isPinned;
 
     conversations[i] = conversations[i].copyWith(isPinned: next);
-    conversations.refresh();
+    _resort(); // lands in the right section locally; no reload of every page
     try {
       await service.setConversationPinned(conversationId, next);
-      // Pinning changes the server's ordering, so re-pull to land in the right slot.
-      await loadConversations(silent: true);
     } catch (_) {
       final j = conversations.indexWhere((c) => c.id == conversationId);
       if (j >= 0) {
         conversations[j] = conversations[j].copyWith(isPinned: !next);
-        conversations.refresh();
+        _resort();
       }
     }
   }
@@ -402,7 +600,10 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
     _statusSub?.cancel();
+    _messageSub?.cancel();
     _convUpdatedSub?.cancel();
+    _convAddedSub?.cancel();
+    _searchDebounce?.cancel();
     _resyncSub?.cancel();
     _notificationSub?.cancel();
     _notificationCountSub?.cancel();

@@ -9,6 +9,7 @@ import 'package:supervisormobile/features/calendar/services/missionService.dart'
 import 'package:supervisormobile/features/incidents/screens/ShowImageViewer.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../../communication/screens/conversation_screen.dart';
 
 class ConsultProblem extends StatefulWidget {
   final int problemId; // Accept problem ID to fetch the problem data
@@ -306,11 +307,28 @@ class _ConsultProblemState extends State<ConsultProblem> {
                         _infoRow(
                           Icons.assignment,
                           AppLocalizations.of(context)!.originColon(
-                            problem.origin == 0
+                            problem.origin == ProblemOrigin.checklist
                                 ? AppLocalizations.of(context)!.checklist
-                                : AppLocalizations.of(context)!.free,
+                                : problem.origin == ProblemOrigin.messenger
+                                    ? AppLocalizations.of(context)!.messengerOrigin
+                                    : AppLocalizations.of(context)!.free,
                           ),
                         ),
+                        // Messenger incident: back to the conversation it was raised from.
+                        if (problem.origin == ProblemOrigin.messenger && problem.sourceConversationId != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.forum_outlined, size: 18),
+                              label: Text(AppLocalizations.of(context)!.openConversation),
+                              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => ConversationScreen(
+                                  conversationId: problem.sourceConversationId!,
+                                  title: AppLocalizations.of(context)!.messengerOrigin,
+                                ),
+                              )),
+                            ),
+                          ),
                         _infoRow(
                           Icons.monetization_on,
                           AppLocalizations.of(context)!.cost(

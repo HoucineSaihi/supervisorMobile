@@ -43,7 +43,11 @@ android {
         applicationId = "com.example.supervisormobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdk = flutter.minSdkVersion
+        // Raised from Flutter's default (21) to 23: the `record` plugin (messenger voice
+        // capture) requires API 23. Android 5.0/5.1 (API 21-22) devices can no longer
+        // install/update this app as a result — an accepted trade-off given API 23+'s
+        // near-universal market share.
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
