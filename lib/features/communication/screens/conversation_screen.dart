@@ -18,14 +18,17 @@ import '../widgets/chat_skeleton.dart';
 import '../widgets/comm_avatar.dart';
 import '../widgets/connection_banner.dart';
 import '../widgets/conversation_context_banner.dart';
+import '../widgets/conversation_context_sheet.dart';
 import '../widgets/message_actions_sheet.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/mention_picker_sheet.dart';
 import '../widgets/message_receipts_sheet.dart';
 import '../widgets/pinned_banner.dart';
 import '../widgets/voice_player.dart';
 import '../widgets/voice_recorder_button.dart';
 import '../../incidents/screens/ConsultProblem.dart';
 import 'conversation_info_screen.dart';
+import 'image_annotator_screen.dart';
 
 /// Same-calendar-day check backing the day dividers — mirrors the web
 /// isNewDay's `toDateString()` comparison (local time, not UTC).
@@ -48,6 +51,7 @@ class ConversationScreen extends StatefulWidget {
 class _ConversationScreenState extends State<ConversationScreen> {
   late final ConversationController c;
   final _composer = TextEditingController();
+  final _composerFocus = FocusNode();
   final _searchField = TextEditingController();
   final _scroll = ScrollController();
   final _tag = UniqueKey().toString();
@@ -203,8 +207,21 @@ class _ConversationScreenState extends State<ConversationScreen> {
         maxHeight: 1920,
         imageQuality: 85,
       );
-      if (picked == null) return;
-      await c.sendImage(picked.path, p.basename(picked.path), caption: _takeCaption());
+      if (picked == null || !mounted) return;
+
+      // Every photo goes through the markup screen first (like the web): circle the
+      // missing price tag, arrow the shelf problem — or just send it as is.
+      final result = await openImageAnnotator(context, picked.path);
+      if (result == null) return; // backed out: nothing is sent
+
+      await c.sendImage(
+        result.path,
+        result.fileName,
+        caption: _takeCaption(),
+        isAnnotated: result.isAnnotated,
+        width: result.width,
+        height: result.height,
+      );
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -326,10 +343,37 @@ class _ConversationScreenState extends State<ConversationScreen> {
     c.clearMentions();
   }
 
+  /// The composer's "@" button: guided picker, then the token lands where the caret
+  /// was, spaced from neighbouring text.
+  Future<void> _openMentionPicker() async {
+    final sel = _composer.selection;
+    final caret = sel.isValid ? sel.baseOffset : _composer.text.length;
+    _mentionAnchor = -1;
+    c.clearMentions();
+
+    final picked = await showMentionPicker(context, c);
+    if (picked == null || !mounted) return;
+
+    final text = _composer.text;
+    final at = caret.clamp(0, text.length);
+    final before = text.substring(0, at);
+    var after = text.substring(at);
+    if (after.startsWith(' ')) after = after.substring(1);
+    final lead = before.isNotEmpty && !RegExp(r'\s$').hasMatch(before) ? ' ' : '';
+    final inserted = '$lead${picked.token} ';
+
+    _composer.value = TextEditingValue(
+      text: '$before$inserted$after',
+      selection: TextSelection.collapsed(offset: before.length + inserted.length),
+    );
+    _composerFocus.requestFocus();
+  }
+
   @override
   void dispose() {
     Get.delete<ConversationController>(tag: _tag);
     _composer.dispose();
+    _composerFocus.dispose();
     _searchField.dispose();
     _scroll.dispose();
     super.dispose();
@@ -351,10 +395,16 @@ class _ConversationScreenState extends State<ConversationScreen> {
           Obx(() {
             final d = c.detail.value;
             if (d == null || !d.hasScope) return const SizedBox.shrink();
+            // Tap → the context sheet (status, key facts); "Open" → the object itself.
+            // Both wait for the context, which store channels never get.
+            final ctx = c.scopeContext.value;
             return ConversationContextBanner(
               scopeType: d.scopeType,
               scopeId: d.scopeId!,
               incident: c.scopeIncident.value,
+              status: d.scopeStatus,
+              onTap: ctx == null ? null : () => showConversationContextSheet(context, ctx),
+              onOpen: ctx == null ? null : () => openScopeObject(context, ctx),
             );
           }),
           Obx(() {
@@ -462,6 +512,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
             // While searching, the composer would be in the way — the search field
             // takes its place at the bottom of the screen.
             if (c.searchActive.value) return _searchBar();
+            // Incident / campaign closed: read-only until it is reopened, at which
+            // point ConversationUpdated refetches the detail and the composer returns.
+            final d = c.detail.value;
+            if (d != null && d.isReadOnly) return _ClosedBar(detail: d);
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -487,20 +541,25 @@ class _ConversationScreenState extends State<ConversationScreen> {
         onTap: _openInfo,
         child: Row(
           children: [
-            CommAvatar(name: widget.title, seed: widget.conversationId, size: 36),
+            // The live detail wins over the title we were opened with, so a rename
+            // (ours or someone else's) shows straight away.
+            Obx(() => CommAvatar(
+                name: c.detail.value?.title ?? widget.title,
+                seed: widget.conversationId,
+                size: 36)),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    widget.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: CommColors.ink, fontWeight: FontWeight.w700, fontSize: 15.5),
-                  ),
+                  Obx(() => Text(
+                        c.detail.value?.title ?? widget.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: CommColors.ink, fontWeight: FontWeight.w700, fontSize: 15.5),
+                      )),
                   Obx(() {
                     if (c.typingUserIds.isNotEmpty) {
                       return const Text('typing…',
@@ -685,41 +744,112 @@ class _ConversationScreenState extends State<ConversationScreen> {
 
   // ── Mention suggestion list (above the composer) ─────────
 
+  /// Every row is the same height so the list's height is predictable and the cap
+  /// below always lands on a half row — the cut-off row signals "scroll for more".
+  static const double _mentionRowHeight = 52;
+
   Widget _mentionOverlay() {
     return Obx(() {
-      if (c.mentionSuggestions.isEmpty) return const SizedBox.shrink();
-      return Container(
-        constraints: const BoxConstraints(maxHeight: 220),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: CommColors.line)),
-        ),
-        child: ListView.builder(
-          shrinkWrap: true,
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          itemCount: c.mentionSuggestions.length,
-          itemBuilder: (_, i) {
-            final s = c.mentionSuggestions[i];
-            return ListTile(
-              dense: true,
-              visualDensity: const VisualDensity(vertical: -2),
-              leading: Icon(_mentionIcon(s.entityType), size: 18, color: CommColors.blue),
-              title: Text(s.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
-              subtitle: s.context != null
-                  ? Text(s.context!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11.5))
-                  : null,
-              trailing: Text(s.entityType.toUpperCase(),
-                  style: const TextStyle(fontSize: 9, color: CommColors.muted2, fontWeight: FontWeight.w700)),
-              onTap: () => _pickMention(s),
-            );
-          },
+      final items = c.mentionSuggestions;
+      if (items.isEmpty) return const SizedBox.shrink();
+
+      // Height left above the keyboard. A fixed cap pushed rows off-screen on short
+      // phones with the keyboard up, so cap at ~40% of what's actually visible, and
+      // never more than 4.5 rows.
+      final mq = MediaQuery.of(context);
+      final visible = mq.size.height - mq.viewInsets.bottom - mq.padding.top;
+      final cap = (visible * 0.4).clamp(_mentionRowHeight * 1.5, _mentionRowHeight * 4.5);
+      final height = (items.length * _mentionRowHeight + 8).clamp(0.0, cap).toDouble();
+
+      // Colors are explicit throughout: the app follows the system theme, and in dark
+      // mode the inherited text color is white — invisible on this white surface.
+      return Material(
+        color: CommColors.bg,
+        elevation: 6,
+        shadowColor: Colors.black26,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: CommColors.line)),
+          ),
+          child: SizedBox(
+            height: height,
+            child: Scrollbar(
+              thumbVisibility: items.length * _mentionRowHeight + 8 > height,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemExtent: _mentionRowHeight,
+                itemCount: items.length,
+                itemBuilder: (_, i) => _mentionRow(items[i]),
+              ),
+            ),
+          ),
         ),
       );
     });
+  }
+
+  Widget _mentionRow(MentionSuggestion s) {
+    final ctx = s.context?.trim();
+    return InkWell(
+      onTap: () => _pickMention(s),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: CommColors.blueSoft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(_mentionIcon(s.entityType), size: 18, color: CommColors.blue),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s.label.isEmpty ? '${s.entityType} #${s.entityId}' : s.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      height: 1.25,
+                      fontWeight: FontWeight.w600,
+                      color: CommColors.ink,
+                    ),
+                  ),
+                  if (ctx != null && ctx.isNotEmpty)
+                    Text(
+                      ctx,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        height: 1.25,
+                        color: CommColors.muted,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              s.entityType.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 9.5,
+                letterSpacing: 0.4,
+                color: CommColors.muted2,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   IconData _mentionIcon(String type) {
@@ -873,6 +1003,20 @@ class _ConversationScreenState extends State<ConversationScreen> {
                       color: CommColors.blue, size: 22),
                 ),
               ),
+              // Guided mention: pick person / incident / mission / store / campaign,
+              // then search it — no need to know the inline "@" syntax.
+              Tooltip(
+                message: 'Mention',
+                child: GestureDetector(
+                  onTap: _openMentionPicker,
+                  child: Container(
+                    width: 36,
+                    height: 44,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.alternate_email, color: CommColors.blue, size: 22),
+                  ),
+                ),
+              ),
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -883,6 +1027,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: TextField(
                     controller: _composer,
+                    focusNode: _composerFocus,
                     minLines: 1,
                     maxLines: 5,
                     textInputAction: TextInputAction.newline,
@@ -994,6 +1139,78 @@ class _DayDivider extends StatelessWidget {
               color: CommColors.muted,
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Stands in for the composer while the thread's incident / VM campaign / execution /
+/// mission is closed. Mirrors the web read-only bar.
+class _ClosedBar extends StatelessWidget {
+  final ConversationDetail detail;
+
+  const _ClosedBar({required this.detail});
+
+  String get _title {
+    switch (detail.scopeType) {
+      case ConversationScopeType.incident:
+        return 'This incident is closed';
+      case ConversationScopeType.campaign:
+        return 'This VM campaign is closed';
+      case ConversationScopeType.vmExecution:
+        return 'This VM execution has been validated';
+      case ConversationScopeType.mission:
+        return 'This mission has ended';
+      default:
+        return 'This discussion is closed';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final closedAt = detail.scopeStatus?.closedAt;
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: const BoxDecoration(
+          color: CommColors.bgSoft,
+          border: Border(top: BorderSide(color: CommColors.line)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: const BoxDecoration(color: CommColors.line2, shape: BoxShape.circle),
+              child: const Icon(Icons.lock_outline, size: 18, color: CommColors.muted),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    closedAt != null
+                        ? '$_title · ${DateFormat('dd/MM/yyyy').format(closedAt)}'
+                        : _title,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: CommColors.ink2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'The discussion is read-only. It reopens automatically if this item is reopened.',
+                    style: TextStyle(fontSize: 12, color: CommColors.muted, height: 1.3),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

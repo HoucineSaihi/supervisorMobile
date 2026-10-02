@@ -12,17 +12,27 @@ class ConversationContextBanner extends StatelessWidget {
   final ConversationScopeType scopeType;
   final int scopeId;
 
-  /// Live status, when the object exposes one. Only incidents do today.
+  /// Incident details (description, store, assignee), when the thread is about one.
   final IncidentStatusSummary? incident;
 
+  /// Open/closed status of the object, from the conversation itself — covers
+  /// incidents, VM campaigns, VM executions and missions alike.
+  final ScopeStatus? status;
+
+  /// The "Open" button: straight to the incident / campaign / mission screen.
   final VoidCallback? onOpen;
+
+  /// Tapping the strip itself: the context sheet with the object's key facts.
+  final VoidCallback? onTap;
 
   const ConversationContextBanner({
     super.key,
     required this.scopeType,
     required this.scopeId,
     this.incident,
+    this.status,
     this.onOpen,
+    this.onTap,
   });
 
   @override
@@ -36,9 +46,16 @@ class ConversationContextBanner extends StatelessWidget {
         ? incident!.description!.trim()
         : '$label #$scopeId';
 
-    return Container(
-      width: double.infinity,
+    // The conversation's own status first: it is what the read-only lock follows.
+    final pillLabel = status?.label ?? incident?.statusLabel;
+    final pillClosed = status?.isClosed ?? incident?.isClosed ?? false;
+
+    return Material(
       color: v.bg,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
       child: Row(
         children: [
@@ -60,12 +77,9 @@ class ConversationContextBanner extends StatelessWidget {
                         color: v.fg,
                       ),
                     ),
-                    if (incident?.statusLabel != null) ...[
+                    if (pillLabel != null) ...[
                       const SizedBox(width: 6),
-                      _StatusPill(
-                        label: incident!.statusLabel!,
-                        closed: incident!.isClosed,
-                      ),
+                      _StatusPill(label: pillLabel, closed: pillClosed),
                     ],
                   ],
                 ),
@@ -104,7 +118,11 @@ class ConversationContextBanner extends StatelessWidget {
               ),
               child: const Text('Open', style: TextStyle(fontWeight: FontWeight.w700)),
             ),
+          if (onTap != null && onOpen == null)
+            Icon(Icons.chevron_right, size: 20, color: v.fg),
         ],
+      ),
+        ),
       ),
     );
   }
@@ -126,9 +144,19 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: color),
       ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Closed = the thread is read-only.
+          if (closed) ...[
+            Icon(Icons.lock_outline, size: 10, color: color),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            label,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
       ),
     );
   }

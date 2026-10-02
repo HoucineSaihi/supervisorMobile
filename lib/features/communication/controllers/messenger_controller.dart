@@ -15,7 +15,8 @@ import '../services/offline_queue.dart';
 
 /// Inbox filter chips. Mirrors the web module's chip set, minus Direct — the mobile
 /// spec asks for Mentions instead, which the server now flags per conversation.
-enum ConversationFilter { all, unread, mentions, groups }
+/// Closed = threads whose incident / VM campaign / execution / mission is closed.
+enum ConversationFilter { all, unread, mentions, groups, closed }
 
 extension ConversationFilterLabel on ConversationFilter {
   String get label {
@@ -28,6 +29,8 @@ extension ConversationFilterLabel on ConversationFilter {
         return 'Mentions';
       case ConversationFilter.groups:
         return 'Groups';
+      case ConversationFilter.closed:
+        return 'Closed';
     }
   }
 }
@@ -276,14 +279,31 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
         direct: c.direct,
         groups: c.groups,
         mentions: c.mentions,
+        closed: c.closed,
+      );
+
+  static ConversationCounts _withClosedDelta(ConversationCounts c, int delta) => ConversationCounts(
+        all: c.all,
+        unread: c.unread,
+        direct: c.direct,
+        groups: c.groups,
+        mentions: c.mentions,
+        closed: (c.closed + delta).clamp(0, 1 << 30),
       );
 
   /// Fetches one row and inserts or replaces it. A 404 (left / removed) drops it.
+  ///
+  /// This is also how a thread follows its incident / campaign: the server sends
+  /// ConversationUpdated when the object opens or closes, and the fresh row carries
+  /// the new status pill.
   Future<void> refreshRow(int conversationId) async {
     try {
       final summary = await service.getConversationSummary(conversationId);
       final i = conversations.indexWhere((c) => c.id == conversationId);
       if (i >= 0) {
+        if (conversations[i].isClosed != summary.isClosed) {
+          counts.value = _withClosedDelta(counts.value, summary.isClosed ? 1 : -1);
+        }
         conversations[i] = summary;
       } else if (_matchesActiveFilter(summary)) {
         conversations.insert(0, summary);
@@ -303,6 +323,8 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
         return c.hasUnreadMention;
       case ConversationFilter.groups:
         return c.type == ConversationType.group || c.type == ConversationType.channel;
+      case ConversationFilter.closed:
+        return c.isClosed;
       case ConversationFilter.all:
         break;
     }
@@ -318,6 +340,8 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
         return 'mentions';
       case ConversationFilter.groups:
         return 'groups';
+      case ConversationFilter.closed:
+        return 'closed';
       case ConversationFilter.all:
         return null;
     }
@@ -449,7 +473,13 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
           replyToMessageId: m.replyToMessageId,
         );
         await queue.remove(m.clientMessageId);
-      } catch (_) {
+      } catch (e) {
+        if (MessengerService.isConversationClosed(e)) {
+          // The incident / campaign closed while this sat in the outbox. A permanent
+          // refusal — retrying would fail on every reconnect forever.
+          await queue.remove(m.clientMessageId);
+          continue;
+        }
         await queue.markAttempt(m.clientMessageId);
         // Leave it queued; the next connectivity event retries.
       }

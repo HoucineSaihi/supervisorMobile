@@ -5,6 +5,7 @@ import '../../Profile/models/user_model.dart';
 import '../../Profile/services/user_service.dart';
 import '../controllers/messenger_controller.dart';
 import '../models/conversation.dart';
+import '../services/group_name.dart';
 import '../services/messenger_service.dart';
 import '../theme/comm_colors.dart';
 import '../widgets/comm_avatar.dart';
@@ -30,6 +31,10 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
   final _messengerService = MessengerService();
   final _search = TextEditingController();
   final _groupTitle = TextEditingController();
+
+  /// True once the user typed their own name. Until then the field follows the
+  /// selection with a suggested name ("Ali, Sara, Karim") so naming never blocks.
+  bool _groupTitleEdited = false;
 
   _PickerTab _tab = _PickerTab.direct;
   bool _isLoadingUsers = true;
@@ -108,8 +113,25 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
         _selectedIds.clear();
         _selectedById.clear();
         _groupTitle.clear();
+        _groupTitleEdited = false;
       }
     });
+  }
+
+  /// Typing takes over from the suggestion; clearing the field hands it back.
+  void _onGroupTitleChanged(String value) {
+    setState(() {
+      _groupTitleEdited = value.trim().isNotEmpty;
+      if (!_groupTitleEdited) _refreshSuggestedTitle();
+    });
+  }
+
+  /// Call inside setState.
+  void _refreshSuggestedTitle() {
+    if (_groupTitleEdited) return;
+    _groupTitle.text = suggestGroupName(
+      _selectedIds.map((id) => _selectedById[id]?.nom ?? _selectedById[id]?.username),
+    );
   }
 
   void _toggleSelected(UserModel u) {
@@ -122,6 +144,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
         _selectedIds.add(id);
         _selectedById[id] = u;
       }
+      _refreshSuggestedTitle();
     });
   }
 
@@ -261,10 +284,16 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       child: TextField(
         controller: _groupTitle,
-        onChanged: (_) => setState(() {}),
+        onChanged: _onGroupTitleChanged,
+        maxLength: groupNameMax,
         style: const TextStyle(fontSize: 14.5, color: CommColors.ink2),
         decoration: InputDecoration(
-          hintText: 'Group name',
+          labelText: 'Group name',
+          hintText: 'e.g. Store launch team',
+          counterText: '',
+          helperText: !_groupTitleEdited && _groupTitle.text.isNotEmpty
+              ? 'Suggested from the members. You can change it.'
+              : null,
           hintStyle: const TextStyle(color: CommColors.muted2),
           filled: true,
           fillColor: CommColors.bgSoft,

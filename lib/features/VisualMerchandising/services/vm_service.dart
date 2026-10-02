@@ -102,9 +102,13 @@ class VmService {
   /// Get campaigns by site IDs (paginated)
   /// POST /api/VmCompaign/by-sites?pageNumber=1
   /// Request body: [1, 2, 3] (array of site IDs)
+  ///
+  /// [campaignId] narrows it to that one campaign, whatever its status or end date —
+  /// how a campaign is opened from its Messenger discussion.
   Future<VmCampaignsPageDto> getCampaignsBySites(
     List<int> siteIds, {
     int pageNumber = 1,
+    int? campaignId,
   }) async {
     try {
       if (siteIds.isEmpty) {
@@ -124,7 +128,10 @@ class VmService {
 
       final response = await _dio.post(
         '/VmCompaign/by-sites',
-        queryParameters: {'pageNumber': pageNumber},
+        queryParameters: {
+          'pageNumber': pageNumber,
+          if (campaignId != null) 'campaignId': campaignId,
+        },
         data: siteIds,
       );
 

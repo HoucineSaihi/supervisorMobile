@@ -16,7 +16,9 @@ Future<void> showMessageActions(
 ) async {
   await c.loadAllowedReactions();
   final isOwn = message.senderId == c.currentUserId;
-  final canEdit = isOwn && message.type == MessageType.text && !message.isDeleted;
+  // Read-only (incident / campaign closed): nothing that writes into the thread.
+  final readOnly = c.isReadOnly;
+  final canEdit = isOwn && message.type == MessageType.text && !message.isDeleted && !readOnly;
 
   if (!context.mounted) return;
   await showModalBottomSheet<void>(
@@ -34,27 +36,29 @@ Future<void> showMessageActions(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Quick reactions
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: c.allowedReactions.take(6).map((emoji) {
-                    return GestureDetector(
-                      onTap: () {
-                        c.toggleReaction(message.id, emoji);
-                        Navigator.of(ctx).pop();
-                      },
-                      child: Text(emoji, style: const TextStyle(fontSize: 26)),
-                    );
-                  }).toList(),
+              if (!readOnly) ...[
+                // Quick reactions
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: c.allowedReactions.take(6).map((emoji) {
+                      return GestureDetector(
+                        onTap: () {
+                          c.toggleReaction(message.id, emoji);
+                          Navigator.of(ctx).pop();
+                        },
+                        child: Text(emoji, style: const TextStyle(fontSize: 26)),
+                      );
+                    }).toList(),
+                  ),
                 ),
-              ),
-              const Divider(height: 1, color: CommColors.line2),
-              _action(ctx, Icons.reply, 'Reply', () {
-                c.startReply(message);
-                Navigator.of(ctx).pop();
-              }),
+                const Divider(height: 1, color: CommColors.line2),
+                _action(ctx, Icons.reply, 'Reply', () {
+                  c.startReply(message);
+                  Navigator.of(ctx).pop();
+                }),
+              ],
               if ((message.body ?? '').trim().isNotEmpty && !message.isDeleted)
                 _action(ctx, Icons.copy_all_outlined, 'Copy text', () {
                   Clipboard.setData(ClipboardData(text: message.body!));

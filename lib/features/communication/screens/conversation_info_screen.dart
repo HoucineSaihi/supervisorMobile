@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../controllers/conversation_controller.dart';
@@ -6,6 +7,10 @@ import '../models/conversation.dart';
 import '../theme/comm_colors.dart';
 import '../widgets/comm_avatar.dart';
 import '../widgets/conversation_context_banner.dart';
+import '../widgets/conversation_context_sheet.dart';
+import '../services/group_name.dart';
+import 'add_people_screen.dart';
+import 'conversation_screen.dart';
 
 /// Everything about a conversation that doesn't belong in the timeline: who is in it,
 /// what has been shared, and what has been pinned.
@@ -33,18 +38,81 @@ class ConversationInfoScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: ListView(
-        children: [
-          _headerCard(c),
-          if (c.detail.value?.hasScope == true) _scopeSection(c),
-          _pinnedSection(c),
-          _membersSection(c),
-        ],
-      ),
+      // Reactive: a rename or new members (ours or someone else's, via
+      // ConversationUpdated) show up without leaving the screen.
+      body: Obx(() => ListView(
+            children: [
+              _headerCard(context, c),
+              if (c.detail.value?.hasScope == true) _scopeSection(context, c),
+              _pinnedSection(c),
+              _membersSection(context, c),
+            ],
+          )),
     );
   }
 
-  Widget _headerCard(ConversationController c) {
+  // ── Rename / add people ────────────────────────────────
+
+  Future<void> _rename(BuildContext context, ConversationController c) async {
+    final field = TextEditingController(text: c.detail.value?.title ?? '');
+    final saved = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename group'),
+        content: TextField(
+          controller: field,
+          autofocus: true,
+          maxLength: groupNameMax,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (v) => Navigator.of(ctx).pop(v),
+          decoration: const InputDecoration(
+            labelText: 'Group name',
+            hintText: 'e.g. Store launch team',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(field.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    // `field` is deliberately not disposed here: the dialog's TextField is still mounted
+    // during its closing animation, and disposing now throws "used after disposed".
+
+    final title = saved?.trim() ?? '';
+    if (title.isEmpty || title == c.detail.value?.title) return;
+    try {
+      await c.rename(title);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not rename the group')),
+        );
+      }
+    }
+  }
+
+  /// In a group, adds people in place. In a 1:1, a new named group is created and
+  /// opened in place of this thread (the direct thread itself stays as it was).
+  Future<void> _addPeople(BuildContext context, ConversationController c) async {
+    final nav = Navigator.of(context);
+    final created = await nav.push<ConversationDetail>(
+      MaterialPageRoute(builder: (_) => AddPeopleScreen(controller: c)),
+    );
+    if (created == null) return;
+    nav.pop(); // this info screen
+    nav.pushReplacement(MaterialPageRoute(
+      builder: (_) => ConversationScreen(
+        conversationId: created.id,
+        title: created.title ?? 'Group',
+      ),
+    ));
+  }
+
+  Widget _headerCard(BuildContext context, ConversationController c) {
     final d = c.detail.value;
     final title = d?.title ?? 'Conversation';
     return Container(
@@ -54,14 +122,28 @@ class ConversationInfoScreen extends StatelessWidget {
         children: [
           CommAvatar(name: title, seed: c.conversationId, size: 64),
           const SizedBox(height: 10),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: CommColors.ink,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: CommColors.ink,
+                  ),
+                ),
+              ),
+              if (c.canRename)
+                IconButton(
+                  tooltip: 'Rename group',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.edit_outlined, size: 18, color: CommColors.muted),
+                  onPressed: () => _rename(context, c),
+                ),
+            ],
           ),
           const SizedBox(height: 3),
           Text(
@@ -81,8 +163,9 @@ class ConversationInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _scopeSection(ConversationController c) {
+  Widget _scopeSection(BuildContext context, ConversationController c) {
     final d = c.detail.value!;
+    final ctx = c.scopeContext.value;
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Column(
@@ -93,6 +176,9 @@ class ConversationInfoScreen extends StatelessWidget {
             scopeType: d.scopeType,
             scopeId: d.scopeId!,
             incident: c.scopeIncident.value,
+            status: d.scopeStatus,
+            onTap: ctx == null ? null : () => showConversationContextSheet(context, ctx),
+            onOpen: ctx == null ? null : () => openScopeObject(context, ctx),
           ),
         ],
       ),
@@ -144,8 +230,9 @@ class ConversationInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _membersSection(ConversationController c) {
+  Widget _membersSection(BuildContext context, ConversationController c) {
     final members = c.detail.value?.members ?? const <ConversationMember>[];
+    final isDirect = c.detail.value?.type == ConversationType.oneToOne;
     return Padding(
       padding: const EdgeInsets.only(top: 10, bottom: 24),
       child: Column(
@@ -155,7 +242,28 @@ class ConversationInfoScreen extends StatelessWidget {
           Container(
             color: CommColors.bg,
             child: Column(
-              children: members.map((m) {
+              children: [
+                ListTile(
+                  onTap: () => _addPeople(context, c),
+                  leading: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: const BoxDecoration(
+                      color: CommColors.blueSoft,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.person_add_alt_1, size: 20, color: CommColors.blueDark),
+                  ),
+                  title: Text(
+                    isDirect ? 'Create a group with this person' : 'Add people',
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: CommColors.blueDark,
+                    ),
+                  ),
+                ),
+                ...members.map((m) {
                 final online = c.isOnline(m.caisseId);
                 return ListTile(
                   leading: CommAvatar(
@@ -199,7 +307,8 @@ class ConversationInfoScreen extends StatelessWidget {
                         )
                       : null,
                 );
-              }).toList(),
+              }),
+              ],
             ),
           ),
         ],

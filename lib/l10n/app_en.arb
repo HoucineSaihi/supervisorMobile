@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "SuperVisor",
+  "appTitle": "FlowUp",
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -1306,5 +1306,15 @@
   "notifArchivedTab": "Archived",
   "notifEmptyUnread": "You're all caught up",
   "notifEmptyArchived": "No archived notifications",
-  "notifMarkReadTooltip": "Mark as read"
+  "notifMarkReadTooltip": "Mark as read",
+  "loginWelcomeTo": "Welcome to",
+  "@loginWelcomeTo": { "description": "Small heading above the logo on the login brand panel" },
+  "loginTitle": "Sign in to your account",
+  "@loginTitle": { "description": "Heading of the login form" },
+  "loginSubtitle": "Enter the credentials provided by your administrator.",
+  "@loginSubtitle": { "description": "Helper text under the login form heading" },
+  "loginPasswordLabel": "Password",
+  "@loginPasswordLabel": { "description": "Password field label on the login form" },
+  "loginNoAccountHint": "No account? Contact your administrator.",
+  "@loginNoAccountHint": { "description": "Footer hint on the login form, since self sign-up is not available" }
 }

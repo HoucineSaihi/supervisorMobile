@@ -10,6 +10,7 @@ import 'package:supervisormobile/features/Profile/screens/userinfo_edit.dart';
 import 'package:supervisormobile/features/Profile/services/user_service.dart';
 import 'package:supervisormobile/features/authentification/screens/login/login.dart';
 import 'package:supervisormobile/features/communication/controllers/messenger_controller.dart';
+import 'package:supervisormobile/utils/constants/TImages.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supervisormobile/common/widgets/language_selector.dart';
@@ -200,7 +201,7 @@ class _ProfileInfoState extends State<ProfileInfo> {
                                     '${dotenv.env['BASE_URL']}/api/Files/getImage/${user.img!}',
                                     fit: BoxFit.cover,
                                   )
-                                      : Image.asset('lib/assets/logos/testLogo.png'),
+                                      : Image.asset(TImages.lightAppLogo),
                                 ),
                               ),
                             ),

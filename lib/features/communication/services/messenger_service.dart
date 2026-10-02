@@ -38,8 +38,19 @@ class MessengerService {
   /// resolving attachment content routes.
   static String get apiRoot => '${DioService.assetsBaseUrl}/api/';
 
+  /// The server refused a send / edit / reaction because the conversation's incident,
+  /// VM campaign, execution or mission is closed (the thread is read-only). Permanent —
+  /// callers must not queue it for retry.
+  static bool isConversationClosed(Object error) {
+    if (error is! DioException) return false;
+    final data = error.response?.data;
+    return error.response?.statusCode == 400 &&
+        data is Map &&
+        data['message'] == 'ConversationClosed';
+  }
+
   /// Keyset-paged inbox: pass back [ConversationListResponse.nextCursor] for the next
-  /// page. [search] and [filter] (unread | mentions | groups | direct) run server-side,
+  /// page. [search] and [filter] (unread | mentions | groups | direct | closed) run server-side,
   /// so they cover every conversation, not only the loaded pages.
   Future<ConversationListResponse> getConversations({
     String? cursor,
@@ -70,6 +81,13 @@ class MessengerService {
   Future<ConversationDetail> getConversation(int id) async {
     final res = await _dio.get('$_base/$id');
     return ConversationDetail.fromJson(res.data);
+  }
+
+  /// The incident / VM campaign / execution / mission a scoped thread is about.
+  /// Throws (404) when the conversation isn't about one.
+  Future<ConversationContext> getConversationContext(int id) async {
+    final res = await _dio.get('$_base/$id/context');
+    return ConversationContext.fromJson(res.data as Map<String, dynamic>);
   }
 
   Future<MessagePage> getMessages(
@@ -159,6 +177,21 @@ class MessengerService {
       'title': title,
       'memberCaisseIds': memberCaisseIds,
     });
+    return ConversationDetail.fromJson(res.data);
+  }
+
+  /// Adds people to a group/channel. A 1:1 is refused server-side — widen a direct
+  /// thread with [createGroupConversation] instead, so the private thread stays private.
+  Future<ConversationDetail> addMembers(int conversationId, List<int> memberCaisseIds) async {
+    final res = await _dio.post('$_base/$conversationId/members', data: {
+      'memberCaisseIds': memberCaisseIds,
+    });
+    return ConversationDetail.fromJson(res.data);
+  }
+
+  /// Renames a group (any member may). Others get it live via ConversationUpdated.
+  Future<ConversationDetail> renameConversation(int conversationId, String title) async {
+    final res = await _dio.patch('$_base/$conversationId/title', data: {'title': title});
     return ConversationDetail.fromJson(res.data);
   }
 
@@ -300,12 +333,16 @@ class MessengerService {
 
   // ── Phase C mentions ──────────────────────────────────
 
-  /// Autocomplete candidates for the composer's @-menu.
+  /// Autocomplete candidates for the composer's @-menu. Pass [excludeUsers] when the
+  /// caller already filters the member list locally (see mention_suggest.dart);
+  /// [cancelToken] lets a newer keystroke abort this request.
   Future<List<MentionSuggestion>> suggestMentions(
     int conversationId,
     String query, {
     String? entityType,
     int limit = 8,
+    bool excludeUsers = false,
+    CancelToken? cancelToken,
   }) async {
     final res = await _dio.get(
       '$_base/$conversationId/mentions/suggest',
@@ -313,7 +350,9 @@ class MessengerService {
         'q': query,
         if (entityType != null) 'entityType': entityType,
         'limit': limit,
+        if (excludeUsers) 'excludeUsers': true,
       },
+      cancelToken: cancelToken,
     );
     final list = (res.data['suggestions'] as List<dynamic>? ?? []);
     return list.map((s) => MentionSuggestion.fromJson(s)).toList();
@@ -345,6 +384,7 @@ class MessengerService {
     int? durationSeconds,
     int? width,
     int? height,
+    bool isAnnotated = false,
   }) async {
     final form = FormData.fromMap({
       'file': await MultipartFile.fromFile(
@@ -356,6 +396,8 @@ class MessengerService {
       if (durationSeconds != null) 'durationSeconds': durationSeconds,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
+      // Same flag the web annotator sends: the timeline badges the photo as marked up.
+      if (isAnnotated) 'isAnnotated': 'true',
     });
     final res = await _dio.post('$_base/$conversationId/attachments', data: form);
     return MessageAttachment.fromJson(res.data);

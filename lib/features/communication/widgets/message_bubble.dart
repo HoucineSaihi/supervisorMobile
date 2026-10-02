@@ -271,7 +271,27 @@ class MessageBubble extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: GestureDetector(
                   onTap: onAttachmentTap == null ? null : () => onAttachmentTap!(a),
-                  child: _sizedImage(a),
+                  child: a.isAnnotated
+                      // Pencil badge on marked-up photos, as on web, so readers know
+                      // the drawings were added on purpose.
+                      ? Stack(
+                          children: [
+                            _sizedImage(a),
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.edit, size: 12, color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        )
+                      : _sizedImage(a),
                 ),
               );
             case AttachmentKind.voice:

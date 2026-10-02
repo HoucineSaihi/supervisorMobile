@@ -110,6 +110,10 @@ class ConversationCard extends StatelessWidget {
                     Row(
                       children: [
                         if (c.hasScope) _ScopeBadge(scopeType: c.scopeType),
+                        if (c.hasScope && c.scopeStatus != null) ...[
+                          const SizedBox(width: 6),
+                          _ScopeStatusBadge(status: c.scopeStatus!),
+                        ],
                         if (c.hasScope && c.hasUnreadMention) const SizedBox(width: 6),
                         if (c.hasUnreadMention) const _MentionBadge(),
                       ],
@@ -210,6 +214,37 @@ class _ScopeBadge extends StatelessWidget {
           Text(
             scopeLabelFor(name),
             style: TextStyle(color: v.fg, fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The status of that incident / campaign / execution / mission. Closed reads quieter
+/// and carries a lock — the thread is read-only.
+class _ScopeStatusBadge extends StatelessWidget {
+  final ScopeStatus status;
+
+  const _ScopeStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = status.isClosed ? CommColors.muted : CommColors.blueDark;
+    final bg = status.isClosed ? CommColors.line2 : CommColors.blueSoft;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (status.isClosed) ...[
+            Icon(Icons.lock_outline, size: 11, color: fg),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            status.label,
+            style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
           ),
         ],
       ),

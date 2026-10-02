@@ -250,6 +250,8 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
         return counts.mentions;
       case ConversationFilter.groups:
         return counts.groups;
+      case ConversationFilter.closed:
+        return counts.closed;
     }
   }
 

@@ -1,6 +1,6 @@
 {
   "@@locale": "fr",
-  "appTitle": "SuperVisor",
+  "appTitle": "FlowUp",
   "appDescription": "Organisez et suivez vos missions en toute simplicité avec notre application dédiée.",
   "welcomeTitle": "Bienvenue Dans SuperVisor",
   "welcomeSubtitle": "Optimisez vos performances avec des fonctionnalités conçues pour les Area Managers.",
@@ -507,5 +507,10 @@
   "notifArchivedTab": "Archivées",
   "notifEmptyUnread": "Vous êtes à jour",
   "notifEmptyArchived": "Aucune notification archivée",
-  "notifMarkReadTooltip": "Marquer comme lu"
+  "notifMarkReadTooltip": "Marquer comme lu",
+  "loginWelcomeTo": "Bienvenue sur",
+  "loginTitle": "Connectez-vous à votre compte",
+  "loginSubtitle": "Saisissez les identifiants fournis par votre administrateur.",
+  "loginPasswordLabel": "Mot de passe",
+  "loginNoAccountHint": "Pas de compte ? Contactez votre administrateur."
 }

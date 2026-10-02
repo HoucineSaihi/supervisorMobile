@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:dio/dio.dart' show DioException;
+import 'package:dio/dio.dart' show CancelToken, DioException;
 import 'package:get/get.dart';
 
 import '../models/conversation.dart';
 import '../models/message.dart';
 import '../services/chat_signalr_service.dart';
+import '../services/mention_suggest.dart';
 import '../services/messenger_local_cache.dart';
 import '../services/messenger_service.dart';
 import '../services/offline_queue.dart';
@@ -82,6 +83,10 @@ class ConversationController extends GetxController {
   /// incident thread. Backs the context banner under the header.
   final scopeIncident = Rxn<IncidentStatusSummary>();
 
+  /// What this thread is about — incident, VM campaign, VM execution or mission — for
+  /// the context sheet and its "Open" action. Null for DMs, groups and store channels.
+  final scopeContext = Rxn<ConversationContext>();
+
   final searchQuery = ''.obs;
   final searchResults = <Message>[].obs;
   final isSearching = false.obs;
@@ -89,7 +94,14 @@ class ConversationController extends GetxController {
 
   /// Unsent composer text, kept so leaving and returning does not lose it.
   String draft = '';
+
+  // @-menu state — see queryMentions.
   Timer? _mentionDebounce;
+  CancelToken? _mentionCancel;
+  int _mentionSeq = 0;
+  List<MentionSuggestion> _mentionMembers = const [];
+  List<MentionSuggestion> _mentionEntities = const [];
+  final _mentionCache = MentionSuggestCache();
 
   int _lastSequence = 0;
   bool _isResyncing = false;
@@ -191,6 +203,12 @@ class ConversationController extends GetxController {
     _subs.add(_signalR.onThreadEvent.listen((e) {
       if (e.conversationId != conversationId) return;
       _refreshMessage(e.messageId);
+    }));
+
+    // Conversation-level changes (group renamed, members added): refetch the detail
+    // so the header, info screen and member list follow without reopening.
+    _subs.add(_signalR.onConversationUpdated.listen((id) {
+      if (id == conversationId) refreshDetail();
     }));
 
     _subs.add(_signalR.onStatusChanged.listen((messageId) => _refreshMessage(messageId)));
@@ -372,9 +390,13 @@ class ConversationController extends GetxController {
         '${h(8)}${h(9)}-${h(10)}${h(11)}${h(12)}${h(13)}${h(14)}${h(15)}';
   }
 
+  /// The thread's incident / VM campaign / execution / mission is closed: the composer
+  /// gives way to a read-only bar, and editing/reacting are not offered.
+  bool get isReadOnly => detail.value?.isReadOnly ?? false;
+
   Future<void> send(String text) async {
     final body = text.trim();
-    if (body.isEmpty || isSending.value) return;
+    if (body.isEmpty || isSending.value || isReadOnly) return;
 
     final replyToMessageId = replyingTo.value?.id;
     replyingTo.value = null;
@@ -420,7 +442,13 @@ class ConversationController extends GetxController {
       if (i >= 0) messages[i] = confirmed;
       _trackSequence([confirmed]);
       messages.refresh();
-    } catch (_) {
+    } catch (e) {
+      if (MessengerService.isConversationClosed(e)) {
+        // Closed since the thread was loaded. Not queued — it would never go through.
+        _replacePending(clientId, PendingStatus.failed);
+        _onClosedRejection();
+        return;
+      }
       // Persist so it survives an app kill, then surface as failed/queued.
       await _queue.enqueue(QueuedMessage(
         clientMessageId: clientId,
@@ -472,21 +500,40 @@ class ConversationController extends GetxController {
         messages[i] = updated;
         messages.refresh();
       }
-    } catch (_) {
+    } catch (e) {
+      if (MessengerService.isConversationClosed(e)) {
+        _onClosedRejection();
+        return;
+      }
       Get.snackbar('Edit failed', 'Could not edit the message',
           snackPosition: SnackPosition.BOTTOM);
     }
+  }
+
+  /// The server refused a write because the incident / campaign closed after this
+  /// thread was loaded: say so, and refetch the detail so the composer locks now
+  /// rather than on the ConversationUpdated push.
+  void _onClosedRejection() {
+    Get.snackbar('Discussion closed', 'This discussion is closed, so it is read-only.',
+        snackPosition: SnackPosition.BOTTOM);
+    refreshDetail();
   }
 
   // ── Reactions / delete / pin ──────────────────────────
 
   // ── Context, pins, search, incident linkage ───────────
 
-  /// Resolves the conversation's own scope object. Only incidents have a status
-  /// endpoint today; other scope types render from the badge alone.
+  /// Resolves the conversation's own scope object: the context sheet's facts for every
+  /// object type, plus the incident card details (store, assignee) for incidents.
   Future<void> _loadScopeContext() async {
     final d = detail.value;
     if (d == null || !d.hasScope) return;
+    if (d.scopeStatus != null) {
+      // Only objects with a lifecycle have a context; a store channel has none.
+      try {
+        scopeContext.value = await _service.getConversationContext(conversationId);
+      } catch (_) {}
+    }
     if (d.scopeType != ConversationScopeType.incident) return;
     try {
       scopeIncident.value = await _service.getIncidentStatusSummary(d.scopeId!);
@@ -604,6 +651,7 @@ class ConversationController extends GetxController {
   }
 
   Future<void> toggleReaction(int messageId, String emoji) async {
+    if (isReadOnly) return;
     try {
       final summary = await _service.toggleReactionOn(conversationId, messageId, emoji);
       final i = messages.indexWhere((m) => m.id == messageId);
@@ -611,7 +659,9 @@ class ConversationController extends GetxController {
         messages[i] = messages[i].copyWithReactions(summary);
         messages.refresh();
       }
-    } catch (_) {}
+    } catch (e) {
+      if (MessengerService.isConversationClosed(e)) _onClosedRejection();
+    }
   }
 
   Future<void> deleteMessage(int messageId) async {
@@ -640,22 +690,122 @@ class ConversationController extends GetxController {
 
   // ── Mention autocomplete ──────────────────────────────
 
-  /// Debounced suggest lookup for the composer's @-menu. [query] is the partial
-  /// term after the "@" (may be empty — the "press @ before typing" case).
+  /// Suggestions for the composer's @-menu. [query] is the partial term after the "@"
+  /// (may be empty — the "press @ before typing" case).
+  ///
+  /// Members come from the detail already loaded, on the same keystroke. Entities
+  /// come from the cache when possible, otherwise from one debounced request; a newer
+  /// keystroke cancels the older request, and [_mentionSeq] drops any reply that
+  /// still lands late, so "@a" can never overwrite "@alice".
   void queryMentions(String query) {
+    final seq = ++_mentionSeq;
     _mentionDebounce?.cancel();
+    _mentionCancel?.cancel();
+
+    _mentionMembers = filterMembers(detail.value?.members, query, currentUserId);
+
+    final cached = _mentionCache.get(query);
+    if (cached != null) {
+      _mentionEntities = cached;
+      _renderMentions();
+      return;
+    }
+
+    // Preview: narrow the longest cached prefix while the real answer is fetched.
+    _mentionEntities = refineMentions(_mentionCache.longestPrefix(query) ?? _mentionEntities, query);
+    _renderMentions();
+
     _mentionDebounce = Timer(const Duration(milliseconds: 180), () async {
+      final cancel = _mentionCancel = CancelToken();
+      // Until the detail loads there's no member list to filter locally.
+      final excludeUsers = detail.value != null;
       try {
-        mentionSuggestions.value =
-            await _service.suggestMentions(conversationId, query, limit: 8);
+        final list = await _service.suggestMentions(conversationId, query,
+            limit: 8, excludeUsers: excludeUsers, cancelToken: cancel);
+        _mentionCache.set(query, list);
+        if (seq != _mentionSeq) return;
+        _mentionEntities = list;
       } catch (_) {
-        mentionSuggestions.clear();
+        if (seq != _mentionSeq) return;
+        _mentionEntities = const [];
       }
+      _renderMentions();
     });
   }
 
+  // ── Group name & membership ───────────────────────────
+
+  Future<void> refreshDetail() async {
+    try {
+      detail.value = await _service.getConversation(conversationId);
+      // Its incident / campaign may have opened or closed (that's what triggers most
+      // ConversationUpdated pushes on a scoped thread): keep the context in step.
+      _loadScopeContext();
+    } catch (_) {
+      // Keep what we have; the next open or update will catch up.
+    }
+  }
+
+  /// Plain groups only — a 1:1 shows the other person, and channels/context threads
+  /// are named after their store, incident or campaign (the server enforces it too).
+  bool get canRename {
+    final d = detail.value;
+    return d != null && d.type == ConversationType.group && d.scopeType == ConversationScopeType.none;
+  }
+
+  /// Renames the group; throws on failure so the dialog can say so.
+  Future<void> rename(String title) async {
+    detail.value = await _service.renameConversation(conversationId, title.trim());
+    _root.loadConversations(silent: true);
+  }
+
+  /// Adds people to this group in place. Returns the updated detail.
+  Future<ConversationDetail> addMembers(List<int> ids) async {
+    final updated = await _service.addMembers(conversationId, ids);
+    detail.value = updated;
+    _root.loadConversations(silent: true);
+    return updated;
+  }
+
+  /// Widens a 1:1 into a NEW named group with the other person plus [ids]; the
+  /// direct thread stays private and untouched. Returns the new group.
+  Future<ConversationDetail> createGroupFromDirect(String title, List<int> ids) async {
+    final counterpart = detail.value?.members
+        .where((m) => m.caisseId != currentUserId)
+        .map((m) => m.caisseId)
+        .toList() ?? const <int>[];
+    final created = await _service.createGroupConversation(title.trim(), [...counterpart, ...ids]);
+    _root.loadConversations(silent: true);
+    return created;
+  }
+
+  /// Search for the "@" button's picker, scoped to one [type] ('User', 'Incident',
+  /// 'Mission', 'Boutique', 'Campaign'). People come from the loaded member list with
+  /// no request; everything else from the server, up to 20.
+  Future<List<MentionSuggestion>> searchMentions(String type, String query,
+      {CancelToken? cancelToken}) async {
+    final members = detail.value?.members;
+    if (type == 'User' && members != null) {
+      return filterMembers(members, query, currentUserId, max: 50);
+    }
+    return _service.suggestMentions(conversationId, query,
+        entityType: type, limit: 20, cancelToken: cancelToken);
+  }
+
+  /// Members first, then entities; a user the server also returned is shown once.
+  void _renderMentions() {
+    final seen = <String>{};
+    mentionSuggestions.value = [..._mentionMembers, ..._mentionEntities]
+        .where((s) => seen.add('${s.entityType}:${s.entityId}'))
+        .toList();
+  }
+
   void clearMentions() {
+    _mentionSeq++;
     _mentionDebounce?.cancel();
+    _mentionCancel?.cancel();
+    _mentionMembers = const [];
+    _mentionEntities = const [];
     mentionSuggestions.clear();
   }
 
@@ -688,7 +838,9 @@ class ConversationController extends GetxController {
   }
 
   /// Uploads a picked photo (camera or gallery) and sends it as an image message.
-  Future<void> sendImage(String filePath, String fileName, {String? caption}) {
+  /// [isAnnotated] marks a photo flattened by the markup screen.
+  Future<void> sendImage(String filePath, String fileName,
+      {String? caption, bool isAnnotated = false, int? width, int? height}) {
     return _sendAttachment(
       filePath: filePath,
       fileName: fileName,
@@ -696,6 +848,9 @@ class ConversationController extends GetxController {
       optimisticType: MessageType.image,
       body: caption,
       failureMessage: 'Could not send the image',
+      isAnnotated: isAnnotated,
+      width: width,
+      height: height,
     );
   }
 
@@ -725,7 +880,11 @@ class ConversationController extends GetxController {
     required String failureMessage,
     String? body,
     int? durationSeconds,
+    bool isAnnotated = false,
+    int? width,
+    int? height,
   }) async {
+    if (isReadOnly) return;
     final replyToMessageId = replyingTo.value?.id;
     replyingTo.value = null;
 
@@ -776,6 +935,9 @@ class ConversationController extends GetxController {
         fileName,
         kind,
         durationSeconds: durationSeconds,
+        isAnnotated: isAnnotated,
+        width: width,
+        height: height,
       );
       final confirmed = await _service.sendMessage(
         conversationId,
@@ -788,9 +950,13 @@ class ConversationController extends GetxController {
       if (i >= 0) messages[i] = confirmed;
       _trackSequence([confirmed]);
       messages.refresh();
-    } catch (_) {
+    } catch (e) {
       _replacePending(clientId, PendingStatus.failed);
-      Get.snackbar('Send failed', failureMessage, snackPosition: SnackPosition.BOTTOM);
+      if (MessengerService.isConversationClosed(e)) {
+        _onClosedRejection();
+      } else {
+        Get.snackbar('Send failed', failureMessage, snackPosition: SnackPosition.BOTTOM);
+      }
     } finally {
       isSending.value = false;
     }
@@ -809,6 +975,7 @@ class ConversationController extends GetxController {
       t.cancel();
     }
     _mentionDebounce?.cancel();
+    _mentionCancel?.cancel();
     // A recording staged but never sent (user left the thread instead) has nothing
     // else that will ever clean up its temp file.
     discardStagedVoice();

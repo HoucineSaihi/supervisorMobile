@@ -97,6 +97,62 @@ String scopeTypeToJson(ConversationScopeType t) {
   }
 }
 
+/// Lifecycle of the incident / VM campaign / VM execution / mission a conversation is
+/// about, as the server derives it on every fetch (ScopeStatusService). Grouped into one
+/// value because summary, detail and the list row all carry exactly these four fields.
+class ScopeStatus {
+  /// The object's own status key — "InProgress", "Solved", "Cancelled"… See [label].
+  final String key;
+  final bool isClosed;
+  final DateTime? closedAt;
+
+  /// No sending, editing or reacting. The server rejects them with "ConversationClosed".
+  final bool isReadOnly;
+
+  const ScopeStatus({
+    required this.key,
+    required this.isClosed,
+    this.closedAt,
+    this.isReadOnly = false,
+  });
+
+  /// Null when the conversation isn't about such an object (DMs, groups, stores).
+  static ScopeStatus? fromJson(Map<String, dynamic> j) {
+    final key = j['scopeStatus'] as String?;
+    if (key == null) return null;
+    return ScopeStatus(
+      key: key,
+      isClosed: j['scopeState'] == 'Closed',
+      closedAt: j['scopeClosedAt'] != null
+          ? DateTime.tryParse(j['scopeClosedAt'])?.toLocal()
+          : null,
+      isReadOnly: j['isReadOnly'] ?? false,
+    );
+  }
+
+  String get label => _labels[key] ?? key;
+
+  static const _labels = {
+    'Open': 'Open',
+    'Declared': 'Declared',
+    'AwaitingConfirmation': 'Awaiting confirmation',
+    'Pending': 'Pending',
+    'Acknowledged': 'Acknowledged',
+    'Planned': 'Planned',
+    'InProgress': 'In progress',
+    'NeedsReview': 'Needs review',
+    'Reopened': 'Reopened',
+    'Solved': 'Solved',
+    'Planified': 'Planned',
+    'Completed': 'Completed',
+    'Cancelled': 'Cancelled',
+    'NotStarted': 'Not started',
+    'Rejected': 'Rejected',
+    'Validated': 'Validated',
+    'Ended': 'Ended',
+  };
+}
+
 class ConversationSummary {
   final int id;
   final ConversationType type;
@@ -128,6 +184,11 @@ class ConversationSummary {
   final ConversationScopeType scopeType;
   final int? scopeId;
 
+  /// Status of that object; null when there is none. Drives the row's status pill.
+  final ScopeStatus? scopeStatus;
+
+  bool get isClosed => scopeStatus?.isClosed ?? false;
+
   /// Read watermark inputs. Needed to mark the thread read from the list without
   /// opening it — the server's `/read` endpoint wants both a message id and a sequence.
   final int? lastMessageId;
@@ -151,6 +212,7 @@ class ConversationSummary {
     this.hasUnreadMention = false,
     this.scopeType = ConversationScopeType.none,
     this.scopeId,
+    this.scopeStatus,
     this.lastMessageId,
     this.lastMessageSequence,
   });
@@ -196,6 +258,7 @@ class ConversationSummary {
       hasUnreadMention: j['hasUnreadMention'] ?? false,
       scopeType: _scopeTypeFrom(j['scopeType']),
       scopeId: j['scopeId'],
+      scopeStatus: ScopeStatus.fromJson(j),
       lastMessageId: (last?['id'] as num?)?.toInt(),
       lastMessageSequence: (last?['sequenceNumber'] as num?)?.toInt(),
     );
@@ -255,6 +318,7 @@ class ConversationSummary {
         hasUnreadMention: hasUnreadMention ?? this.hasUnreadMention,
         scopeType: scopeType,
         scopeId: scopeId,
+        scopeStatus: scopeStatus,
         lastMessageId: lastMessageId ?? this.lastMessageId,
         lastMessageSequence: lastMessageSequence ?? this.lastMessageSequence,
       );
@@ -306,12 +370,16 @@ class ConversationCounts {
   final int groups;
   final int mentions;
 
+  /// Conversations whose incident / campaign / execution / mission is closed.
+  final int closed;
+
   const ConversationCounts({
     this.all = 0,
     this.unread = 0,
     this.direct = 0,
     this.groups = 0,
     this.mentions = 0,
+    this.closed = 0,
   });
 
   factory ConversationCounts.fromJson(Map<String, dynamic> j) => ConversationCounts(
@@ -320,6 +388,7 @@ class ConversationCounts {
         direct: (j['direct'] as num?)?.toInt() ?? 0,
         groups: (j['groups'] as num?)?.toInt() ?? 0,
         mentions: (j['mentions'] as num?)?.toInt() ?? 0,
+        closed: (j['closed'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -328,12 +397,16 @@ class ConversationMember {
   final String? name;
   final String role;
 
-  ConversationMember({required this.caisseId, this.name, this.role = 'Member'});
+  /// Job role ("Store manager"…), shown under the name in the @-menu.
+  final String? roleName;
+
+  ConversationMember({required this.caisseId, this.name, this.role = 'Member', this.roleName});
 
   factory ConversationMember.fromJson(Map<String, dynamic> j) => ConversationMember(
         caisseId: j['caisseId'] ?? 0,
         name: j['name'],
         role: j['role'] ?? 'Member',
+        roleName: j['roleName'],
       );
 }
 
@@ -348,6 +421,10 @@ class ConversationDetail {
   final ConversationScopeType scopeType;
   final int? scopeId;
 
+  /// Status of that object — refetched on ConversationUpdated, which the server sends
+  /// when it opens or closes, so the composer locks and unlocks live.
+  final ScopeStatus? scopeStatus;
+
   final bool isMuted;
   final bool isPinned;
   final DateTime? createdAt;
@@ -360,6 +437,7 @@ class ConversationDetail {
     this.members = const [],
     this.scopeType = ConversationScopeType.none,
     this.scopeId,
+    this.scopeStatus,
     this.isMuted = false,
     this.isPinned = false,
     this.createdAt,
@@ -367,6 +445,9 @@ class ConversationDetail {
   });
 
   bool get hasScope => scopeType != ConversationScopeType.none && scopeId != null;
+
+  /// Its incident / campaign is closed: no sending, editing or reacting.
+  bool get isReadOnly => scopeStatus?.isReadOnly ?? false;
 
   /// Members still in the conversation — the header's "N members" count.
   int get activeMemberCount => members.length;
@@ -380,12 +461,105 @@ class ConversationDetail {
             .toList(),
         scopeType: _scopeTypeFrom(j['scopeType']),
         scopeId: j['scopeId'],
+        scopeStatus: ScopeStatus.fromJson(j),
         isMuted: j['isMuted'] ?? false,
         isPinned: j['isPinned'] ?? false,
         createdAt: j['createdAt'] != null
             ? DateTime.tryParse(j['createdAt'])?.toLocal()
             : null,
         createdByName: j['createdByName'],
+      );
+}
+
+/// One label/value row of the context sheet. Mirrors ConversationContextFieldDto.
+class ConversationContextField {
+  /// Stable id ("Store", "AssignedTo"…) — see [label].
+  final String key;
+  final String value;
+
+  /// text | date | datetime | number | percent. Dates arrive as ISO 8601.
+  final String kind;
+
+  const ConversationContextField({required this.key, required this.value, this.kind = 'text'});
+
+  factory ConversationContextField.fromJson(Map<String, dynamic> j) => ConversationContextField(
+        key: j['key'] ?? '',
+        value: j['value'] ?? '',
+        kind: j['kind'] ?? 'text',
+      );
+
+  String get label => _labels[key] ?? key;
+
+  static const _labels = {
+    'Store': 'Store',
+    'Type': 'Type',
+    'Department': 'Department',
+    'AssignedTo': 'Assigned to',
+    'DeclaredBy': 'Declared by',
+    'DeclaredOn': 'Declared on',
+    'PlannedFor': 'Planned for',
+    'Code': 'Code',
+    'StartDate': 'Start date',
+    'EndDate': 'End date',
+    'Stores': 'Stores',
+    'Campaign': 'Campaign',
+    'Zone': 'Zone',
+    'ComplianceScore': 'Compliance score',
+    'ExecutedAt': 'Executed on',
+    'Agent': 'Agent',
+    'StartedAt': 'Started on',
+    'EndedAt': 'Ended on',
+  };
+}
+
+/// What a scoped conversation is about (GET /Conversations/{id}/context): the same
+/// shape for an incident, VM campaign, VM execution or mission. Mirrors
+/// ConversationContextDto.
+class ConversationContext {
+  final int conversationId;
+  final ConversationScopeType scopeType;
+  final int scopeId;
+  final String title;
+  final String? subtitle;
+  final ScopeStatus? status;
+  final List<ConversationContextField> fields;
+
+  /// Where "Open" leads: the campaign (executed per store — [siteIds] are its stores),
+  /// an execution's campaign + [siteId], and the raw mission status the mission
+  /// screen expects.
+  final int? campaignId;
+  final int? siteId;
+  final List<int> siteIds;
+  final int? missionStatus;
+
+  ConversationContext({
+    required this.conversationId,
+    required this.scopeType,
+    required this.scopeId,
+    required this.title,
+    this.subtitle,
+    this.status,
+    this.fields = const [],
+    this.campaignId,
+    this.siteId,
+    this.siteIds = const [],
+    this.missionStatus,
+  });
+
+  factory ConversationContext.fromJson(Map<String, dynamic> j) => ConversationContext(
+        conversationId: j['conversationId'] ?? 0,
+        scopeType: _scopeTypeFrom(j['scopeType']),
+        scopeId: j['scopeId'] ?? 0,
+        title: j['title'] ?? '',
+        subtitle: j['subtitle'],
+        status: ScopeStatus.fromJson(j),
+        fields: (j['fields'] as List<dynamic>? ?? [])
+            .map((f) => ConversationContextField.fromJson(f as Map<String, dynamic>))
+            .toList(),
+        campaignId: (j['campaignId'] as num?)?.toInt(),
+        siteId: (j['siteId'] as num?)?.toInt(),
+        siteIds: (j['siteIds'] as List<dynamic>? ?? []).map((e) => (e as num).toInt()).toList(),
+        missionStatus: (j['missionStatus'] as num?)?.toInt(),
       );
 }
 
