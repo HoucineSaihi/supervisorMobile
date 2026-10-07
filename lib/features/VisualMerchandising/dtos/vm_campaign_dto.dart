@@ -85,7 +85,7 @@ class ZoneStatDto {
         ? (imagesCount > 0 ? 'submitted' : 'not_started')
         : rawStatus;
     final isFinished = status == 'approved' ||
-        ((json['isFinished'] as bool?) ?? false && status != 'disapproved');
+        (((json['isFinished'] as bool?) ?? false) && status != 'disapproved');
 
     return ZoneStatDto(
       zoneId: (json['zoneId'] as num?)?.toInt() ?? 0,

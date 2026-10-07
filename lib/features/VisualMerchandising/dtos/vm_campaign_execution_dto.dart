@@ -65,6 +65,9 @@ class VmZoneExecutionDto {
   final List<VmExecutionPhotoDto> photos;
   final String? issues;
 
+  /// When the execution was last submitted; the backend orders executions by it.
+  final DateTime? executedAt;
+
   const VmZoneExecutionDto({
     required this.executionId,
     required this.status,
@@ -72,17 +75,20 @@ class VmZoneExecutionDto {
     required this.isValidated,
     required this.photos,
     this.issues,
+    this.executedAt,
   });
 
   factory VmZoneExecutionDto.fromJson(Map<String, dynamic> json) {
     final rawPhotos = (json['photos'] as List<dynamic>? ?? <dynamic>[]);
     final statusLabel = _executionStatusToLabel(json['status']);
     final rawIssues = json['issues'] as String? ?? json['Issues'] as String?;
+    final rawExecutedAt = json['executedAt'] as String?;
     return VmZoneExecutionDto(
       executionId: (json['executionId'] as num?)?.toInt() ?? 0,
       status: _executionStatusToInt(json['status']),
       statusLabel: statusLabel,
       isValidated: json['isValidated'] as bool? ?? false,
+      executedAt: rawExecutedAt == null ? null : DateTime.tryParse(rawExecutedAt),
       photos: rawPhotos
           .map((p) => VmExecutionPhotoDto.fromJson(p as Map<String, dynamic>))
           .toList(),
@@ -102,10 +108,14 @@ class VmZoneExecutionDto {
       normalizedStatusLabel == 'approved';
 }
 
+// Mirrors the backend VmExecutionStatus enum:
+// 0 NotStarted, 1 InProgress, 2 Completed (submitted, awaiting review), 3 Rejected, 4 Validated.
 int _executionStatusToInt(dynamic value) {
   if (value is num) return value.toInt();
   if (value is String) {
-    switch (value.toLowerCase()) {
+    switch (value.trim().toLowerCase()) {
+      case 'notstarted':
+      case 'not_started':
       case 'planified':
       case 'planned':
         return 0;
@@ -114,14 +124,11 @@ int _executionStatusToInt(dynamic value) {
         return 1;
       case 'completed':
         return 2;
-      case 'validated':
-      case 'approved':
-        return 2;
       case 'rejected':
       case 'disapproved':
         return 3;
-      case 'cancelled':
-      case 'canceled':
+      case 'validated':
+      case 'approved':
         return 4;
       default:
         return 0;
@@ -134,17 +141,39 @@ String _executionStatusToLabel(dynamic value) {
   if (value is String) return value.trim().toLowerCase();
   if (value is num) {
     switch (value.toInt()) {
-      case 2:
-        return 'validated';
-      case 3:
-        return 'rejected';
       case 1:
         return 'in_progress';
+      case 2:
+        return 'completed';
+      case 3:
+        return 'rejected';
+      case 4:
+        return 'validated';
       default:
         return 'not_started';
     }
   }
   return 'not_started';
+}
+
+/// Latest execution the same way the backend picks it: newest [executedAt],
+/// then highest id.
+VmZoneExecutionDto? _latestExecution(List<VmZoneExecutionDto> executions) {
+  VmZoneExecutionDto? latest;
+  for (final execution in executions) {
+    if (latest == null) {
+      latest = execution;
+      continue;
+    }
+    final a = execution.executedAt;
+    final b = latest.executedAt;
+    final byDate = (a != null && b != null) ? a.compareTo(b) : 0;
+    if (byDate > 0 ||
+        (byDate == 0 && execution.executionId > latest.executionId)) {
+      latest = execution;
+    }
+  }
+  return latest;
 }
 
 class VmExecutionZoneDto {
@@ -195,12 +224,7 @@ class VmExecutionZoneDto {
 
   /// Returns the rejection issue text from the latest rejected execution, if any.
   String? get rejectionIssues {
-    VmZoneExecutionDto? latest;
-    for (final e in executions) {
-      if (latest == null || e.executionId >= latest.executionId) {
-        latest = e;
-      }
-    }
+    final latest = _latestExecution(executions);
     if (latest != null && latest.isRejectedStatus) return latest.issues;
     return null;
   }
@@ -236,12 +260,7 @@ String _deriveZoneStatus({
   required int imagesCount,
   required List<VmZoneExecutionDto> executions,
 }) {
-  VmZoneExecutionDto? latest;
-  for (final execution in executions) {
-    if (latest == null || execution.executionId >= latest.executionId) {
-      latest = execution;
-    }
-  }
+  final latest = _latestExecution(executions);
 
   if (latest != null) {
     if (latest.isRejectedStatus) return 'disapproved';
