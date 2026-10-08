@@ -1304,5 +1304,64 @@
   "notifArchivedTab": "Archived",
   "notifEmptyUnread": "You're all caught up",
   "notifEmptyArchived": "No archived notifications",
-  "notifMarkReadTooltip": "Mark as read"
+  "notifMarkReadTooltip": "Mark as read",
+  "vmEvalReportTitle": "Evaluations",
+  "vmEvalReportOpenTooltip": "Evaluation report",
+  "vmEvalReportGridModels": "GRID MODELS",
+  "vmEvalReportNoGridModels": "No grid model available",
+  "vmEvalReportAllModels": "All models",
+  "vmEvalReportModelsSelected": "{count} of {total} models selected",
+  "@vmEvalReportModelsSelected": {
+    "description": "Selected grid models count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "vmEvalReportStores": "STORES",
+  "vmEvalReportSelectStores": "Select stores",
+  "vmEvalReportStoresSelected": "{count} stores selected",
+  "@vmEvalReportStoresSelected": {
+    "description": "Selected stores count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "vmEvalReportOneStoreSelected": "1 store selected",
+  "vmEvalReportPeriod": "PERIOD",
+  "vmEvalReportApply": "Show evaluations",
+  "vmEvalReportSelectAll": "Select all",
+  "vmEvalReportDeselectAll": "Deselect all",
+  "vmEvalReportSearchHint": "Search a group or a store",
+  "vmEvalReportNoMatch": "No match",
+  "vmEvalReportOtherStores": "Other stores",
+  "vmEvalReportDone": "Done",
+  "vmEvalReportInitialTitle": "Choose your filters",
+  "vmEvalReportInitialSubtitle": "Pick the stores and a period, then tap \"Show evaluations\".",
+  "vmEvalReportNoResultsTitle": "No evaluations found",
+  "vmEvalReportNoResultsSubtitle": "No evaluation matches these filters.",
+  "vmEvalReportErrorTitle": "Could not load the report",
+  "vmEvalReportRetry": "Retry",
+  "vmEvalReportCriteria": "Criteria",
+  "vmEvalReportAverage": "Avg",
+  "vmEvalReportWeeklyTotal": "Weekly total",
+  "vmEvalReportGrid": "Grid",
+  "vmEvalReportComment": "Comment",
+  "vmEvalReportRetiredCriterion": "Retired criterion",
+  "vmEvalReportWeight": "Weight",
+  "vmEvalReportMergedWeek": "{count} evaluations this week — scores of the most recent",
+  "@vmEvalReportMergedWeek": {
+    "description": "Overlapping campaigns folded into one week",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

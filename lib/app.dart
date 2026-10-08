@@ -147,9 +147,8 @@ class _AppState extends State<App> {
         ],
         locale: languageController.currentLocale,
         debugShowCheckedModeBanner: false,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.light,
         theme: TAppTheme.lightTheme,
-        darkTheme: TAppTheme.darkTheme,
       home: Builder(
         builder: (context) {
           // Set up overlay state as soon as the context is available
