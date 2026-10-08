@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:supervisormobile/features/VisualMerchandising/widgets/site_selector.dart';
 
 import '../../controllers/campaign_controller.dart';
+import 'evaluation_report_screen.dart';
 import 'execution_screen.dart';
 import 'widgets/campaign_card.dart';
 import 'widgets/guideline_handler.dart';
@@ -123,6 +124,34 @@ class _CampaignScreenState extends State<CampaignScreen> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                // Evaluation report button
+                                Tooltip(
+                                  message: l10n.vmEvalReportOpenTooltip,
+                                  child: GestureDetector(
+                                    onTap: () => Get.to(
+                                      () => const EvaluationReportScreen(),
+                                      transition: Transition.rightToLeft,
+                                    ),
+                                    child: Container(
+                                      width: 42,
+                                      height: 42,
+                                      margin: const EdgeInsets.only(right: 10),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEAF3FD),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: const Color(0xFFB8D9F5),
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.assessment_outlined,
+                                        color: Color(0xFF1E5FAA),
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
                                 // Refresh button
                                 Obx(() {
                                   final isLoading = controller.isLoading.value;

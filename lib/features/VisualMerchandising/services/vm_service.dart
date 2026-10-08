@@ -9,6 +9,7 @@ import 'package:supervisormobile/services/DioService.dart';
 import '../dtos/vm_campaign_dto.dart';
 import '../dtos/vm_campaign_execution_dto.dart';
 import '../dtos/vm_campaign_submit_dto.dart';
+import '../dtos/vm_evaluation_report_dto.dart';
 import '../dtos/vm_guideline_asset_dto.dart';
 import '../dtos/vm_submission_comment_dto.dart';
 import '../dtos/vm_submission_comments_page_dto.dart';
@@ -394,6 +395,74 @@ class VmService {
     } catch (e) {
       throw Exception('An error occurred while fetching boutiques: $e');
     }
+  }
+
+  /// GET /api/EvaluationGrids — evaluation grid models available for the report.
+  Future<List<EvaluationGridTemplateOptionDto>> getEvaluationGridTemplates() async {
+    try {
+      final response = await _dio.get('/EvaluationGrids');
+      final data = response.data as List<dynamic>? ?? const [];
+      return data
+          .map((json) => EvaluationGridTemplateOptionDto.fromJson(
+              json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(_apiErrorMessage(e, 'Failed to load evaluation grids'));
+    }
+  }
+
+  /// GET /api/Groups/getEligibleGroups — groups (with their boutiques) the
+  /// connected user is allowed to select. The backend scopes the result by role.
+  Future<List<ReportBoutiqueGroupDto>> getEligibleGroups() async {
+    try {
+      final response = await _dio.get('/Groups/getEligibleGroups');
+      final data = response.data as List<dynamic>? ?? const [];
+      return data
+          .map((json) =>
+              ReportBoutiqueGroupDto.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(_apiErrorMessage(e, 'Failed to load stores'));
+    }
+  }
+
+  /// POST /api/Reports/evaluation-grid-report
+  Future<List<EvaluationReportTemplateDto>> getEvaluationGridReport({
+    required List<int> templateIds,
+    required List<int> boutiqueIds,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    String day(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+    try {
+      final response = await _dio.post(
+        '/Reports/evaluation-grid-report',
+        data: {
+          'templateIds': templateIds,
+          'boutiqueIds': boutiqueIds,
+          'startDate': '${day(startDate)}T00:00:00',
+          'endDate': '${day(endDate)}T23:59:59',
+        },
+      );
+      final templates =
+          (response.data as Map<String, dynamic>)['templates'] as List<dynamic>? ??
+              const [];
+      return templates
+          .map((json) =>
+              EvaluationReportTemplateDto.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(_apiErrorMessage(e, 'Failed to load the evaluation report'));
+    }
+  }
+
+  String _apiErrorMessage(DioException e, String fallback) {
+    final data = e.response?.data;
+    if (data is Map && data['message'] is String) return data['message'] as String;
+    if (data is String && data.isNotEmpty) return data;
+    return '$fallback: ${e.message}';
   }
 
   /// GET /api/VmCompaign/comments/unread-summary

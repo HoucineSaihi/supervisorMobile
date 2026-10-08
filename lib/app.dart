@@ -150,9 +150,8 @@ class _AppState extends State<App> {
         ],
         locale: languageController.currentLocale,
         debugShowCheckedModeBanner: false,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.light,
         theme: TAppTheme.lightTheme,
-        darkTheme: TAppTheme.darkTheme,
         // Mounts the messenger toast above every route, so a new message surfaces
         // globally — not only inside the communication module.
         builder: (context, child) =>
