@@ -334,9 +334,9 @@ class _ConvertToIncidentScreenState extends State<ConvertToIncidentScreen> {
       _ => Icons.forum_outlined,
     };
     final caption = switch (widget.message.type) {
-      MessageType.image => 'Image message',
-      MessageType.voice => 'Voice message',
-      MessageType.file => 'File message',
+      MessageType.image => 'Message image',
+      MessageType.voice => 'Message vocal',
+      MessageType.file => 'Message fichier',
       _ => 'Message',
     };
 

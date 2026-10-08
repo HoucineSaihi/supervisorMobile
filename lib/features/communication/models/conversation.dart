@@ -270,9 +270,9 @@ class ConversationSummary {
       case 'Image':
         return '📷 Photo';
       case 'Voice':
-        return '🎤 Voice message';
+        return '🎤 Message vocal';
       case 'File':
-        return '📎 File';
+        return '📎 Fichier';
       default:
         return '';
     }

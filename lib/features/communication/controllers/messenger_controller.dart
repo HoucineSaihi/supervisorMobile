@@ -352,9 +352,9 @@ class MessengerController extends GetxController with WidgetsBindingObserver {
       case MessageType.image:
         return '📷 Photo';
       case MessageType.voice:
-        return '🎤 Voice message';
+        return '🎤 Message vocal';
       case MessageType.file:
-        return '📎 File';
+        return '📎 Fichier';
       default:
         return m.body ?? '';
     }

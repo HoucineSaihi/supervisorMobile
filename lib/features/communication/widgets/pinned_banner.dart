@@ -118,7 +118,7 @@ class PinnedBanner extends StatelessWidget {
       case AttachmentKind.image:
         return '📷 Photo';
       case AttachmentKind.voice:
-        return '🎤 Voice message';
+        return '🎤 Message vocal';
       case AttachmentKind.file:
         return '📎 ${m.attachments.first.fileName}';
     }

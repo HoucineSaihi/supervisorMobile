@@ -34,7 +34,20 @@ class NavigationMenu extends StatelessWidget {
 
     return Scaffold(
       bottomNavigationBar: Obx(
-            () => NavigationBar(
+        // NavigationBar itself takes no labelTextStyle on this Flutter version
+        // (3.22): the style only lives on NavigationBarThemeData, so it is fed
+        // in through a NavigationBarTheme wrapper.
+            () => NavigationBarTheme(
+          data: NavigationBarThemeData(
+            labelTextStyle: MaterialStateProperty.resolveWith((states) {
+              final selected = states.contains(MaterialState.selected);
+              return TextStyle(
+                fontSize: selected ? 10 : 12,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              );
+            }),
+          ),
+          child: NavigationBar(
           height: 80,
           elevation: 0,
           selectedIndex: controller.selectedIndex.value,
@@ -70,6 +83,7 @@ class NavigationMenu extends StatelessWidget {
               label: AppLocalizations.of(context)!.profile,
             ),
           ],
+        ),
         ),
       ),
       // The message toast is mounted app-globally (see GetMaterialApp.builder in

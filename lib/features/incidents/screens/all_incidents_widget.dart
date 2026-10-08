@@ -173,7 +173,15 @@ class _AllIncidentsWidgetState extends State<AllIncidentsWidget> {
       final response = await IncidentService().getFilteredProblems(
         _selectedBoutiqueIds,
         _selectedPriorities,
-        _selectedOrigins,
+        // No origin picked = every origin. The backend's own default for an empty
+        // list is checklist + libre only, which would hide Messenger incidents.
+        _selectedOrigins.isEmpty
+            ? const [
+                ProblemOrigin.checklist,
+                ProblemOrigin.libre,
+                ProblemOrigin.messenger,
+              ]
+            : _selectedOrigins,
         _selectedStatuses,
         _first,
         rows: _rows,

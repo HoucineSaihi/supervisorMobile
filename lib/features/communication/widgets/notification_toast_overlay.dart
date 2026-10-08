@@ -121,7 +121,7 @@ class _NotificationToastOverlayState extends State<NotificationToastOverlay> {
 
   Widget _card(_Toast t) {
     final n = t.notification;
-    final title = n.title ?? n.actorName ?? 'New message';
+    final title = n.title ?? n.actorName ?? 'Nouveau message';
     final body = n.body ?? '';
     return Material(
       color: Colors.transparent,

@@ -216,14 +216,23 @@ class PushNotificationService {
   Future<void> registerDeviceToken() async {
     try {
       final token = await _messaging.getToken();
-      if (token == null) return;
+      if (token == null) {
+        print('❌ PushNotificationService: FCM returned no token; '
+            'push while the app is closed will not work.');
+        return;
+      }
 
       final platform = _currentPlatform();
       await DioService.dio.post('/DeviceToken', data: {
         'token': token,
         'platform': platform,
       });
+      print('✅ PushNotificationService: device token registered '
+          '(${token.length} chars, $platform).');
     } catch (e) {
+      // A rejected registration is the one failure that silently kills every
+      // background push: with no row stored the backend finds no token for this
+      // user and skips the send entirely. Never let it pass unnoticed.
       print('❌ PushNotificationService: failed to register device token: $e');
     }
   }
