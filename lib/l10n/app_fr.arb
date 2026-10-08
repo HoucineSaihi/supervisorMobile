@@ -544,5 +544,10 @@
   "vmEvalReportComment": "Commentaire",
   "vmEvalReportRetiredCriterion": "Critère retiré",
   "vmEvalReportWeight": "Pondération",
-  "vmEvalReportMergedWeek": "{count} évaluations cette semaine — scores de la plus récente"
+  "vmEvalReportMergedWeek": "{count} évaluations cette semaine — scores de la plus récente",
+  "aboutTitle": "À propos",
+  "aboutApplication": "Application",
+  "aboutVersion": "Version",
+  "aboutBuild": "Build",
+  "aboutCopyHint": "Appuyez pour copier la version"
 }

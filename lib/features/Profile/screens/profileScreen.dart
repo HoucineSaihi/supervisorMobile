@@ -5,6 +5,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:supervisormobile/common/widgets/custom_shapes/containers/primary_header_container.dart';
 import 'package:supervisormobile/features/Profile/models/user_model.dart';
+import 'package:supervisormobile/features/Profile/screens/about_screen.dart';
 import 'package:supervisormobile/features/Profile/screens/image_picker.dart';
 import 'package:supervisormobile/features/Profile/screens/userinfo_edit.dart';
 import 'package:supervisormobile/features/Profile/services/user_service.dart';
@@ -289,7 +290,20 @@ class _ProfileInfoState extends State<ProfileInfo> {
                 ),
                 // Language selector
                 const LanguageSelector(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: ListTile(
+                    leading: Icon(Iconsax.info_circle, color: TColors.primary),
+                    title: Text(AppLocalizations.of(context)!.aboutTitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AboutScreen()),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 // Logout button placed separately below the FutureBuilder
                 const SizedBox(height: 10),
                 Container(

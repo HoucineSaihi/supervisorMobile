@@ -4,6 +4,9 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 
 ## [Non publié]
 
+### Ajouté
+- Écran « À propos » (Profil) affichant le nom de l'application, la version et le numéro de build installés, avec copie de `version+build`.
+
 ## [3.3.0] - 2026-10-08
 
 Version de référence. Première version taguée: elle réunit la ligne Visual Merchandising (VM) et Smart Messenger sur le tronc `smart-messenger-phase1`.

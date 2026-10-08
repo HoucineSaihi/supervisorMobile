@@ -1375,5 +1375,11 @@
         "type": "int"
       }
     }
-  }
+  },
+  "aboutTitle": "About",
+  "@aboutTitle": { "description": "Title of the About screen and of its entry on the profile page" },
+  "aboutApplication": "Application",
+  "aboutVersion": "Version",
+  "aboutBuild": "Build",
+  "aboutCopyHint": "Tap to copy the version"
 }
