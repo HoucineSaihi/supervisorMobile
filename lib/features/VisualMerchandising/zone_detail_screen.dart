@@ -414,17 +414,46 @@ class ZoneDetailScreen extends StatelessWidget {
                 ? remotePhotos.length
                 : zone.imagesCount;
             final totalPhotos = totalExisting + localPhotos.length;
+            final revision = controller.zoneRevisionNumber(zone.zoneId);
+            final newCount = remotePhotos.where((p) => p.isNewInRevision).length;
 
             return Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-              child: Text(
-                l10n.vmPhotosAddedTitle(totalPhotos),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF7BACD8),
-                  letterSpacing: 0.8,
-                ),
+              child: Row(
+                children: [
+                  Text(
+                    l10n.vmPhotosAddedTitle(totalPhotos),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF7BACD8),
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  // Tells the user which photos were sent as corrections.
+                  if (revision > 0) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCCFBF1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF5EEAD4)),
+                        ),
+                        child: Text(
+                          l10n.vmZoneRevisionSummary(revision, newCount),
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0D9488),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             );
           }),
@@ -463,6 +492,11 @@ class ZoneDetailScreen extends StatelessWidget {
                         index < remotePhotos.length ? remotePhotos[index].photoId : 0;
                     final isAnnotated = index < remotePhotos.length &&
                         remotePhotos[index].isAnnotated;
+                    final isNewInRevision = index < remotePhotos.length &&
+                        remotePhotos[index].isNewInRevision;
+                    final revisionNumber = index < remotePhotos.length
+                        ? remotePhotos[index].revisionNumber
+                        : 0;
                     return Obx(() {
                       final marked =
                           !controller.isRemotePhotoKept(zone.zoneId, photoId);
@@ -474,6 +508,8 @@ class ZoneDetailScreen extends StatelessWidget {
                         photoId: photoId,
                         zoneId: zone.zoneId,
                         isAnnotated: isAnnotated,
+                        isNewInRevision: isNewInRevision,
+                        revisionNumber: revisionNumber,
                         isMarkedForDeletion: marked,
                         onDelete: editable
                             ? () {
@@ -861,6 +897,12 @@ class _ExistingPhotoTile extends StatelessWidget {
   /// True when a reviewer annotated this photo in the backoffice.
   final bool isAnnotated;
 
+  /// True when this photo was sent as a correction after the zone was rejected.
+  final bool isNewInRevision;
+
+  /// Revision the photo was sent in (0 = first submission).
+  final int revisionNumber;
+
   const _ExistingPhotoTile({
     required this.l10n,
     required this.number,
@@ -871,32 +913,42 @@ class _ExistingPhotoTile extends StatelessWidget {
     this.onDelete,
     this.isMarkedForDeletion = false,
     this.isAnnotated = false,
+    this.isNewInRevision = false,
+    this.revisionNumber = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+    // Annotation (violet) wins over revision (teal) when a photo has both.
+    final Color? highlight = isMarkedForDeletion
+        ? null
+        : isAnnotated
+            ? const Color(0xFF7C3AED)
+            : isNewInRevision
+                ? const Color(0xFF0D9488)
+                : null;
     return Container(
       decoration: BoxDecoration(
         color: isMarkedForDeletion
             ? const Color(0xFFFFECE9)
             : isAnnotated
                 ? const Color(0xFFF3ECFF)
-                : const Color(0xFFDBEEFF),
+                : isNewInRevision
+                    ? const Color(0xFFE6FBF7)
+                    : const Color(0xFFDBEEFF),
         borderRadius: BorderRadius.circular(16),
-        // An annotated photo gets a violet frame so it stands out from the rest.
+        // Annotated photos get a violet frame, corrected ones a teal frame.
         border: Border.all(
           color: isMarkedForDeletion
               ? const Color(0xFFF3A9A0)
-              : isAnnotated
-                  ? const Color(0xFF7C3AED)
-                  : const Color(0xFF4A9EDD).withOpacity(0.3),
-          width: isAnnotated && !isMarkedForDeletion ? 2 : 1,
+              : highlight ?? const Color(0xFF4A9EDD).withOpacity(0.3),
+          width: highlight != null ? 2 : 1,
         ),
-        boxShadow: isAnnotated && !isMarkedForDeletion
+        boxShadow: highlight != null
             ? [
                 BoxShadow(
-                  color: const Color(0xFF7C3AED).withOpacity(0.22),
+                  color: highlight.withOpacity(0.22),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -971,6 +1023,38 @@ class _ExistingPhotoTile extends StatelessWidget {
               ],
             ),
           ),
+          // Tells the store user this photo was sent as a correction.
+          if (isNewInRevision && !isMarkedForDeletion)
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: isAnnotated ? 34 : 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D9488).withOpacity(0.94),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_awesome, size: 11, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        l10n.vmPhotoNewInRevision(revisionNumber),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           // Tells the store user this photo carries reviewer feedback.
           if (isAnnotated && !isMarkedForDeletion)
             Positioned(

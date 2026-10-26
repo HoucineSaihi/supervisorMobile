@@ -17,6 +17,7 @@ class QuestionMission {
   int? selectedResponseValue;
   double? questionCoefficient;
   bool? incident;
+  bool? notApplicable; // answered "non applicable" (frozen when answered)
   String? jointureFichier;
   int? coef_ID;
   int? problemId;
@@ -39,6 +40,7 @@ class QuestionMission {
     this.selectedResponseValue,
     this.questionCoefficient,
     this.incident,
+    this.notApplicable,
     this.jointureFichier,
     this.coef_ID,
     this.problemId,
@@ -63,6 +65,7 @@ class QuestionMission {
       selectedResponseValue: json['selectedResponseValue'] as int?,
       questionCoefficient: (json['questionCoefficient'] as num?)?.toDouble(),
       incident: json['incident'] as bool?,
+      notApplicable: json['notApplicable'] as bool?,
       jointureFichier: json['jointureFichier'] as String?,
       coef_ID: json['coef_ID'] as int?,
       problemId: json['problemId'] as int?,
@@ -89,6 +92,7 @@ class QuestionMission {
       'selectedResponseValue': selectedResponseValue,
       'questionCoefficient': questionCoefficient,
       'incident': incident,
+      'notApplicable': notApplicable,
       'jointureFichier':jointureFichier,
       'coef_ID':coef_ID,
       'problemId':problemId,

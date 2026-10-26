@@ -64,6 +64,10 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
     return int.parse(hexColor, radix: 16);
   }
 
+  // Answered with a "non applicable" choice (flag frozen on the answer, or on the choice)
+  bool _isNotApplicable(QuestionMission question) =>
+      question.notApplicable == true || (question.choixReponseQuestion?.notApplicable ?? false);
+
   IconData _getIconForValue(bool valeur) {
     // Choose an icon based on the value (for severity)
     if(valeur == true){
@@ -266,7 +270,9 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                           child: Row(
                             children: [
                               Icon(
-                                _getIconForValue(question.choixReponseQuestion?.incident ?? false), // Icon based on value
+                                _isNotApplicable(question)
+                                    ? Icons.remove_circle_outline // "non applicable": neither OK nor incident
+                                    : _getIconForValue(question.choixReponseQuestion?.incident ?? false), // Icon based on value
                                 color: Color(_getColorFromHex(question.choixReponseQuestion?.color ?? '#000000')), // Color from ChoixReponseQuestion
                                 size: 24.0,
                               ),
@@ -285,7 +291,9 @@ class _QuestionsListWidgetState extends State<QuestionsListWidget> {
                                     ),
                                     SizedBox(height: 4),
                                     Text(
-                                      '${AppLocalizations.of(context)!.value} ${question.choixReponseQuestion?.valeur ?? 0}',
+                                      _isNotApplicable(question)
+                                          ? AppLocalizations.of(context)!.notApplicableExcluded
+                                          : '${AppLocalizations.of(context)!.value} ${question.choixReponseQuestion?.valeur ?? 0}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Colors.black54,

@@ -17,12 +17,21 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart'; // Import the ActionM model
 import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
 import 'package:supervisormobile/features/calendar/models/departement.dart';
+import 'package:supervisormobile/features/calendar/models/justificationRules.dart';
 import 'package:mime/mime.dart';
 import 'package:supervisormobile/services/DioService.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../dtos/questions/questionAnswerDto.dart';
+
+/// Answer refused by the backend, with the message to show to the user.
+class QuestionUpdateException implements Exception {
+  final String message;
+  QuestionUpdateException(this.message);
+  @override
+  String toString() => message;
+}
 
 class MissionService {
   final dio.Dio _dio =
@@ -432,21 +441,40 @@ class MissionService {
         ),
       );
 
-      if (response.statusCode == 200) {
-        // ✅ Successfully updated
-      } else {
-        // ✅ Parse error message
-        final responseBody = response.data;
-        final errorMessage = responseBody['message'] ?? 'An error occurred';
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
+      if (response.statusCode != 200) {
+        throw QuestionUpdateException(_extractMessage(response.data) ?? 'An error occurred');
       }
+    } on QuestionUpdateException {
+      rethrow;
+    } on dio.DioException catch (e) {
+      // 400 with a business message (justification missing, mission locked...)
+      final message = _extractMessage(e.response?.data);
+      print('Exception: $e');
+      if (message != null) throw QuestionUpdateException(message);
+      throw Exception('Failed to update the mission question');
     } catch (e) {
       print('Exception: $e');
       throw Exception('Failed to update the mission question');
     }
+  }
+
+  String? _extractMessage(dynamic data) {
+    if (data is Map && data['message'] is String) return data['message'] as String;
+    return null;
+  }
+
+  /// Comment / photo required for incident and "non applicable" answers.
+  /// Falls back to "nothing required" on error: the backend still checks.
+  Future<JustificationRules> getJustificationRules() async {
+    try {
+      final response = await _dio.get('/Parameters/justification-rules');
+      if (response.statusCode == 200 && response.data is Map) {
+        return JustificationRules.fromJson(Map<String, dynamic>.from(response.data));
+      }
+    } catch (e) {
+      print('Error fetching justification rules: $e');
+    }
+    return const JustificationRules();
   }
 
   Future<void> updateMission(

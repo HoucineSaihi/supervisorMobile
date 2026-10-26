@@ -10,6 +10,7 @@ import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:supervisormobile/utils/constants/sizes.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 
 
@@ -179,10 +180,34 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 8.0),
+              const _AppVersionLabel(),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Small "vX.Y.Z" caption shown on the login screen.
+class _AppVersionLabel extends StatelessWidget {
+  const _AppVersionLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final version = snapshot.data?.version;
+        if (version == null) return const SizedBox.shrink();
+
+        return Text(
+          'v$version',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        );
+      },
     );
   }
 }

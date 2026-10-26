@@ -14,11 +14,14 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
 import 'package:supervisormobile/features/calendar/models/departement.dart';
+import 'package:supervisormobile/features/calendar/models/justificationRules.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supervisormobile/features/incidents/models/IncidentCategory.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
+import 'package:supervisormobile/features/incidents/models/problemDeclaration.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../../dtos/questions/questionAnswerDto.dart'; // For accessing the temp directory
@@ -58,9 +61,18 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   bool _isLoading = false;
   IncidentType? _selectedIncidentType;
   Departement? _selectedDepartement;
+  JustificationRules _rules = const JustificationRules();
+  // Incident still open for this question in this boutique (declared by an earlier checklist)
+  OpenIncident? _openIncident;
   @override
   void initState() {
     super.initState();
+    IncidentService().getOpenIncidentForQuestion(widget.questionId).then((incident) {
+      if (mounted) setState(() => _openIncident = incident);
+    });
+    MissionService().getJustificationRules().then((rules) {
+      if (mounted) setState(() => _rules = rules);
+    });
     _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
     _listChoixReponse =
@@ -125,16 +137,16 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
   }
 
   void _submitForm() async {
-    setState(() => _isLoading = true);
- /*
-    if( reponse!.incident == true && _commentController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Commentaire obligatoire en cas d'incident.")),
-      );
-      setState(() => _isLoading = false);
+    // Comment / photo required by the parameters for incident or "non applicable" answers
+    final missing = _rules.missingJustification(context, reponse,
+        hasComment: _commentController.text.trim().isNotEmpty,
+        hasPhoto: _imageFiles != null && _imageFiles!.isNotEmpty);
+    if (missing != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(missing)));
+      return;
+    }
 
-      return ;
-    } */
+    setState(() => _isLoading = true);
 
     if (selectedResponseID != null) {
       String? imageName;
@@ -192,6 +204,11 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
           SnackBar(content: Text(AppLocalizations.of(context)!.questionUpdatedSuccessfully)),
         );
         Navigator.pop(context, true); // Navigate back
+      } on QuestionUpdateException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+        setState(() => _isLoading = false);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context)!.failedToUpdateQuestion)),
@@ -441,8 +458,9 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                               items: choices.map((ChoixReponseQuestion choice) {
                                 return DropdownMenuItem<ChoixReponseQuestion>(
                                   value: choice,
-                                  child: Text(
-                                      '${choice.libelle ?? AppLocalizations.of(context)!.noLabel} = ${choice.valeur ?? AppLocalizations.of(context)!.noValue}'), // Show libelle and valeur
+                                  child: Text(choice.notApplicable
+                                      ? '${choice.libelle ?? AppLocalizations.of(context)!.noLabel} (${AppLocalizations.of(context)!.notApplicableAnswer})'
+                                      : '${choice.libelle ?? AppLocalizations.of(context)!.noLabel} = ${choice.valeur ?? AppLocalizations.of(context)!.noValue}'), // Show libelle and valeur
                                 );
                               }).toList(),
                               onChanged: (ChoixReponseQuestion? newValue) {
@@ -462,6 +480,48 @@ class _QuestionResponseWidgetState extends State<QuestionResponseWidget> {
                             );
                           },
                         ),
+                        // Incident answer while the same incident is still open: it will be added to it
+                        if (_openIncident != null &&
+                            !_openIncident!.declaredByThisQuestion &&
+                            reponse != null &&
+                            reponse!.incident &&
+                            !reponse!.notApplicable)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              border: Border.all(color: Colors.orange.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.repeat, color: Colors.orange.shade800, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    AppLocalizations.of(context)!.openIncidentBanner(
+                                      _openIncident!.declarationDate != null
+                                          ? DateFormat('dd/MM/yyyy').format(_openIncident!.declarationDate!)
+                                          : '-',
+                                      _openIncident!.declarationsCount,
+                                    ),
+                                    style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // What the parameters require for the selected answer
+                        if (_rules.requirementHint(context, reponse) != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              _rules.requirementHint(context, reponse)!,
+                              style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
+                            ),
+                          ),
                         SizedBox(height: 16),
                         // Actions Dropdown (if applicable)
 

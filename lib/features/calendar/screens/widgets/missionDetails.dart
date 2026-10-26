@@ -47,10 +47,14 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
     return  questions.length;
   }
 
+  // Incident % of the category, "non applicable" answers left out
   double _calculateNoPercentage(List<QuestionMission>? questions) {
     if (questions == null || questions.isEmpty) return 0;
-    int noCount = questions.where((q) => q.choixReponseQuestion?.incident == true).length;
-    return (noCount / questions.length) * 100;
+    final applicable = questions.where((q) =>
+        q.notApplicable != true && !(q.choixReponseQuestion?.notApplicable ?? false)).toList();
+    if (applicable.isEmpty) return 0;
+    int noCount = applicable.where((q) => q.choixReponseQuestion?.incident == true).length;
+    return (noCount / applicable.length) * 100;
   }
 
   bool _allSousMissionsAnswered(Mission mission) {
@@ -154,7 +158,7 @@ class _MissionDetailsWidgetState extends State<MissionDetailsWidget> {
                                 ),
                               ),
                               if (widget.mode == 1) // Show icon based on mode
-                                Text('${AppLocalizations.of(context)!.conformityRate} : ${(conformity ?? 0).toStringAsFixed(2)} %'),
+                                Text('${AppLocalizations.of(context)!.conformityRate} : ${conformity == null ? '—' : '${conformity.toStringAsFixed(2)} %'}'), // null = not computed / fully non applicable
                             ],
                           ),
                           SizedBox(height: 16),

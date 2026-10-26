@@ -33,6 +33,12 @@ class VmExecutionPhotoDto {
 
   final DateTime? annotatedAt;
 
+  /// Revision this photo was sent in (0 = first submission).
+  final int revisionNumber;
+
+  /// True when the photo was sent as a correction after the zone was rejected.
+  final bool isNewInRevision;
+
   const VmExecutionPhotoDto({
     required this.photoId,
     required this.url,
@@ -40,6 +46,8 @@ class VmExecutionPhotoDto {
     this.isAnnotated = false,
     this.originalUrl = '',
     this.annotatedAt,
+    this.revisionNumber = 0,
+    this.isNewInRevision = false,
   });
 
   factory VmExecutionPhotoDto.fromJson(Map<String, dynamic> json) {
@@ -53,6 +61,8 @@ class VmExecutionPhotoDto {
       isAnnotated: json['isAnnotated'] as bool? ?? false,
       originalUrl: _normalizeVmPhotoUrl(rawOriginalUrl),
       annotatedAt: rawAnnotatedAt == null ? null : DateTime.tryParse(rawAnnotatedAt),
+      revisionNumber: (json['revisionNumber'] as num?)?.toInt() ?? 0,
+      isNewInRevision: json['isNewInRevision'] as bool? ?? false,
     );
   }
 }
@@ -68,6 +78,9 @@ class VmZoneExecutionDto {
   /// When the execution was last submitted; the backend orders executions by it.
   final DateTime? executedAt;
 
+  /// 0 = first submission; +1 each time the zone was re-sent after a rejection.
+  final int revisionNumber;
+
   const VmZoneExecutionDto({
     required this.executionId,
     required this.status,
@@ -76,6 +89,7 @@ class VmZoneExecutionDto {
     required this.photos,
     this.issues,
     this.executedAt,
+    this.revisionNumber = 0,
   });
 
   factory VmZoneExecutionDto.fromJson(Map<String, dynamic> json) {
@@ -89,6 +103,7 @@ class VmZoneExecutionDto {
       statusLabel: statusLabel,
       isValidated: json['isValidated'] as bool? ?? false,
       executedAt: rawExecutedAt == null ? null : DateTime.tryParse(rawExecutedAt),
+      revisionNumber: (json['revisionNumber'] as num?)?.toInt() ?? 0,
       photos: rawPhotos
           .map((p) => VmExecutionPhotoDto.fromJson(p as Map<String, dynamic>))
           .toList(),
@@ -221,6 +236,9 @@ class VmExecutionZoneDto {
 
   List<VmExecutionPhotoDto> get allPhotos =>
       executions.expand((e) => e.photos).toList();
+
+  /// Current revision of the zone (0 until it is re-sent after a rejection).
+  int get revisionNumber => _latestExecution(executions)?.revisionNumber ?? 0;
 
   /// Returns the rejection issue text from the latest rejected execution, if any.
   String? get rejectionIssues {

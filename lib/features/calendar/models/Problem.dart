@@ -40,6 +40,8 @@ class Problem {
   int? Status;  // Renamed to match C# field 'Status'
   IncidentCategory? type;
   int? IncidentTypeId;
+  // How many checklists declared this incident (1 = declared once)
+  int declarationsCount;
 
 
   Problem({
@@ -72,7 +74,8 @@ class Problem {
     this.StatusType,
     this.Status,
     this.type,
-    this.IncidentTypeId
+    this.IncidentTypeId,
+    this.declarationsCount = 1,
   });
 
   // Adjust the factory constructor to reflect the C# names.
@@ -108,6 +111,7 @@ class Problem {
       Status: json['status'] != null ? (json['status'] as num?)?.toInt() : null,
       type: json['type'] != null ? IncidentCategoryExtension.fromString(json['type']) : null,
       IncidentTypeId: json['IncidentTypeId'] != null ? (json['IncidentTypeId'] as num?)?.toInt() : null,
+      declarationsCount: (json['declarationsCount'] as num?)?.toInt() ?? 1,
 
     );
   }
