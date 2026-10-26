@@ -7,6 +7,7 @@ import 'package:supervisormobile/features/Profile/models/boutique_model.dart';
 import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/incidents/models/AllProblemsLazy.dart';
 import 'package:supervisormobile/features/incidents/models/Coefficient.dart';
+import 'package:supervisormobile/features/incidents/models/problemDeclaration.dart';
 
 import '../../../Interceptors/ClientIdInterceptor.dart';
 import '../../../services/DioService.dart';
@@ -168,6 +169,37 @@ class IncidentService {
       print('Error occurred while updating clouture: $e');
       throw Exception('Error occurred while updating clouture: $e');
     }
+  }
+
+  // Every checklist declaration of an incident (first + re-declarations), oldest first
+  Future<List<ProblemDeclaration>> getDeclarations(int problemId, {CancelToken? cancelToken}) async {
+    try {
+      final response = await DioService.dio.get(
+        '$_problemBaseUrl/$problemId/declarations',
+        cancelToken: cancelToken,
+      );
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map((item) => ProblemDeclaration.fromJson(Map<String, dynamic>.from(item)))
+            .toList();
+      }
+    } catch (e) {
+      print('Error fetching declarations: $e');
+    }
+    return [];
+  }
+
+  // Open incident already declared for the same question (same boutique / checklist), or null
+  Future<OpenIncident?> getOpenIncidentForQuestion(int questionId) async {
+    try {
+      final response = await DioService.dio.get('/MissionQuestions/$questionId/open-incident');
+      if (response.statusCode == 200 && response.data is Map) {
+        return OpenIncident.fromJson(Map<String, dynamic>.from(response.data));
+      }
+    } catch (e) {
+      print('Error fetching open incident: $e');
+    }
+    return null;
   }
 
   // Fetch problem by ID

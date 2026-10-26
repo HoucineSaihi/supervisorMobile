@@ -30,6 +30,8 @@ class ExecutionController extends GetxController {
   final RxList<ZoneStatDto> zones = <ZoneStatDto>[].obs;
   final RxMap<int, List<VmExecutionPhotoDto>> remotePhotosByZone =
       <int, List<VmExecutionPhotoDto>>{}.obs;
+  /// Current revision of each zone, keyed by zone id.
+  final RxMap<int, int> zoneRevisions = <int, int>{}.obs;
   /// Rejection issue text per zone (null when zone is not disapproved or has no message).
   final RxMap<int, String?> zoneIssues = <int, String?>{}.obs;
   final ImagePicker _picker = ImagePicker();
@@ -99,6 +101,7 @@ class ExecutionController extends GetxController {
     _loadedSiteId = siteId;
     zonePhotos.clear();
     remotePhotosByZone.clear();
+    zoneRevisions.clear();
     executorName.value = '';
     zones.assignAll(campaign.allZones);
     for (final zone in campaign.allZones) {
@@ -129,6 +132,9 @@ class ExecutionController extends GetxController {
       remotePhotosByZone[zoneId] ?? <VmExecutionPhotoDto>[];
 
   int remotePhotoCount(int zoneId) => remotePhotosForZone(zoneId).length;
+
+  /// Current revision of a zone (0 until it is re-sent after a rejection).
+  int zoneRevisionNumber(int zoneId) => zoneRevisions[zoneId] ?? 0;
 
   int backendPhotoCount(ZoneStatDto zone) {
     final remoteCount = remotePhotoCount(zone.zoneId);
@@ -239,9 +245,11 @@ class ExecutionController extends GetxController {
       executorName.value = result.executorName ?? '';
       zones.assignAll(result.zoneStats);
       remotePhotosByZone.clear();
+      zoneRevisions.clear();
       zoneIssues.clear();
       for (final zone in result.zones) {
         remotePhotosByZone[zone.zoneId] = zone.allPhotos;
+        zoneRevisions[zone.zoneId] = zone.revisionNumber;
         zonePhotos.putIfAbsent(zone.zoneId, () => <String>[]);
         final issues = zone.rejectionIssues;
         if (issues != null) zoneIssues[zone.zoneId] = issues;

@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:supervisormobile/features/calendar/models/Problem.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
 import 'package:supervisormobile/features/incidents/screens/ShowImageViewer.dart';
+import 'package:supervisormobile/features/incidents/models/problemDeclaration.dart';
 import 'package:supervisormobile/features/incidents/services/incident_service.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../communication/screens/conversation_screen.dart';
@@ -110,10 +111,16 @@ class _ConsultProblemState extends State<ConsultProblem> {
     return AppLocalizations.of(context)!.nA;
   }
 
+  // Every checklist declaration of this incident (first + re-declarations)
+  List<ProblemDeclaration> _declarations = [];
+
   @override
   void initState() {
     super.initState();
     _problemService = IncidentService();
+    _problemService.getDeclarations(widget.problemId).then((list) {
+      if (mounted) setState(() => _declarations = list);
+    });
     // Start the fetching of problem data and update _isLoading state when done
     _problemFuture = _problemService.getProblemById(widget.problemId).then((problem) {
       setState(() {
@@ -386,10 +393,119 @@ class _ConsultProblemState extends State<ConsultProblem> {
                     ),
                   ),
                 ),
+                if (_declarations.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _declarationsCard(),
+                ],
               ],
             );
           },
         ),
+      ),
+    );
+  }
+
+  // History of the declarations, with all the data of each answer
+  Widget _declarationsCard() {
+    final l10n = AppLocalizations.of(context)!;
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.repeat, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.declarationsTitle,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  ),
+                ),
+                Chip(
+                  backgroundColor: _declarations.length > 1 ? Colors.orange.shade100 : Colors.grey.shade200,
+                  label: Text(l10n.declaredTimes(_declarations.length)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ..._declarations.asMap().entries.map((entry) {
+              final index = entry.key;
+              final d = entry.value;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: d.isInitial ? Colors.blue.shade200 : Colors.orange.shade200),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '#${index + 1} · ${d.isInitial ? l10n.initialDeclaration : l10n.redeclaration}'
+                      '${d.declaredAt != null ? ' · ${dateFormat.format(d.declaredAt!)}' : ''}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: d.isInitial ? Colors.blue.shade800 : Colors.orange.shade900,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    if (d.declaredByName != null) _declarationLine(Icons.person, d.declaredByName!),
+                    _declarationLine(
+                      Icons.checklist,
+                      '${d.missionLibelle ?? d.missionCode ?? '-'}'
+                      '${d.checklistPlanifiedDate != null ? ' (${DateFormat('dd/MM/yyyy').format(d.checklistPlanifiedDate!)})' : ''}',
+                    ),
+                    if (d.categoryLibelle != null || d.categoryCode != null)
+                      _declarationLine(Icons.folder_open, d.categoryLibelle ?? d.categoryCode!),
+                    _declarationLine(
+                      Icons.question_answer,
+                      '${d.responseLibelle ?? '-'}${d.responseValue != null ? ' (${d.responseValue})' : ''}',
+                    ),
+                    _declarationLine(Icons.comment, d.commentaire?.trim().isNotEmpty == true ? d.commentaire! : '-'),
+                    if (d.actionDescription != null)
+                      _declarationLine(
+                        Icons.build,
+                        '${d.actionDescription}${d.actionResponsable != null ? ' (${d.actionResponsable})' : ''}',
+                      ),
+                    if (d.departementLibelle != null) _declarationLine(Icons.apartment, d.departementLibelle!),
+                    if (d.incidentTypeLibelle != null) _declarationLine(Icons.category, d.incidentTypeLibelle!),
+                    _mediaImageRow(
+                      labelWhenExists: l10n.photoBeforeAvailable,
+                      labelWhenMissing: l10n.photoBeforeNotAvailable,
+                      filename: d.fileName,
+                    ),
+                    if (d.jointureFichier != null)
+                      _fileRow(
+                        labelWhenExists: l10n.fileBeforeAvailable,
+                        labelWhenMissing: l10n.fileBeforeNotAvailable,
+                        filename: d.jointureFichier,
+                      ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _declarationLine(IconData icon, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade700),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+        ],
       ),
     );
   }

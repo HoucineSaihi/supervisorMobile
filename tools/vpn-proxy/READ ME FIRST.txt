@@ -1,0 +1,124 @@
+===========================================================
+  TESTING THE SUPERVISOR APP ON A PHONE
+  Quick start - follow the steps in order
+===========================================================
+
+WHAT THIS IS
+------------
+The app's server is on a private network. A phone cannot reach it on
+its own. These scripts make this PC share the server with the phone.
+
+You only need to do this once per testing session.
+
+
+WHAT YOU NEED
+-------------
+  - This PC, with FortiClient (the VPN) installed
+  - The VPN username and password
+  - The test phone
+  - The test APK installed on the phone
+
+
+-----------------------------------------------------------
+  STEP 1 - CONNECT THE VPN ON THIS PC
+-----------------------------------------------------------
+Open FortiClient and connect. Wait until it says Connected.
+
+  IMPORTANT: Do NOT install or connect the VPN on the phone.
+  The account only allows one device at a time. If the phone
+  connects, this PC gets disconnected and nothing will work.
+
+
+-----------------------------------------------------------
+  STEP 2 - TURN ON THE MOBILE HOTSPOT
+-----------------------------------------------------------
+  1. Press the Windows key
+  2. Type:  mobile hotspot
+  3. Open "Mobile hotspot settings"
+  4. Switch it ON
+  5. Note the network name and password shown there
+
+
+-----------------------------------------------------------
+  STEP 3 - CONNECT THE PHONE TO THAT HOTSPOT
+-----------------------------------------------------------
+On the phone, open Wi-Fi settings and connect to the hotspot
+network from Step 2.
+
+The phone will say it has no internet. That is normal and fine.
+
+
+-----------------------------------------------------------
+  STEP 4 - START THE PROXY
+-----------------------------------------------------------
+Double-click:   START PROXY.bat
+
+Windows will ask for permission - click Yes.
+
+The script checks everything and finishes with a green message:
+
+      READY - THE PROXY IS WORKING
+
+It also shows an address like:
+
+      http://192.168.137.1:7070
+
+If you get a red message instead, read what it says - it tells
+you what to fix. The most common cause is the VPN or the hotspot
+not being on.
+
+
+-----------------------------------------------------------
+  STEP 5 - TEST THE APP
+-----------------------------------------------------------
+Open the app on the phone and log in as usual.
+
+If the app asks for a server address, enter the address from
+Step 4.
+
+
+-----------------------------------------------------------
+  STEP 6 - WHEN YOU ARE FINISHED
+-----------------------------------------------------------
+Double-click:   STOP PROXY.bat
+
+This removes the changes and puts the PC back to normal.
+Please always do this when you finish testing.
+
+
+===========================================================
+  IF SOMETHING DOES NOT WORK
+===========================================================
+
+The app times out or cannot connect
+  - Is FortiClient still connected on the PC? It can drop.
+  - Is the phone still on the hotspot Wi-Fi, not another one?
+  - Is the VPN connected on the PHONE? It must NOT be.
+    Disconnect it there, reconnect on the PC, run START again.
+
+"No active Fortinet adapter found"
+  The VPN is not connected on this PC. Do Step 1.
+
+"Mobile Hotspot is not running"
+  Do Step 2.
+
+"No VPN-routed host is listening"
+  The server may be down, or the VPN gave a different address
+  this time. Disconnect and reconnect FortiClient, then run
+  START PROXY.bat again. If it still fails, contact the
+  development team.
+
+It worked yesterday but not today
+  The server address can change each time the VPN connects.
+  Just run START PROXY.bat again - it finds the new one.
+
+
+===========================================================
+  NOTES
+===========================================================
+  - Keep the PC awake while testing. If it sleeps, the phone
+    loses the connection.
+  - This is for testing only. Always run STOP PROXY.bat when
+    you are done.
+  - The connection between phone and PC is not encrypted, so
+    use test accounts, not real production logins.

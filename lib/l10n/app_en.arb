@@ -1148,6 +1148,19 @@
   "vmZoneStatusTodo": "To do",
   "vmPhotoAnnotated": "Annotated",
   "vmPhotoAnnotatedHint": "Reviewer feedback",
+  "vmPhotoNewInRevision": "New · Rev. {revision}",
+  "@vmPhotoNewInRevision": {
+    "placeholders": {
+      "revision": { "type": "int" }
+    }
+  },
+  "vmZoneRevisionSummary": "Revision {revision} · {count} new photo(s)",
+  "@vmZoneRevisionSummary": {
+    "placeholders": {
+      "revision": { "type": "int" },
+      "count": { "type": "int" }
+    }
+  },
   "vmNoGuidelineForCampaign": "No guideline available for this campaign.",
   "vmSelectGuidelineTitle": "Select a guideline",
   "vmGuidelineNumberedFallback": "Guideline {index}",
@@ -1381,5 +1394,17 @@
   "aboutApplication": "Application",
   "aboutVersion": "Version",
   "aboutBuild": "Build",
-  "aboutCopyHint": "Tap to copy the version"
+  "aboutCopyHint": "Tap to copy the version",
+  "notApplicableAnswer": "Not applicable",
+  "notApplicableExcluded": "Excluded from the conformity calculation",
+  "justificationCommentRequired": "A comment is required for this answer.",
+  "justificationPhotoRequired": "A photo is required for this answer.",
+  "justificationCommentAndPhotoRequired": "A comment and a photo are required for this answer.",
+  "declarationsTitle": "Declarations",
+  "declaredTimes": "Declared {count} times",
+  "initialDeclaration": "First declaration",
+  "redeclaration": "Re-declaration",
+  "openIncidentBanner": "Incident already open since {date} (declared {count} times). Your declaration will be added to its history.",
+  "@declaredTimes": {"placeholders": {"count": {"type": "int"}}},
+  "@openIncidentBanner": {"placeholders": {"date": {"type": "String"}, "count": {"type": "int"}}}
 }

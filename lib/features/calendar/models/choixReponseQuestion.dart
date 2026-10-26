@@ -8,6 +8,9 @@ class ChoixReponseQuestion {
   String? color; // Added color attribute
   int idModele;
   bool incident; // Added incident attribute
+  bool? isDefault;
+  // "Non applicable": excluded from the conformity, never an incident
+  bool notApplicable;
   ModeleReponseQuestion? modeleReponseQuestion;
 
   ChoixReponseQuestion({
@@ -18,6 +21,8 @@ class ChoixReponseQuestion {
     this.color, // Initialize color
     required this.idModele,
     required this.incident, // Initialize incident
+    this.isDefault,
+    this.notApplicable = false,
     this.modeleReponseQuestion,
   });
 
@@ -30,7 +35,9 @@ class ChoixReponseQuestion {
       description: json['description'] as String?,
       color: json['color'] as String?, // Extract color from JSON
       idModele: json['idModele'] as int,
-      incident: json['incident'] as bool, // Extract incident from JSON
+      incident: json['incident'] as bool? ?? false, // Extract incident from JSON
+      isDefault: json['isDefault'] as bool?,
+      notApplicable: json['notApplicable'] as bool? ?? false,
       modeleReponseQuestion: json['modeleReponseQuestion'] != null
           ? ModeleReponseQuestion.fromJson(json['modeleReponseQuestion'])
           : null,
@@ -47,6 +54,8 @@ class ChoixReponseQuestion {
       'color': color, // Include color in JSON
       'idModele': idModele,
       'incident': incident, // Include incident in JSON
+      'isDefault': isDefault,
+      'notApplicable': notApplicable,
       'modeleReponseQuestion': modeleReponseQuestion?.toJson(),
     };
   }

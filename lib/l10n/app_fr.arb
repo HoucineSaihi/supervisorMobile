@@ -424,6 +424,19 @@
   "vmZoneStatusTodo": "À faire",
   "vmPhotoAnnotated": "Annotée",
   "vmPhotoAnnotatedHint": "Retour du réviseur",
+  "vmPhotoNewInRevision": "Nouvelle · Rév. {revision}",
+  "@vmPhotoNewInRevision": {
+    "placeholders": {
+      "revision": { "type": "int" }
+    }
+  },
+  "vmZoneRevisionSummary": "Révision {revision} · {count} nouvelle(s) photo(s)",
+  "@vmZoneRevisionSummary": {
+    "placeholders": {
+      "revision": { "type": "int" },
+      "count": { "type": "int" }
+    }
+  },
   "vmNoGuidelineForCampaign": "Aucune guideline disponible pour cette campagne.",
   "vmSelectGuidelineTitle": "Sélectionner un guideline",
   "vmGuidelineNumberedFallback": "Guideline {index}",
@@ -549,5 +562,17 @@
   "aboutApplication": "Application",
   "aboutVersion": "Version",
   "aboutBuild": "Build",
-  "aboutCopyHint": "Appuyez pour copier la version"
+  "aboutCopyHint": "Appuyez pour copier la version",
+  "notApplicableAnswer": "Non applicable",
+  "notApplicableExcluded": "Exclue du calcul de conformité",
+  "justificationCommentRequired": "Un commentaire est obligatoire pour cette réponse.",
+  "justificationPhotoRequired": "Une photo est obligatoire pour cette réponse.",
+  "justificationCommentAndPhotoRequired": "Un commentaire et une photo sont obligatoires pour cette réponse.",
+  "declarationsTitle": "Déclarations",
+  "declaredTimes": "Déclaré {count} fois",
+  "initialDeclaration": "Déclaration initiale",
+  "redeclaration": "Redéclaration",
+  "openIncidentBanner": "Incident déjà ouvert depuis le {date} (déclaré {count} fois). Votre déclaration sera ajoutée à son historique.",
+  "@declaredTimes": {"placeholders": {"count": {"type": "int"}}},
+  "@openIncidentBanner": {"placeholders": {"date": {"type": "String"}, "count": {"type": "int"}}}
 }

@@ -14,6 +14,8 @@ import 'package:supervisormobile/features/calendar/models/questionMissionModel.d
 import 'package:supervisormobile/features/calendar/models/actionsModel.dart';
 import 'package:supervisormobile/features/calendar/models/incidentTypeModel.dart';
 import 'package:supervisormobile/features/calendar/models/departement.dart';
+import 'package:supervisormobile/features/calendar/models/choixReponseQuestion.dart';
+import 'package:supervisormobile/features/calendar/models/justificationRules.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/captureImageScreen.dart';
 import 'package:supervisormobile/features/calendar/screens/widgets/questionResponse.dart';
 import 'package:supervisormobile/features/calendar/services/missionService.dart';
@@ -60,17 +62,27 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   bool _isLoading = false;
   IncidentType? _selectedIncidentType;
   Departement? _selectedDepartement;
+  JustificationRules _rules = const JustificationRules();
 
   void updateQuestion() async {
+    final question = await _questionFuture;
+    final updatedComment = _isEditingComment ? _commentController.text : question.commentaire;
+
+    // Comment / photo required by the parameters for incident or "non applicable" answers
+    final missing = _rules.missingJustification(context, question.choixReponseQuestion,
+        hasComment: (updatedComment ?? '').trim().isNotEmpty,
+        hasPhoto: (question.fileName ?? '').isNotEmpty || (_imageFiles?.isNotEmpty ?? false));
+    if (missing != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(missing)));
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       String? imageName;
       String? fileName;
 
-      final question = await _questionFuture;
-
-      final updatedComment = _isEditingComment ? _commentController.text : question.commentaire;
       final updatedActionId = _isActionDropdownVisible && _selectedAction != null ? _selectedAction!.id : question.actionId;
 
       question.commentaire = updatedComment;
@@ -120,6 +132,19 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
       setState(() {
         _questionFuture = MissionService().getQuestionDetails(widget.questionId);
       });
+    } on QuestionUpdateException catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: AwesomeSnackbarContent(
+            title: AppLocalizations.of(context)!.error,
+            message: error.message,
+            contentType: ContentType.failure,
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+      );
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -146,6 +171,9 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   @override
   void initState() {
     super.initState();
+    MissionService().getJustificationRules().then((rules) {
+      if (mounted) setState(() => _rules = rules);
+    });
     _questionFuture = MissionService().getQuestionDetails(widget.questionId);
     _actionsFuture = MissionService().getActions();
     _incidentTypesFuture = MissionService().getIncidentTypes();
@@ -294,13 +322,13 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
   }
 
 
-  Future<Map<String, dynamic>?> _showResponseEditDialog(
+  Future<ChoixReponseQuestion?> _showResponseEditDialog(
       int modeleReponse, int questionId) async {
     // Fetch the list of choices from the service
     var _listChoixReponse =
     await MissionService().getAllChoixReponse(modeleReponse);
 
-    return await showDialog<Map<String, dynamic>>(
+    return await showDialog<ChoixReponseQuestion>(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
@@ -312,18 +340,16 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                   children: _listChoixReponse.map<Widget>((choix) {
                     return ListTile(
                       leading: Text(
-                        choix.valeur.toString(),
+                        choix.notApplicable ? 'N/A' : choix.valeur.toString(),
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       title: Text(choix.libelle ?? AppLocalizations.of(context)!.noLabel),
+                      subtitle: choix.notApplicable
+                          ? Text(AppLocalizations.of(context)!.notApplicableExcluded)
+                          : null,
                       onTap: () {
-                        // Return selected choice details
-                        Navigator.of(context).pop({
-                          'id': choix.id,
-                          'libelle': choix.libelle,
-                          'valeur': choix.valeur,
-                          'color':choix.color
-                        });
+                        // Return the selected choice
+                        Navigator.of(context).pop(choix);
                       },
                     );
                   }).toList(),
@@ -430,19 +456,23 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          '${question.choixReponseQuestion!.valeur ?? AppLocalizations.of(context)!.noResponse}',
+                                          question.choixReponseQuestion == null
+                                              ? AppLocalizations.of(context)!.noResponse
+                                              : question.choixReponseQuestion!.notApplicable
+                                                  ? AppLocalizations.of(context)!.notApplicableAnswer
+                                                  : '${question.choixReponseQuestion!.valeur}',
                                           style: TextStyle(
                                             fontSize: 16.0,
-                                            color: hexToColor(question.choixReponseQuestion!.color),
+                                            color: hexToColor(question.choixReponseQuestion?.color),
                                           ),
                                         ),
                                       ),
                                       Expanded(
                                         child: Text(
-                                          '${question.choixReponseQuestion!.libelle ?? AppLocalizations.of(context)!.noResponse}',
+                                          '${question.choixReponseQuestion?.libelle ?? AppLocalizations.of(context)!.noResponse}',
                                           style: TextStyle(
                                             fontSize: 16.0,
-                                            color: hexToColor(question.choixReponseQuestion!.color),
+                                            color: hexToColor(question.choixReponseQuestion?.color),
                                           ),
                                         ),
                                       ),
@@ -452,10 +482,12 @@ class _EditQuestionResponseState extends State<EditQuestionResponse> {
                                           var selectedChoice = await _showResponseEditDialog(widget.modeleReponseId, question.id);
                                           if (selectedChoice != null) {
                                             setState(() {
-                                              question.reponseID = selectedChoice['id'];
-                                              question.choixReponseQuestion!.libelle = selectedChoice['libelle'];
-                                              question.choixReponseQuestion!.valeur = selectedChoice['valeur'];
-                                              question.choixReponseQuestion!.color = selectedChoice['color'];
+                                              question.reponseID = selectedChoice.id;
+                                              // Must follow the choice: the weighted conformity uses it
+                                              question.selectedResponseValue = selectedChoice.valeur;
+                                              question.choixReponseQuestion = selectedChoice;
+                                              question.notApplicable = selectedChoice.notApplicable;
+                                              question.incident = selectedChoice.incident && !selectedChoice.notApplicable;
                                             }); // Refresh the UI
                                           }
                                         },                                      ),

@@ -23,6 +23,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 
+
+// TESTING ONLY: lets future missions be opened from the calendar.
+// Set back to false before building a release for users.
+const bool kAllowFutureMissionsForTesting = true;
+
 class CalendarPlanning extends StatefulWidget {
   const CalendarPlanning({super.key});
 
@@ -816,8 +821,11 @@ class _CalendarPlanningState extends State<CalendarPlanning> {
                               final now = DateTime.now();
                               final today = DateFormat('yyyy-MM-dd').format(now);
                               final missionDate = DateFormat('yyyy-MM-dd').format(mission.planifiedAt!);
+                              // TESTING ONLY: future missions can be opened (see kAllowFutureMissionsForTesting)
+                              final isFutureAllowed = kAllowFutureMissionsForTesting &&
+                                  missionDate.compareTo(today) > 0;
 
-                              if (today != missionDate) {
+                              if (today != missionDate && !isFutureAllowed) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(AppLocalizations.of(context)!.cannotManageThisMission),
