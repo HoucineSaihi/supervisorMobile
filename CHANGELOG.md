@@ -4,8 +4,14 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Ver
 
 ## [Non publié]
 
+## [3.5.0] - 2026-10-30
+
 ### Ajouté
 - Écran « À propos » (Profil) affichant le nom de l'application, la version et le numéro de build installés, avec copie de `version+build`.
+
+### Notes
+- Version alignée avec le web et le backend (module Store Performance, front-end uniquement). Aucun changement fonctionnel côté mobile pour ce module.
+- Numéro de build inchangé (`+2`) : aucun binaire n'a quitté la machine depuis la dernière livraison.
 
 ## [3.3.0] - 2026-10-08
 
