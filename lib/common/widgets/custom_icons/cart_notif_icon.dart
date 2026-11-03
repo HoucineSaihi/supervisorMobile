@@ -5,11 +5,16 @@ import 'package:supervisormobile/utils/constants/colors.dart';
 class TCartCounterIcon extends StatefulWidget {
   const TCartCounterIcon({
     super.key,required this.onPressed, required this.iconColor, this.unreadCount = 0,
+    this.notificationsOff = false,
   });
 
   final VoidCallback onPressed;
   final Color iconColor;
   final int unreadCount;
+
+  /// The OS is blocking notifications: flags the bell so the user can tell why
+  /// nothing arrives. The unread badge takes the spot when there is one.
+  final bool notificationsOff;
 
   @override
   State<TCartCounterIcon> createState() => _TCartCounterIconState();
@@ -85,6 +90,20 @@ class _TCartCounterIconState extends State<TCartCounterIcon>
                   widget.unreadCount > 9 ? '9+' : '${widget.unreadCount}',
                   style: Theme.of(context).textTheme.labelLarge!.apply(color:TColors.white,fontSizeFactor: 0.65),
                 ),
+              ),
+            ),
+          )
+        else if (widget.notificationsOff)
+          Positioned(
+            right: 10,
+            top: 10,
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: TColors.warning,
+                shape: BoxShape.circle,
+                border: Border.all(color: TColors.white, width: 1.5),
               ),
             ),
           )

@@ -4,7 +4,7 @@ import 'package:supervisormobile/interceptors/accept_language_interceptor.dart';
 import 'package:supervisormobile/interceptors/auth_interceptor.dart';
 
 class DioService {
-  static const String _baseUrl = 'http://172.28.3.180:7070';
+  static const String _baseUrl = 'http://149.202.58.46:7070';
 
   static final Dio dio = Dio(
     BaseOptions(

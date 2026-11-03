@@ -9,8 +9,9 @@ import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'features/VisualMerchandising/campaign_screen.dart';
-import 'features/communication/controllers/messenger_controller.dart';
-import 'features/communication/screens/conversations_list_screen.dart';
+// Communication/Smart Messenger tab is hidden for now — see NavigationMenu below.
+// import 'features/communication/controllers/messenger_controller.dart';
+// import 'features/communication/screens/conversations_list_screen.dart';
 
 class NavigationMenu extends StatelessWidget {
   const NavigationMenu({super.key});
@@ -18,18 +19,20 @@ class NavigationMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(NavigationController());
-    // Bring the realtime channel up once for the whole app, so notifications arrive
-    // on any tab — not only while the Messages tab is open. Permanent so it survives
-    // tab switches and owns the single shared SignalR connection.
-    //
-    // Guarded by isRegistered: build() re-runs on every tab tap (the bar below is
-    // wrapped in Obx), and `Get.put(MessengerController())` would construct a fresh
-    // controller each time. GetX discards the duplicate without ever calling its
-    // onInit, so the throwaway instance's streams leak and no load ever fires.
-    if (!Get.isRegistered<MessengerController>()) {
-      Get.put(MessengerController(), permanent: true);
-    }
-    final messenger = Get.find<MessengerController>();
+    // Communication/Smart Messenger tab is hidden for now (client build without
+    // this module). Commented out instead of removed so it's easy to re-enable.
+    // // Bring the realtime channel up once for the whole app, so notifications arrive
+    // // on any tab — not only while the Messages tab is open. Permanent so it survives
+    // // tab switches and owns the single shared SignalR connection.
+    // //
+    // // Guarded by isRegistered: build() re-runs on every tab tap (the bar below is
+    // // wrapped in Obx), and `Get.put(MessengerController())` would construct a fresh
+    // // controller each time. GetX discards the duplicate without ever calling its
+    // // onInit, so the throwaway instance's streams leak and no load ever fires.
+    // if (!Get.isRegistered<MessengerController>()) {
+    //   Get.put(MessengerController(), permanent: true);
+    // }
+    // final messenger = Get.find<MessengerController>();
     final darkMode = THelperFunctions.isDarkMode(context);
 
     return Scaffold(
@@ -73,10 +76,11 @@ class NavigationMenu extends StatelessWidget {
             ),
 
             // ── Smart Messenger (Phase G) ────────────────
-            NavigationDestination(
-              icon: Obx(() => _MessagesIcon(unread: messenger.unreadNotifications.value)),
-              label: 'Messages',
-            ),
+            // Hidden for now (client build without the Communication module).
+            // NavigationDestination(
+            //   icon: Obx(() => _MessagesIcon(unread: messenger.unreadNotifications.value)),
+            //   label: 'Messages',
+            // ),
 
             NavigationDestination(
               icon: const Icon(Iconsax.user),
@@ -93,57 +97,61 @@ class NavigationMenu extends StatelessWidget {
   }
 }
 
-/// Message-tab icon with an unread badge overlaid in the corner.
-class _MessagesIcon extends StatelessWidget {
-  final int unread;
-  const _MessagesIcon({required this.unread});
-
-  @override
-  Widget build(BuildContext context) {
-    if (unread <= 0) return const Icon(Iconsax.message);
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        const Icon(Iconsax.message),
-        Positioned(
-          right: -6,
-          top: -4,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-            constraints: const BoxConstraints(minWidth: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE53935),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: Colors.white, width: 1.5),
-            ),
-            child: Text(
-              unread > 99 ? '99+' : '$unread',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                height: 1.1,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
+// Message-tab icon with an unread badge overlaid in the corner.
+// Hidden for now along with the Messages destination above.
+// class _MessagesIcon extends StatelessWidget {
+//   final int unread;
+//   const _MessagesIcon({required this.unread});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     if (unread <= 0) return const Icon(Iconsax.message);
+//     return Stack(
+//       clipBehavior: Clip.none,
+//       children: [
+//         const Icon(Iconsax.message),
+//         Positioned(
+//           right: -6,
+//           top: -4,
+//           child: Container(
+//             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+//             constraints: const BoxConstraints(minWidth: 16),
+//             decoration: BoxDecoration(
+//               color: const Color(0xFFE53935),
+//               borderRadius: BorderRadius.circular(999),
+//               border: Border.all(color: Colors.white, width: 1.5),
+//             ),
+//             child: Text(
+//               unread > 99 ? '99+' : '$unread',
+//               textAlign: TextAlign.center,
+//               style: const TextStyle(
+//                 color: Colors.white,
+//                 fontSize: 10,
+//                 fontWeight: FontWeight.w700,
+//                 height: 1.1,
+//               ),
+//             ),
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+// }
 
 class NavigationController extends GetxController {
   var selectedIndex = 0.obs;
 
-  /// Index of the Smart Messenger destination in [screens].
-  static const int messagesTabIndex = 3;
+  // Smart Messenger tab is hidden for now (client build without the
+  // Communication module). Commented out instead of removed so it's easy to
+  // re-enable — restore this alongside the NavigationDestination above.
+  // /// Index of the Smart Messenger destination in [screens].
+  // static const int messagesTabIndex = 3;
 
   final List<Widget> screens = [
     const CalendarPlanning(),
     AllIncidentsWidget(),
     const CampaignScreen(), // ← nouveau
-    const ConversationsListScreen(), // ← Smart Messenger
+    // const ConversationsListScreen(), // ← Smart Messenger (hidden for now)
     ProfileInfo(),
   ];
 
@@ -153,8 +161,8 @@ class NavigationController extends GetxController {
     // rebuilt from scratch on tab entry and would otherwise show whatever the
     // single startup load left behind — including nothing, if that load failed.
     // Refresh silently so the existing list stays visible while it revalidates.
-    if (index == messagesTabIndex && Get.isRegistered<MessengerController>()) {
-      Get.find<MessengerController>().loadConversations(silent: true);
-    }
+    // if (index == messagesTabIndex && Get.isRegistered<MessengerController>()) {
+    //   Get.find<MessengerController>().loadConversations(silent: true);
+    // }
   }
 }

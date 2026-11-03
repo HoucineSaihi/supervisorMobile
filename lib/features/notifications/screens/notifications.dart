@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:supervisormobile/features/notifications/dtos/notification_dto.dart';
 import 'package:supervisormobile/features/notifications/notification_controller.dart';
+import 'package:supervisormobile/features/notifications/widgets/notification_permission_banner.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -54,30 +55,37 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           ],
         ),
       ),
-      body: Obx(() {
-        if (controller.isLoading.value && controller.notifications.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        return TabBarView(
-          controller: _tabController,
-          children: [
-            _NotificationList(
-              items: controller.unread,
-              emptyText: l10n.notifEmptyUnread,
-              onRefresh: controller.loadNotifications,
-              onMarkRead: controller.markRead,
-              showMarkReadButton: true,
-            ),
-            _NotificationList(
-              items: controller.archived,
-              emptyText: l10n.notifEmptyArchived,
-              onRefresh: controller.loadNotifications,
-              onMarkRead: controller.markRead,
-              showMarkReadButton: false,
-            ),
-          ],
-        );
-      }),
+      body: Column(
+        children: [
+          const NotificationPermissionBanner(),
+          Expanded(
+            child: Obx(() {
+              if (controller.isLoading.value && controller.notifications.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return TabBarView(
+                controller: _tabController,
+                children: [
+                  _NotificationList(
+                    items: controller.unread,
+                    emptyText: l10n.notifEmptyUnread,
+                    onRefresh: controller.loadNotifications,
+                    onMarkRead: controller.markRead,
+                    showMarkReadButton: true,
+                  ),
+                  _NotificationList(
+                    items: controller.archived,
+                    emptyText: l10n.notifEmptyArchived,
+                    onRefresh: controller.loadNotifications,
+                    onMarkRead: controller.markRead,
+                    showMarkReadButton: false,
+                  ),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:supervisormobile/common/widgets/appbar/appbar.dart';
 import 'package:supervisormobile/common/widgets/custom_icons/cart_notif_icon.dart';
 import 'package:supervisormobile/features/notifications/notification_controller.dart';
+import 'package:supervisormobile/features/notifications/notification_permission_controller.dart';
 import 'package:supervisormobile/features/notifications/screens/notifications.dart';
 import 'package:supervisormobile/utils/constants/colors.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -19,6 +20,7 @@ class _THomeAppBarState extends State<THomeAppBar> {
   final _storage = FlutterSecureStorage();
   String _currentUserName = '';
   late final NotificationController _notificationController;
+  late final NotificationPermissionController _permissionController;
 
   @override
   void initState() {
@@ -28,6 +30,12 @@ class _THomeAppBarState extends State<THomeAppBar> {
         ? Get.find<NotificationController>()
         : Get.put(NotificationController(), permanent: true);
     _notificationController.loadNotifications();
+    _permissionController = NotificationPermissionController.ensure();
+    // Once the home screen is on screen, offer to turn notifications on if the
+    // phone is blocking them (rate-limited inside the controller).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _permissionController.promptIfNeeded(context);
+    });
   }
 
   Future<void> _loadAuthToken() async {
@@ -61,6 +69,7 @@ class _THomeAppBarState extends State<THomeAppBar> {
               ),
               iconColor: TColors.white,
               unreadCount: _notificationController.unreadCount.value,
+              notificationsOff: !_permissionController.isEnabled.value,
             )),
       ],
     );
